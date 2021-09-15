@@ -1,0 +1,51 @@
+---
+title: "deseq"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+# add libraries
+library("DESeq2")
+
+# Read count matrix
+countdata <- read.table("/data/.../counts.tsv", header=TRUE, check.names = TRUE)
+
+# Read smaplesheet , detects conditions, generate the formula
+sampleInfo <- read.table("/data/.../samplehseet.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F)
+sampleInfo$genotype <- as.factor(sampleInfo$genotype)
+sampleInfo$treatment <- as.factor(sampleInfo$treatment)
+# build the matrix
+d<-as.formula(~condition + treatment + condition:treatment)
+dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInfo, design =d)
+
+#estimate size factor
+dds <- estimateSizeFactors(dds)
+
+dds <- DESeq(dds)
+
+
+# gene-wise dispersion
