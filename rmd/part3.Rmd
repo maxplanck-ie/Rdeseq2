@@ -39,9 +39,7 @@ sampleInfo$txType <- as.factor(sampleInfo$txType)
 # Different steps in a differential expression analysis:
 
 ```{r build the matrix, message=FALSE, warning=FALSE}
-print(head(countdata))
 d<-as.formula(~cellType + txType + cellType:txType)
-print(d)
 dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInfo, design =d)
 ```
 
