@@ -11,14 +11,15 @@ output: html_document
 
 After the course you will be able to
 
-* understand bioinformatics workflow: data input and output
-* perform quality control
+* understand bioinformatics workflows: data input $\to$ output
+* perform and understand quality controls
 * visualize data and results
 * apply complex experimental designs
 * obtain differential genes
 * share workflows with notebook
 
 ***
+
 # Prerequistites
 * R introdcution: data formats, functions, help, plotting, work with packages
 * account for rstudio.ie-freiburg.mpg.de
