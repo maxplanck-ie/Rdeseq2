@@ -1,43 +1,38 @@
 ---
 title: "DESeq2 Analysis with R: Description"
-author: "Thomas Manke"
-date: "`r date() `"
+author: "Bioinfo-Core @ MPI-IE Freiburg"
+#date: "`r date() `"
 output: html_document
 ---
 
 # Goals: 
-The analysis of differential gene expression is a very common task for which many 
+The analysis of differential gene expression is a very common task, for which many 
 advanced software packages have been developed. 
-At the example of DESeq, we will introduce common analyses and strategies to conduct this analysis using R.
+At the example of DESeq2, we will introduce common analysis strategies to conduct gene expression analysis using R.
 The following topics will be covered:
 
-- Obtaining and Loading Expression Data (RNA-seq)
+- Obtaining and Loading Expression Data
 - Understanding Data, Metadata and Design
-- Data Exploration and Quality Control
+- Data Exploration and Quality Controls
 - Data Filtering and Normalizations
-- DESeq2: Input and Output
+- DESeq2 Workflow
 - Defining Contrasts and Calling Differential Genes
-- Visualization and Sharing
-- Notebooks: Documenting analysis
+- Data Visualization 
+- Documenting Analyses with Notebooks
 
 
 # Requirements:
-We will use
-* basic R introdcution: data formats, functions, help, plotting, work with packages
 
-Example material: https://github.com/maxplanck-ie/Rintro
+* **basic R understanding**: Introductory material has been covered by a previous course: https://github.com/maxplanck-ie/Rintro
 
-* an account for rstudio.ie-freiburg.mpg.de
+* an **account for rstudio.ie-freiburg.mpg.de**: We will use the Rstudio server at the MPI-IE. If you do not have an account yet, you will need to request an account from core-IT. Please do so well before the course starts.
 
-* Know your keyboard!
-
-Special characters will be needed throughout the course, e.g.
-$ , | , [, ], {, }, >, <, #, ~, &, ^, %, !, ?
+* **Know your keyboard!** Special characters will be needed throughout the course, e.g. $ , | , [, ], {, }, >, <, #, ~, &, ^, %, !, ?
 
 
-Course language: English
+# Course language: English
 
-Maximal Number of Participants: 15
+# Maximal Number of Participants: 15
 
 
 ***
