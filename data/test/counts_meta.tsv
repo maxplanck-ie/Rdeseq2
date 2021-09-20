@@ -1,0 +1,13 @@
+sample	cellType	status
+Young_HSC_1	HSC	Young
+Young_HSC_2	HSC	Young
+Young_MPP1_1	MPP1	Young
+Young_MPP1_2	MPP1	Young
+Young_MPP2_1	MPP2	Young
+Young_MPP2_2	MPP2	Young
+Aged_HSC_1	HSC	Aged
+Aged_HSC_2	HSC	Aged
+Aged_MPP1_1	MPP1	Aged
+Aged_MPP1_2	MPP1	Aged
+Aged_MPP2_1	MPP2	Aged
+Aged_MPP2_2	MPP2	Aged
