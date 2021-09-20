@@ -1,0 +1,6 @@
+# obtain GSE95077_RAW.tar from GEO
+tar xvf GSE95077_RAW.tar 
+
+# create metadata sampleTable.csv 
+ls *gz | awk -F "_" 'BEGIN{OFS = ","} {print $1, "../data/"$0, $3}' > sampleTable.csv
+ls *gz | awk -F "_" 'BEGIN{OFS = ","} {print $1, "../data/"$0, $3, $2}' > sampleTable2.csv

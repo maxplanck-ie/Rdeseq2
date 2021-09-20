@@ -1,0 +1,131 @@
+---
+title: "DESeq2 Analysis with R: Part 01"
+author: "Thomas Manke"
+date: "`r date() `"
+output:
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    df_print: paged
+---
+# Preparation
+
+## Get Story
+Purpose: https://pubmed.ncbi.nlm.nih.gov/28790111/
+
+## Get Data
+GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077
+
+## Get Tools
+CRAN or Bioconductor
+
+```{r installation, eval=FALSE}
+BiocManager::install("DESeq2")
+install.packages("tidyverse")
+install.packages("pheatmap")
+```
+
+```{r load}
+#.libPaths("/new/location/")     # set if libs are not in default location
+library(DESeq2)
+library(pheatmap)
+library(tidyverse)
+```
+
+
+## Import Data and Metadata
+```{r import}
+fm <- "../data/sampleTable2.csv"  # file with metadata
+sampleTable <- read.csv(fm, header=FALSE)
+colnames(sampleTable)=c("name","filename", "condition","celltype")   # specifications for DESeqDataSetFromHTSeqCount
+
+# categorical variables --> "factors"
+sampleTable$condition = as.factor(sampleTable$condition)
+sampleTable$celltype  = as.factor(sampleTable$celltype)
+```
+
+## Define Design
+
+```{r design}
+my_design <- ~ condition 
+my_design <- ~ condition + celltype            # !convention! last factor is condition of interest
+model.matrix(my_design, data=sampleTable)
+```
+
+# Create DESeq2 object
+dds = data + metadata + design
+
+```{r combine}
+# imports data, assigns metadata and design
+dds <- DESeqDataSetFromHTSeqCount(sampleTable, directory = ".", design = my_design)
+
+### Alternatives:
+#txi <- tximport(files, type="salmon", tx2gene=t2g, countsFromAbundance = "lengthScaledTPM")
+#dds <- DESeqDataSetFromTximport(txi, colData = sample.table, design = my_desig)
+#dds <- DESeqDataSetFromMatrix(matrix, colData=sample.table, design= my_design)
+
+### Precompiled Data sets: just specify design
+#library("airway")
+#data("airway")
+#DESeqDataSet(airway, design = ~ cell + dex)
+```
+
+# Data Exploration
+
+## Look at the (raw) data!
+
+- Data Structure, 
+- Entries, Visualization
+- Correlations
+
+```{r explore1}
+# Data Structure
+dds                                                 # dds object --> inspect: str(dds), dim(dds)
+M <- counts(dds)                                    # get gene-sample matrix --> inspect
+
+# subsample for inspection
+Mr = M %>% head(10)                                 # just the first
+#Mr = M %>% data.frame() %>% sample_n(10)           # random rows -> task
+
+# visualize
+pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, main="First glimpse")
+
+# add metadata (annotations)
+ann = data.frame(colData(dds))                     # create annotation data frame for pheatmap
+ann$seq_depth=colSums(counts(dds))/1e6             # add further annotations: here sequencing depth
+pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, annotation=ann, main="Data + Metadata")
+
+# transform data
+pheatmap(log2(Mr+1), cluster_rows=FALSE, cluster_cols=FALSE, annotation=ann, main="Transformed data (log2)")
+
+# genome-wide correlations
+C <- cor(M)                                        # get sample-sample correlations: other correlations
+pheatmap(C, annotation = ann)
+```
+
+## Simple transformation
+https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/03_DGE_QC_analysis.html (80min)
+
+```{r explore_trans}
+rld <- rlog(dds)                            # transform to account for seq.depth=lib.size --> str(rld)
+Mt <- assay(rld)                            # extract transformed matrix
+
+pheatmap(Mt %>% head(15), annotation=ann)   # clustering is not very informative on first 15 genes
+
+pheatmap(cor(Mt), annotation = ann)         # genome-wide correlation matrix --> notice high correlation (most genes unaffected)
+plotPCA(rld, intgroup="condition")          # PCA --> which factor explains the separation? --> celltype
+```
+
+
+
+
+
+
+
+
+
+
+
+
