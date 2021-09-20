@@ -1,29 +1,47 @@
 ---
-title: "deseq"
-output: html_document
+title: "deseq2"
+output:
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    df_print: paged
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r installation, eval=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("DESeq2")
+install.packages("tidyverse")
 ```
-
-
 # add libraries
+```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
 library("DESeq2")
+```
+# Get the data directroy
+```{r Get the data directroy, message=FALSE, warning=FALSE}
+setwd("/data/processing1/leily/r_course/Rdeseq2/")
+data_dir <- paste(getwd(), "data", "qc", sep = .Platform$file.sep)
+#print(data_dir)
 
 # Read count matrix
-countdata <- read.table("/data/.../counts.tsv", header=TRUE, check.names = TRUE)
+countdata <- read.table(paste(data_dir,"counts_qc.tsv", sep = "/"), header=TRUE, check.names = TRUE)
+#head(countdata)
 
 # Read smaplesheet , detects conditions, generate the formula
-sampleInfo <- read.table("/data/.../samplehseet.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F)
-sampleInfo$genotype <- as.factor(sampleInfo$genotype)
-sampleInfo$treatment <- as.factor(sampleInfo$treatment)
+sampleInfo <- read.table(paste(data_dir,"counts_qc_meta.tsv", sep = "/"), header=TRUE, check.names = TRUE, stringsAsFactor = F)
+sampleInfo$cellType <- as.factor(sampleInfo$cellType)
+sampleInfo$txType <- as.factor(sampleInfo$txType)
+#head(sampleInfo)
+```
 
 # Different steps in a differential expression analysis:
 
-# build the matrix
-d<-as.formula(~condition + treatment + condition:treatment)
+```{r build the matrix, message=FALSE, warning=FALSE}
+d<-as.formula(~cellType + txType + cellType:txType)
 dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInfo, design =d)
+```
 
 # deseq analysis
 #dds <- DESeq(dds)
