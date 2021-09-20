@@ -18,22 +18,43 @@ countdata <- read.table("/data/.../counts.tsv", header=TRUE, check.names = TRUE)
 sampleInfo <- read.table("/data/.../samplehseet.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F)
 sampleInfo$genotype <- as.factor(sampleInfo$genotype)
 sampleInfo$treatment <- as.factor(sampleInfo$treatment)
+
+# Different steps in a differential expression analysis:
+
 # build the matrix
 d<-as.formula(~condition + treatment + condition:treatment)
 dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInfo, design =d)
 
-#estimate size factor
-dds <- estimateSizeFactors(dds)
+# deseq analysis
+#dds <- DESeq(dds)
 
+#estimate size factor
+# DESeq2 will automatically estimate the size factors when performing the differential expression analysis. However, if estimateSizeFactors() is called, then DESeq2 will use these values.
+# To normalize the count data, DESeq2 calculates size factors for each sample using the "median of ratios" method.
+
+dds <- estimateSizeFactors(dds)
+sizeFactors(dds)
+
+# alternative1 deseq analysis
+# dds <- DESeq(dds)
+
+# Find the relation between the size factors and the values of the columns:
+colSums(counts(dds))
+
+#the larger size factors correspond to the samples with higher sequencing depth. To generate the normalized counts we need to divide the counts by the size factors. 
+# This accounts for the differences in sequencing depth between samples.
+
+# compare the raw sum with the normalised ones:
+colSums(counts(dds, normalized=T))
+
+# The importance of dispersion during differential expression analysis
 
 # gene-wise dispersion
-
 dds <- estimateDispersions(dds)
 
+#visualise dispersion
 plotDispEsts(dds)
 
-# deseq object
-dds <- DESeq(dds)
 
 #steps required to generate a results table for pairwise comparisons (Wald test)
 
@@ -53,6 +74,13 @@ View()
 
 # to get the coef name check resultsNames(dds)
 res_shrink <- lfcShrink(dds, coef="...", type="apeglm")
+
+
+#MA plot
+
+plotMA(res, ylim=c(-2,2))
+plotMA(res_shrink, ylim=c(-2,2))
+
 
 # summary
 summary(res_tableOE, alpha = 0.05)
