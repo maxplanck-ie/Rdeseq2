@@ -25,7 +25,34 @@ dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInf
 #estimate size factor
 dds <- estimateSizeFactors(dds)
 
-dds <- DESeq(dds)
-
 
 # gene-wise dispersion
+
+dds <- estimateDispersions(dds)
+
+plotDispEsts(dds)
+
+# deseq object
+dds <- DESeq(dds)
+
+#steps required to generate a results table for pairwise comparisons (Wald test)
+
+# make a pairwise comparison (using contrast)
+resultsNames(dds) # to see what names to use
+contrast <- list(resultsNames(dds)[1], resultsNames(dds)[2])
+
+#If there is only two factor levels, There is no need to  specify contrasts,
+#DESeq2 will choose the base factor level based on alphabetical order of the levels.
+
+res <- results(dds, contrast = contrast, alpha = 0.05)
+
+# What is in the res?
+res %>% 
+data.frame() %>% 
+View()
+
+# to get the coef name check resultsNames(dds)
+res_shrink <- lfcShrink(dds, coef="...", type="apeglm")
+
+# summary
+summary(res_tableOE, alpha = 0.05)
