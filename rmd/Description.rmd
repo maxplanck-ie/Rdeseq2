@@ -1,0 +1,46 @@
+---
+title: "DESeq2 Analysis with R: Description"
+author: "Thomas Manke"
+date: "`r date() `"
+output: html_document
+---
+
+# Goals: 
+The analysis of differential gene expression is a very common task for which many 
+advanced software packages have been developed. 
+At the example of DESeq, we will introduce common analyses and strategies to conduct this analysis using R.
+The following topics will be covered:
+
+- Obtaining and Loading Expression Data (RNA-seq)
+- Understanding Data, Metadata and Design
+- Data Exploration and Quality Control
+- Data Filtering and Normalizations
+- DESeq2: Input and Output
+- Defining Contrasts and Calling Differential Genes
+- Visualization and Sharing
+- Notebooks: Documenting analysis
+
+
+# Requirements:
+We will use
+* basic R introdcution: data formats, functions, help, plotting, work with packages
+
+Example material: https://github.com/maxplanck-ie/Rintro
+
+* an account for rstudio.ie-freiburg.mpg.de
+
+* Know your keyboard!
+
+Special characters will be needed throughout the course, e.g.
+$ , | , [, ], {, }, >, <, #, ~, &, ^, %, !, ?
+
+
+Course language: English
+
+Maximal Number of Participants: 15
+
+
+***
+
+
+
