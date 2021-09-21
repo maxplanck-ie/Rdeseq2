@@ -26,11 +26,14 @@ BiocManager::install("DESeq2")
 BiocManager::install("apeglm")
 install.packages("tidyverse")
 install.packages("dplyr")
+install.packages("ggrepel")
 ```
 # add libraries
 ```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
 library("DESeq2")
 library("dplyr")
+library("ggplot2")
+library("ggrepel")
 ```
 # Get the data directroy
 ```{r Get the data directroy, message=FALSE, warning=FALSE}
@@ -153,9 +156,22 @@ head(res_sig_sorted)
 ```{r visualisation, message=FALSE, warning=FALSE}
 # plot a single gene
 plotCounts(dds, gene = "ENSG00000164062", intgroup = "cellType")
+# To see the data underneath the figure
+d <- plotCounts(dds, gene = "ENSG00000164062", intgroup = "cellType", returnData=TRUE)
+d %>% View()
+# can be used for ggplot
+ggplot(d, aes(x = cellType, y = count, color = cellType)) + 
+    geom_point(position=position_jitter(w = 0.1,h = 0)) +
+    geom_text_repel(aes(label = rownames(d))) + 
+    theme_bw() +
+    ggtitle("ENSG00000164062") +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+```{r heatmap, message=FALSE, warning=FALSE}
 
 
 ```
+
 #Likelihood ratio test
 ```{r lrt, message=FALSE, warning=FALSE}
 
