@@ -1,0 +1,71 @@
+---
+title: "DESeq2 Analysis with R: Part 00"
+author: "Thomas Manke"
+date: "`r date() `"
+output: html_document
+---
+
+# Goals: 
+
+<!-- ![Typical examples from R.](../images/DESeq2_workflow.png) -->
+
+After the course you will be able to
+
+* understand bioinformatics workflows: data input $\to$ output
+* perform and understand quality controls
+* visualize data and results
+* apply complex experimental designs
+* obtain differential genes
+* share workflows with notebook
+
+***
+
+# Prerequistites
+* R introdcution: data formats, functions, help, plotting, work with packages
+* account for rstudio.ie-freiburg.mpg.de
+* Patience
+
+***
+
+# Credits
+There is lots of useful material out there. This course is heavily influenced by those tutorials
+
+ * https://hbctraining.github.io/DGE_workshop_salmon_online/
+ * http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html
+
+***
+
+# Overview
+
+## Part I: Getting and understanding the data
+
+* Bioinformatic Workflows
+* R-Repetition
+* Data, Metadata and Design
+* Experimental Design: seq. depth and replication
+* Data Exploration
+* Quality Control
+
+
+## Part II: Data Transformations and Model
+* Filtering (Genes & Samples)
+* Quality Control
+* Data Transformations and Normalization
+* Size Factors
+* Modeling Count Data
+* (Over) Dispersion
+* Running DESeq2
+
+## Part III: Differentially Expressed Genes
+* Contrasts
+* Hypothesis tests: Wald test
+* Inspecting, Visualization
+* shrinkage
+* Exporting results
+* Multifactorial Designs
+* (Timecourse Analysis)
+
+***
+
+
+
