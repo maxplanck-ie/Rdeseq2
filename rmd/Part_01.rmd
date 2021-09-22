@@ -377,7 +377,7 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
 
 **Tasks / Homework** 
 
-1. Observe and interprete the PCA plot? 
+1. Observe and interprete the PCA plot. 
 2. Which factor explains the separation?
 3. Can we go ahead with analysis
 4. Optional: 
