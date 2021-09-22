@@ -12,12 +12,12 @@ output:
 ---
 # Preparation
 
-## Get Story
+## Get Story (5min)
 Purpose: https://pubmed.ncbi.nlm.nih.gov/28790111/
 
 ***
 
-## Get Tools
+## Get Tools (15min)
 
 **Warmup Tasks**:
 
@@ -76,7 +76,7 @@ In case of doubt, use package name explicitly: e.g. stats::sd()
 
 ***
 
-## Get Data
+## Get Data (30 min)
 GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077
 
 In principle, you can download the data from GEO but we have already prepared the data in a convenient format
@@ -123,7 +123,11 @@ metadata$celltype  = as.factor(metadata$celltype)
 
 **Question**: What is a factor?
 
-## Define Design
+***
+# Break (10 min)
+***
+
+## Define Design (15 min)
 For each gene, the data matrix contains a vector of counts ($y$) which depends on the vector of samples ($x$)
 
 ```{r gene_plot, echo=FALSE}
@@ -174,15 +178,21 @@ my_design <- ~ condition
 ```
 
 
-### Interlude: Model Matrix
+### Interlude: Model Matrix (5 min)
 **Discussion**: How to convert sample condition into something numerical?
-
 
 **Idea**: binary encoding of categorical variable $x$ (switch on and of contributions)
 
-$(x_1, x_2, x_3)$=("Cond1", "Cond2", "Cond3") $\longrightarrow \left( \begin{array}{ccc} X_1 & X_2 & X_3 \\ 1 & 0 &  0 \\ 1 & 1 & 0 \\ 1 & 0 & 1 \end{array}\right)$ 
+$x$=("Cond1", "Cond2", "Cond3") $\longrightarrow \left( \begin{array}{ccc} X_0 & X_1 & X_2 \\ 1 & 0 &  0 \\ 1 & 1 & 0 \\ 1 & 0 & 1 \end{array}\right)$ 
 
-A design can be translated into a model matrix
+$$
+y_i = \beta_0 + \beta_1 x_i \longrightarrow \beta_0 X_{0i} + \beta_1 X_{1i} + \beta_2 X_{2i} = X \cdot \beta
+$$
+
+(c.f. linear regression $\to$ multivariate linear regression)
+
+
+**Upshot**: A design can be translated into a model matrix
 ```{r model_matrix}
 MM=model.matrix(my_design, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
@@ -193,7 +203,14 @@ pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 - Include an additional factor (+ celltype) and observe the design matrix 
 - Bonus: include an interaction term (+ condition:celltype) and discuss its interpretation
 
-# Create DESeq2 object
+
+### Interlude: Experimental Design (10min)
+https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md (50min)
+
+Batches, Replicates, Sequencing Depth
+
+
+# Create DESeq2 object (10 min)
 Each software has their own data representation.
 A DESeq2 data object combines data, metadata and the design formula in one single object
 
@@ -210,7 +227,7 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_desig
 
 
 
-### Interlude: Alternatives
+### Interlude: Alternatives (5 min)
 There are various tools (HTSeq, Salmon) to produce count matrices (each with their own specific output formats).
 Several other convenience functions exist to read them as DESeqDataSet objects
 
@@ -237,7 +254,7 @@ dds <- DESeqDataSetFromHTSeqCount(sampleTable, directory = ".", design = my_desi
 ```
 
 
-# Data Exploration
+# Data Exploration (30-40 min)
 
 ## Look at the (raw) data!
 
