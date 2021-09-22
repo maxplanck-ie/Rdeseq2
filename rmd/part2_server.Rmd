@@ -19,7 +19,7 @@ library(pheatmap)
 ```
 
 <center>
-![Workflow for DESeq2](../images/workflow_0.png){width=100%}
+![Workflow for DESeq2](../images/workflow_0.png){width=110%}
 </center>
 
 
