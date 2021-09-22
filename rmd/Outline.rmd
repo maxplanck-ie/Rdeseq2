@@ -22,7 +22,7 @@ install.packages("pheatmap")
 ```
 
 # Load Tools
-```{r load}
+```{r load, message=FALSE}
 #.libPaths("/new/location/")     # set if libs are not in default location
 library(DESeq2)
 library(pheatmap)
