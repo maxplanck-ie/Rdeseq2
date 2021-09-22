@@ -91,14 +91,14 @@ contrast <- c("condition", "DMSO", "AMIL")                   # define contrast
 res <- results(dds, contrast = contrast,  alpha = 0.05)      # results table
 
 res <- lfcShrink(dds, contrast = contrast, type = "normal")  # pref. type="apeglm" needs add. package
-res_df <- res %>% data.frame() %>% arrange(padj)             # sort by adjusted p-value
+sorted_res <- res %>% data.frame() %>% arrange(padj)             # sort by adjusted p-value
 ```
 
 # Filter Results
 ```{r filter}
 padj.cutoff <- 0.05
 summary(res, alpha=padj.cutoff)	
-sig_res <- res_df %>% rownames_to_column(var="gene") %>% filter(padj < padj.cutoff)
+sig_res <- sorted_res %>% rownames_to_column(var="gene") %>% filter(padj < padj.cutoff)
 ```
 
 # Visualization
@@ -107,7 +107,7 @@ sig_res <- res_df %>% rownames_to_column(var="gene") %>% filter(padj < padj.cuto
 plotMA(res, ylim=c(-3,3))
 
 # Volcano Plot
-res_df %>% 
+sorted_res %>% 
   mutate(significant=padj<padj.cutoff) %>% 
   mutate(rank=row_number()) %>% 
   add_rownames("gene_name") %>% 
@@ -117,7 +117,7 @@ res_df %>%
   
 # heatmap
 ntop=20
-top_genes = res_df %>% head(ntop) %>% row.names()
+top_genes = sorted_res %>% head(ntop) %>% row.names()
 top_rld   = assay(rld[top_genes,], normalized=TRUE) 
 pheatmap(top_rld, main="Top DE Genes")
 ```
