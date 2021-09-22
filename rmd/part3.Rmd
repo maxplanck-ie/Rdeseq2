@@ -27,6 +27,7 @@ BiocManager::install("apeglm")
 install.packages("tidyverse")
 install.packages("dplyr")
 install.packages("ggrepel")
+install.packages("pheatmap")
 ```
 # add libraries
 ```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
@@ -34,6 +35,7 @@ library("DESeq2")
 library("dplyr")
 library("ggplot2")
 library("ggrepel")
+library("pheatmap")
 ```
 # Get the data directroy
 ```{r Get the data directroy, message=FALSE, warning=FALSE}
@@ -167,14 +169,45 @@ ggplot(d, aes(x = cellType, y = count, color = cellType)) +
     ggtitle("ENSG00000164062") +
     theme(plot.title = element_text(hjust = 0.5))
 ```
+Extract the normalized values of all the significant genes and plot a heatmap of their expression using `pheatmap()`.
+
 ```{r heatmap, message=FALSE, warning=FALSE}
+normalized_counts <- counts(dds, normalized=T)[,c(10:12,4:6)]
+norm_sig <- subset(normalized_counts, row.names(normalized_counts) %in% row.names(res_sig_sorted))
+head(norm_sig[,1:6])
+pheatmap(norm_sig[,1:6],
+    cluster_rows = T,
+    show_rownames = F,
+    annotation = meta,
+    border_color = NA,
+    fontsize = 10,
+    scale = "row",
+    fontsize_row = 10,
+    height = 20)
+
+```
+A commonly used plot to have a global view of the expression is volcano plot; in which the log transformed adjusted p-values plotted on the y-axis and log2 fold change values on the x-axis.
+```{r volcano plot, message=FALSE, warning=FALSE}
 
 
 ```
-
 #Likelihood ratio test
+DESeq2 also offers the Likelihood Ratio Test as an alternative when evaluating expression change across more than two levels. Genes which are identified as significant, are those that are changing in expression in any direction across the different factor levels.
+There is no need for contrasts since we are not making a pair-wise comparison.
+The LRT is comparing the full model to the reduced model to identify significant genes. The p-values are determined solely by the difference in deviance between the ‘full’ and ‘reduced’ model formula (not the log2 fold changes). Essentially the LRT test is testing whether the term(s) removed in the ‘reduced’ model explains a significant amount of variation in the data
 ```{r lrt, message=FALSE, warning=FALSE}
-
+# which model are we interested in as reduced?
+dds_lrt <- DESeq(dds, test="LRT", reduced = ~cellType + txType)
+res_lrt <- results(dds_lrt)
+head(res_lrt)
 
 ```
+Columns relevant to the LRT test:
+* baseMean: mean of normalized counts for all samples
+* stat: the difference in deviance between the reduced model and the full model
+* pvalue: the stat value is compared to a chi-squared distribution to generate a pvalue
+* padj: BH adjusted p-values
+```{r detect lrt sig genes, message=FALSE, warning=FALSE}
+# padj < 0.05
 
+```
