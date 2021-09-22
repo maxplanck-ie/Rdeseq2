@@ -54,7 +54,7 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_desig
 
 # Data Exploration
 rld <- rlog(dds)  
-plotPCA(rld, intgroup=c("condition", "celltype"), returnData=TRUE)
+plotPCA(rld, intgroup=c("condition", "celltype"))
 
 # ....
 ```
@@ -73,7 +73,7 @@ dds <- dds[,keep_samples]
 
 # rerun after filtering
 rld <- rlog(dds)  
-plotPCA(rld, intgroup=c("condition", "celltype"), returnData=TRUE)
+plotPCA(rld, intgroup=c("condition", "celltype"))
 ```
 
 # Run DESeq
