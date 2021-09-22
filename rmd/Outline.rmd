@@ -11,7 +11,9 @@ output:
     df_print: paged
 ---
 
-This outline
+This outline contains a (minimal) skeleton of a typical DESeq2 workflow - as discussed during the course.  For specific projects, the parts on data exploration, quality controls and filtering are frequently more iterative and require custom-made adoption.
+
+
 # Installation 
 ```{r installation, eval=FALSE}
 BiocManager::install("DESeq2")
@@ -68,15 +70,19 @@ dds <- dds[keep_genes,]
 # remove or swap samples as required
 keep_samples= grep("^BM",colnames(dds))  # just for illustration
 dds <- dds[,keep_samples]
+
+# rerun after filtering
+rld <- rlog(dds)  
+plotPCA(rld, intgroup=c("condition", "celltype"), returnData=TRUE)
 ```
 
 # Run DESeq
 ```{r DEseq2}
 dds <- DESeq(dds)                           # size factors, dispersion, fit model, run WaldTest
+
+# QC
 colData(dds)                                # inspect sizefactors
 plotDispEsts(dds, main="Dispersion plot")   # plot dispersion
-rld <- rlog(dds)  
-plotPCA(rld, intgroup=c("condition", "celltype"), returnData=TRUE)
 ```
 
 # DE-Testing
@@ -84,14 +90,13 @@ plotPCA(rld, intgroup=c("condition", "celltype"), returnData=TRUE)
 contrast <- c("condition", "DMSO", "AMIL")                   # define contrast
 res <- results(dds, contrast = contrast,  alpha = 0.05)      # results table
 
-res <- lfcShrink(dds, contrast = contrast, type = "normal")  # alt. type="apeglm" other package
+res <- lfcShrink(dds, contrast = contrast, type = "normal")  # pref. type="apeglm" needs add. package
 res_df <- res %>% data.frame() %>% arrange(padj)             # sort by adjusted p-value
 ```
 
 # Filter Results
 ```{r filter}
 padj.cutoff <- 0.05
-
 summary(res, alpha=padj.cutoff)	
 sig_res <- res_df %>% rownames_to_column(var="gene") %>% filter(padj < padj.cutoff)
 ```
@@ -102,7 +107,7 @@ sig_res <- res_df %>% rownames_to_column(var="gene") %>% filter(padj < padj.cuto
 plotMA(res, ylim=c(-3,3))
 
 # Volcano Plot
-sorted_res %>% 
+res_df %>% 
   mutate(significant=padj<padj.cutoff) %>% 
   mutate(rank=row_number()) %>% 
   add_rownames("gene_name") %>% 
@@ -112,7 +117,7 @@ sorted_res %>%
   
 # heatmap
 ntop=20
-top_genes = sorted_res %>% head(ntop) %>% row.names()
+top_genes = res_df %>% head(ntop) %>% row.names()
 top_rld   = assay(rld[top_genes,], normalized=TRUE) 
 pheatmap(top_rld, main="Top DE Genes")
 ```
