@@ -95,7 +95,7 @@ Data comes in various formats. For now we assume that the data is available as t
 ```{r import_data}
 dfile="../data/counts_qc.tsv"                          # location of data file
 data <- read.csv(file=dfile, header=TRUE, sep="\t")
-data <- data %>% column_to_rownames("geneID")                           # geneID -> rownames
+data <- data %>% column_to_rownames("geneID")          # geneID -> rownames
 ```
 
 **Discussion** Inspect the data. What does R mean with variables? What are observations? 
@@ -116,7 +116,7 @@ Often the metadata is hidden in the paper (or in the filename). This is bad prac
 ```{r import_meta}
 mfile="../data/counts_qc_meta.tsv"                     # location of metadata file
 metadata <- read.csv(file=mfile, header=TRUE, sep="\t")
-metadata <- metadata %>% column_to_rownames("sample")  # geneID -> rownames
+metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
 
 # convert text strings to categorical variable (characters --> factors)
 metadata$condition = as.factor(metadata$condition)
