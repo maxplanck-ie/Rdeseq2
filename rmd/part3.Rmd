@@ -33,6 +33,7 @@ install.packages("pheatmap")
 ```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
 library("DESeq2")
 library("dplyr")
+library("tibble")
 library("ggplot2")
 library("ggrepel")
 library("pheatmap")
@@ -209,5 +210,19 @@ Columns relevant to the LRT test:
 * padj: BH adjusted p-values
 ```{r detect lrt sig genes, message=FALSE, warning=FALSE}
 # padj < 0.05
+sig_res_lrt <- res_lrt %>%
+               data.frame() %>%
+               rownames_to_column(var="gene") %>% 
+               as_tibble() %>% 
+               filter(padj < 0.05)
+head(sig_res_lrt)
+# Get sig gene lists
+sig_lrt_genes <- sig_res_lrt %>% 
+                pull(gene)
+                
+length(sig_lrt_genes)
+
+# Compare to numbers we had from Wald test
+# ???
 
 ```
