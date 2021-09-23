@@ -140,9 +140,15 @@ Columns of results dataframe:
   * padj: BH adjusted p-values
   
 The padj column represents the p-value adjusted for multiple testing, and is the most important column of the results! The default method for multiple test correction in DESeq2 is an implementation of the Benjamini-Hochberg false discovery rate (FDR).
+If a gene contains a sample with an extreme count outlier then the p-value and adjusted p-value will be set to NA.
 
-TODO: Add a plot of mean normalized counts vs log10(p values)
+# Plot of the mean normalized counts vs log10(p values)
 ```{r plot norm_count vs p values}
+plot(res$baseMean+1, -log10(res$pvalue),
+     log="x", xlab="mean of normalized counts",
+     ylab=expression(-log[10](pvalue)),
+     ylim=c(0,30),
+     cex=.4, col=rgb(0,0,0,.3))
 
 ```
 
@@ -159,7 +165,7 @@ res_shrink <- lfcShrink(dds, coef="cellType_JJ_vs_BM", type="apeglm")
 To get the coef name check resultsNames(dds)
 
 text
-#MA plot
+# MA plot
 ```{r MA plot, message=FALSE, warning=FALSE}
 plotMA(res, ylim=c(-2,2))
 plotMA(res_shrink, ylim=c(-2,2))
