@@ -95,13 +95,15 @@ dds <- estimateDispersions(dds)
 ```{r Visualise dispersions, message=FALSE, warning=FALSE}
 plotDispEsts(dds)
 ```
+
 # Run deseq analysis
 ```{r deseq analysis, message=FALSE, warning=FALSE}
 dds <- DESeq(dds)
 ```
-#steps required to generate a results table for pairwise comparisons (Wald test)
-text
-# make a pairwise comparison (using contrast)
+# Steps required to generate a results table for pairwise comparisons (Wald test)
+By default DESeq2 uses the Wald test to identify genes that are differentially expressed between two groups of samples. Results can be extracted for a number of different comparisons.
+
+# Make a pairwise comparison (using contrast)
 Contrasts can be given as a list of 2 character vectors:
 the names of the fold changes for the level of ineterest, and the names of the fold changes for the base level.
 ```{r contrast, message=FALSE, warning=FALSE}
@@ -111,24 +113,40 @@ contrast <- list(resultsNames(dds)[1], resultsNames(dds)[2])
 ```
 If there is only two factor levels, There is no need to  specify contrasts, DESeq2 will choose the base factor level based on the alphabetical order of the levels.
 
-By default DESeq2 uses the Wald test to identify genes that are differentially expressed between two sample classes
 ```{r result, message=FALSE, warning=FALSE}
 # which contrast are we interested in?
 res <- results(dds, contrast = contrast, alpha = 0.05)
 ```
-# What is in the res?
+
+# Results
 ```{r view res, message=FALSE, warning=FALSE}
+# What type of object is the results?
+class(res)
+# What is in the results?
 res %>% data.frame() %>% head()
 ```
-* baseMean: mean of normalized counts for all samples
-* log2FoldChange: log2 fold change
-* lfcSE: standard error
-* stat: Wald statistic
-* pvalue: Wald test p-value
-* padj: BH adjusted p-values
+Columns of results dataframe:
+  
+  * baseMean: mean of normalized counts for all samples
+  
+  * log2FoldChange: log2 fold change
+  
+  * lfcSE: standard error
+  
+  * stat: Wald statistic
+  
+  * pvalue: Wald test p-value
+  
+  * padj: BH adjusted p-values
+  
+The padj column represents the p-value adjusted for multiple testing, and is the most important column of the results! The default method for multiple test correction in DESeq2 is an implementation of the Benjamini-Hochberg false discovery rate (FDR).
 
 TODO: Add a plot of mean normalized counts vs log10(p values)
+```{r plot norm_count vs p values}
 
+```
+
+# Shrinkage method
 To generate more accurate log2 foldchange (LFC) estimates, DESeq2 allows for the shrinkage of the LFC estimates toward zero when the information for a gene is low, which could include:
 - Low counts
 - High dispersion values
@@ -161,7 +179,7 @@ head(res_sig_sorted)
 plotCounts(dds, gene = "ENSG00000164062", intgroup = "cellType")
 # To see the data underneath the figure
 d <- plotCounts(dds, gene = "ENSG00000164062", intgroup = "cellType", returnData=TRUE)
-d %>% View()
+#d %>% View()
 # can be used for ggplot
 ggplot(d, aes(x = cellType, y = count, color = cellType)) + 
     geom_point(position=position_jitter(w = 0.1,h = 0)) +
@@ -176,15 +194,15 @@ Extract the normalized values of all the significant genes and plot a heatmap of
 normalized_counts <- counts(dds, normalized=T)[,c(10:12,4:6)]
 norm_sig <- subset(normalized_counts, row.names(normalized_counts) %in% row.names(res_sig_sorted))
 head(norm_sig[,1:6])
-pheatmap(norm_sig[,1:6],
-    cluster_rows = T,
-    show_rownames = F,
-    annotation = meta,
-    border_color = NA,
-    fontsize = 10,
-    scale = "row",
-    fontsize_row = 10,
-    height = 20)
+# pheatmap(norm_sig[,1:6],
+#     cluster_rows = T,
+#     show_rownames = F,
+#     annotation = meta,
+#     border_color = NA,
+#     fontsize = 10,
+#     scale = "row",
+#     fontsize_row = 10,
+#     height = 20)
 
 ```
 A commonly used plot to have a global view of the expression is volcano plot; in which the log transformed adjusted p-values plotted on the y-axis and log2 fold change values on the x-axis.
