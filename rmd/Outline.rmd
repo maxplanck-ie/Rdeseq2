@@ -1,7 +1,7 @@
 ---
 title: "Outline"
-author: "Thomas Manke"
-date: "`r date() `"
+author: "MPI-IE Bioinfo-Core"
+#date: "`r date() `"
 output:
   html_document:
     code_folding: hide
@@ -23,7 +23,6 @@ install.packages("pheatmap")
 
 # Load Tools
 ```{r load, message=FALSE}
-#.libPaths("/new/location/")     # set if libs are not in default location
 library(DESeq2)
 library(pheatmap)
 library(tidyverse)
@@ -45,7 +44,7 @@ metadata$condition = as.factor(metadata$condition)
 metadata$celltype  = as.factor(metadata$celltype)
 
 # define design
-my_design <- ~ condition 
+my_design <- ~ celltype + treatment 
 ```
 
 # Create DESeq2 object
@@ -61,7 +60,7 @@ plotPCA(rld, intgroup=c("condition", "celltype"))
 
 
 
-# Typical Filtering
+# Filtering
 ```{r filtering}
 # remove genes
 keep_genes <- rowSums(counts(dds)) > 1

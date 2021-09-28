@@ -1,7 +1,7 @@
 ---
 title: "DESeq2 Analysis with R: Part 01"
 author: "Thomas Manke"
-date: "`r date() `"
+#date: "`r date() `"
 output:
   html_document:
     code_folding: hide
@@ -211,7 +211,27 @@ pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ## Interlude: Experimental Design (5 min)
 https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md (50min)
 
-Batches, Replicates, Sequencing Depth
+### Sequencing Depth
+Control the sampling noise:
+
+Need deeper for lowly expressed genes and isoform studies
+
+### Replication
+Replication is key to estimate variance. 
+
+Typically variances: biological > sample prep > sequencing
+
+Biological replication is essential to learn about biology!
+Most studies are underpowered.
+
+### Confounding
+Sex, Age
+
+### Batches
+
+
+
+**Poll**
 
 
 # Create DESeq2 object (5 min)
