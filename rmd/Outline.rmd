@@ -1,5 +1,5 @@
 ---
-title: "Outline"
+title: "DESeq2 Outline"
 author: "MPI-IE Bioinfo-Core"
 #date: "`r date() `"
 output:
@@ -31,31 +31,24 @@ library(tidyverse)
 
 # Load Data, Metadata and Design
 ```{r import}
-# read data
-dfile <- "../data/counts_qc.tsv"                          # location of data file
-data <- read.csv(file=dfile, header=TRUE, sep="\t")
-data <- data %>% column_to_rownames("geneID")             # geneID -> rownames
-
-# read metadata
-mfile <- "../data/counts_qc_meta.tsv"                     # location of metadata file
-metadata <- read.csv(file=mfile, header=TRUE, sep="\t")
-metadata <- metadata %>% column_to_rownames("sample")     # sample -> rownames
+# file with metadata and data links
+fm <- "../data/sampleTable2.csv"      
+metadata <- read.csv(fm, header=FALSE)
+colnames(metadata)=c("name","filename", "condition","celltype")
 metadata$condition = as.factor(metadata$condition)
 metadata$celltype  = as.factor(metadata$celltype)
 
 # define design
-my_design <- ~ celltype + treatment 
+my_design <- ~ celltype + condition 
 ```
 
 # Create DESeq2 object
 ```{r dds}
-dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_design)
+dds <- DESeqDataSetFromHTSeqCount(metadata, directory = ".", design = my_design)
 
 # Data Exploration
 rld <- rlog(dds)  
 plotPCA(rld, intgroup=c("condition", "celltype"))
-
-# ....
 ```
 
 
@@ -66,9 +59,8 @@ plotPCA(rld, intgroup=c("condition", "celltype"))
 keep_genes <- rowSums(counts(dds)) > 1
 dds <- dds[keep_genes,]
 
-# remove or swap samples as required
-keep_samples= grep("^BM",colnames(dds))  # just for illustration
-dds <- dds[,keep_samples]
+# process samples as required
+# ...
 
 # rerun after filtering
 rld <- rlog(dds)  
@@ -79,25 +71,24 @@ plotPCA(rld, intgroup=c("condition", "celltype"))
 ```{r DEseq2}
 dds <- DESeq(dds)                           # size factors, dispersion, fit model, run WaldTest
 
-# QC
-colData(dds)                                # inspect sizefactors
-plotDispEsts(dds, main="Dispersion plot")   # plot dispersion
+# Inspection
+colData(dds)                                # sizefactors
+plotDispEsts(dds, main="Dispersion plot")   # dispersion
 ```
 
 # DE-Testing
 ```{r testing}
-contrast <- c("condition", "DMSO", "AMIL")                   # define contrast
-res <- results(dds, contrast = contrast,  alpha = 0.05)      # results table
+contrast <- c("condition", "CTRL", "TG")                    # define contrast
+res <- results(dds, contrast=contrast,  lfcThreshold=1, alpha=0.05)     # results table
 
-res <- lfcShrink(dds, contrast = contrast, type = "normal")  # pref. type="apeglm" needs add. package
-sorted_res <- res %>% data.frame() %>% arrange(padj)             # sort by adjusted p-value
+res <- lfcShrink(dds, contrast = contrast, type = "normal") # "apeglm" needs package
+sorted_res <- res %>% data.frame() %>% arrange(padj)        # sort by adjusted p-value
 ```
 
 # Filter Results
 ```{r filter}
 padj.cutoff <- 0.05
 summary(res, alpha=padj.cutoff)	
-sig_res <- sorted_res %>% rownames_to_column(var="gene") %>% filter(padj < padj.cutoff)
 ```
 
 # Visualization
@@ -115,14 +106,15 @@ sorted_res %>%
   geom_text(aes(label=ifelse(rank<5,gene_name,'')), size = 3, hjust=0,vjust=-0.15)
   
 # heatmap
-ntop=20
+ntop=15
 top_genes = sorted_res %>% head(ntop) %>% row.names()
 top_rld   = assay(rld[top_genes,], normalized=TRUE) 
-pheatmap(top_rld, main="Top DE Genes")
+ann = data.frame(colData(dds))   
+pheatmap(top_rld, main="Top DE Genes", annotation=ann)
 ```
 
 # Output
-```{r}
+```{r output}
 fn <- paste( c(contrast, "results.csv"), collapse='_') # generate meaningful filename
 write.csv(sorted_res,  file=fn, quote=FALSE)
 ```
