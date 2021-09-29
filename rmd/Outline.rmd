@@ -1,7 +1,7 @@
 ---
-title: "Outline"
-author: "Thomas Manke"
-date: "`r date() `"
+title: "DESeq2 Outline"
+author: "MPI-IE Bioinfo-Core"
+#date: "`r date() `"
 output:
   html_document:
     code_folding: hide
@@ -10,248 +10,116 @@ output:
     toc_float: true
     df_print: paged
 ---
-# Preparation
 
-## Get Story
-Purpose: https://pubmed.ncbi.nlm.nih.gov/28790111/
+This outline contains a template of a typical DESeq2 workflow - as discussed during the course.  For specific projects, the parts on data exploration, quality controls and filtering are frequently more iterative and require custom-made adoption.
 
-## Get Data
-GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077
 
-## Get Tools
-CRAN or Bioconductor
-
+# Installation 
 ```{r installation, eval=FALSE}
 BiocManager::install("DESeq2")
 install.packages("tidyverse")
 install.packages("pheatmap")
 ```
 
-```{r load}
-#.libPaths("/new/location/")     # set if libs are not in default location
+# Load Tools
+```{r load, message=FALSE}
 library(DESeq2)
 library(pheatmap)
 library(tidyverse)
 ```
 
 
-## Import Data and Metadata
+# Define Data, Metadata and Design
 ```{r import}
-fm <- "../data/sampleTable2.csv"  # file with metadata
-sampleTable <- read.csv(fm, header=FALSE)
-colnames(sampleTable)=c("name","filename", "condition","celltype")   # specifications for DESeqDataSetFromHTSeqCount
+# file with metadata and data links
+fm <- "../data/sampleTable2.csv"      
+metadata <- read.csv(fm, header=FALSE)
+colnames(metadata)=c("name","filename", "condition","celltype")
+metadata$condition = as.factor(metadata$condition)
+metadata$celltype  = as.factor(metadata$celltype)
 
-# categorical variables --> "factors"
-sampleTable$condition = as.factor(sampleTable$condition)
-sampleTable$celltype  = as.factor(sampleTable$celltype)
-```
-
-## Define Design
-
-```{r design}
-my_design <- ~ condition 
-my_design <- ~ condition + celltype            # !convention! last factor is condition of interest
-model.matrix(my_design, data=sampleTable)
+# define design
+my_design <- ~ celltype + condition 
 ```
 
 # Create DESeq2 object
-dds = data + metadata + design
-
-```{r combine}
-# imports data, assigns metadata and design
-dds <- DESeqDataSetFromHTSeqCount(sampleTable, directory = ".", design = my_design)
-
-### Alternatives:
-#txi <- tximport(files, type="salmon", tx2gene=t2g, countsFromAbundance = "lengthScaledTPM")
-#dds <- DESeqDataSetFromTximport(txi, colData = sample.table, design = my_desig)
-#dds <- DESeqDataSetFromMatrix(matrix, colData=sample.table, design= my_design)
-
-### Precompiled Data sets: just specify design
-#library("airway")
-#data("airway")
-#DESeqDataSet(airway, design = ~ cell + dex)
-```
+```{r dds}
+dds <- DESeqDataSetFromHTSeqCount(metadata, directory = ".", design = my_design)
 
 # Data Exploration
-
-## Look at the (raw) data!
-
-- Data Structure, 
-- Entries, Visualization
-- Correlations
-
-```{r explore1}
-# Data Structure
-dds                                                 # dds object --> inspect: str(dds), dim(dds)
-M <- counts(dds)                                    # get gene-sample matrix --> inspect
-
-# subsample for inspection
-Mr = M %>% head(10)                                 # just the first
-#Mr = M %>% data.frame() %>% sample_n(10)           # random rows -> task
-
-# visualize
-pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, main="First glimpse")
-
-# add metadata (annotations)
-ann = data.frame(colData(dds))                     # create annotation data frame for pheatmap
-ann$seq_depth=colSums(counts(dds))/1e6             # add further annotations: here sequencing depth
-pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, annotation=ann, main="Data + Metadata")
-
-# transform data
-pheatmap(log2(Mr+1), cluster_rows=FALSE, cluster_cols=FALSE, annotation=ann, main="Transformed data (log2)")
-
-# genome-wide correlations
-C <- cor(M)                                        # get sample-sample correlations: other correlations
-pheatmap(C, annotation = ann)
-```
-
-## Simple transformation
-https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/03_DGE_QC_analysis.html (80min)
-
-```{r explore_trans}
-rld <- rlog(dds)                            # transform to account for seq.depth=lib.size --> str(rld)
-Mt <- assay(rld)                            # extract transformed matrix
-
-pheatmap(Mt %>% head(15), annotation=ann)   # clustering is not very informative on first 15 genes
-
-pheatmap(cor(Mt), annotation = ann)         # genome-wide correlation matrix --> notice high correlation (most genes unaffected)
-plotPCA(rld, intgroup="condition")          # PCA --> which factor explains the separation? --> celltype
+rld <- rlog(dds)  
+plotPCA(rld, intgroup=c("condition", "celltype"))
 ```
 
 
-# Filtering: Samples and Genes
-Helps to speed up processes
 
+# Filtering
 ```{r filtering}
-keep = rowSums(counts(dds)) > 1
-cat("genes before filter: ", nrow(dds),"\n")
-dds = dds[keep,]
-cat("genes after filter: ", nrow(dds),"\n")
+# remove genes
+keep_genes <- rowSums(counts(dds)) > 1
+dds <- dds[keep_genes,]
+
+# process samples as required
+# ...
+
+# rerun after filtering
+rld <- rlog(dds)  
+plotPCA(rld, intgroup=c("condition", "celltype"))
 ```
 
-# Modeling expression data
-
-- https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/01c_RNAseq_count_distribution.html
-
-```{r count_distribution}
-
-# gene expression counts for single sample
-gn <- "ENSG00000000419"                                    # gene name
-
-# build data-frame for single gene
-gd <- ann                                                  # utilize "ann" object for convenience
-gd$count[rownames(gd)] <- counts(dds[gn,rownames(gd)])     # add count (for each sample)
-
-gd %>% 
-  rownames_to_column("sample") %>% 
-  ggplot(aes(x=sample, y=count, colour=condition, shape=celltype)) + 
-  geom_point(size=3) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-# gene expression counts for single sample
-sn <- "GSM2495761"  # sample name
-plt <- counts(dds) %>% data.frame() %>%
-  ggplot() +
-  geom_histogram(aes_string(x = sn), stat = "bin", bins=100) +
-  xlab("Expression: read counts") +
-  ylab("Number of genes")
-
-plt + ggtitle(sn)
-
-# task: plot log-counts: notice warning -> log(0) --> non-finite values
-plt + scale_x_continuous(trans='log10')
-# Lesson: lowly expressed genes continue to be a problem
-```
-
-
-# DESeq2
-1. sizefactor (more clever than just seq. depth)
-2. 
-
+# Run DESeq
 ```{r DEseq2}
-dds <- DESeq(dds)  # size factors, dispersion, fit model, run WaldTest
-#normalized_counts <- counts(dds, normalized=TRUE) # optional
+# calc size factors, dispersion, fit model, run WaldTest
+dds <- DESeq(dds)                           
+
+# Inspection
+colData(dds)                                # sizefactors
+plotDispEsts(dds, main="Dispersion plot")   # dispersion
 ```
 
-# Quality control
-```{r dispersion}
-sD <- colSums(counts(dds))  # sequence depth
-sF <- sizeFactors(dds)      # sizeFactors
-
-colData(dds)  # sizeFactors have been added to metadata
-
-pheatmap(counts(dds, normalized=FALSE) %>% head(15), cluster_rows=FALSE, annotation=ann, main="Raw Counts")
-pheatmap(counts(dds, normalized=TRUE) %>% head(15),  cluster_rows=FALSE, annotation=ann, main="After Norm")
-
-boxplot(log(counts(dds, normalized=FALSE)), las=2, cex.axis=0.75)
-boxplot(log(counts(dds, normalized=TRUE)),  las=2, cex.axis=0.75)
-boxplot(log(assay(dds)),  las=2, cex.axis=0.75)
-#boxplot(assay(vst(dds)),  las=2, cex.axis=0.75) # vst slower
-
-barplot(sF, las=2, cex.names=0.75)
-plot(sD, sF)
-plotDispEsts(dds, main="Dispersion plot")
-```
-
-
-# Testing
+# DE-Testing
 ```{r testing}
-contrast <- c("condition", "AMIL", "CTRL")
-res <- results(dds, contrast = contrast,  alpha = 0.05)
-
-# prefered type="apeglm" --> requires Bioconductor package
-res <- lfcShrink(dds, contrast = contrast, type = "normal")  
-
-summary(res, alpha=0.05)
-sorted_res <- res %>% data.frame() %>% arrange(padj) 
-sorted_res %>% head()
-
-#mcols(res)$description # description of header names
+contrast <- c("condition", "CTRL", "TG")                              # define contrast
+res <- results(dds, contrast=contrast,  lfcThreshold=1, alpha=0.05)   # results table
+res <- lfcShrink(dds, contrast = contrast, type = "normal") # "apeglm" needs package
+sorted_res <- res %>% data.frame() %>% arrange(padj)        # sort by adjusted p-value
 ```
 
-# Filter
+# Filter Results
 ```{r filter}
 padj.cutoff <- 0.05
-	
-res_tbl <- res %>% 
-  data.frame() %>% 
-  rownames_to_column(var="gene") %>% 
-  as_tibble()
-sig_res <- filter(res_tbl, padj < padj.cutoff)
+summary(res, alpha=padj.cutoff)	
 ```
 
 # Visualization
 ```{r visualization}
+# MA plot
 plotMA(res, ylim=c(-3,3))
 
-sg <- which.min(res$padj) # select gene
-plotCounts(dds, gene=sg, intgroup="condition", col = sampleTable$condition)
-
-# Volcano: more customization with EnhancedVolcano()
-sorted_res %>% mutate(significant=padj<padj.cutoff) %>% mutate(rank=row_number()) %>% add_rownames("gene_name") %>% 
+# Volcano Plot
+sorted_res %>% 
+  mutate(significant=padj<padj.cutoff) %>% 
+  mutate(rank=row_number()) %>% 
+  add_rownames("gene_name") %>% 
   ggplot(aes(x=log2FoldChange, y=-log10(padj), color=significant)) + 
   geom_point() + 
   geom_text(aes(label=ifelse(rank<5,gene_name,'')), size = 3, hjust=0,vjust=-0.15)
-#  geom_vline(xintercept=0) +
-#  geom_vline(xintercept=log2(1),  linetype="dashed", color = "black") + 
-#  geom_vline(xintercept=-log2(1), linetype="dashed", color = "black")
-
   
 # heatmap
-ntop=20
+ntop=15
 top_genes = sorted_res %>% head(ntop) %>% row.names()
-top_dds   = counts(dds[top_genes,], normalized=TRUE) 
-pheatmap(top_dds, main="Differential Genes")
-
-# gene list
+top_rld   = assay(rld[top_genes,], normalized=TRUE) 
+ann = data.frame(colData(dds))   
+pheatmap(top_rld, main="Top DE Genes", annotation=ann)
 ```
+
 # Output
-```{r}
+```{r output}
 fn <- paste( c(contrast, "results.csv"), collapse='_') # generate meaningful filename
 write.csv(sorted_res,  file=fn, quote=FALSE)
 ```
 
-# SessionInfo (for reproducibility)
+# SessionInfo
 ```{r sessionInfo}
 sessionInfo()
 ```

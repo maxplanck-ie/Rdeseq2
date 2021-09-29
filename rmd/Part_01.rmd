@@ -1,7 +1,7 @@
 ---
 title: "DESeq2 Analysis with R: Part 01"
 author: "Thomas Manke"
-date: "`r date() `"
+#date: "`r date() `"
 output:
   html_document:
     code_folding: hide
@@ -10,14 +10,18 @@ output:
     toc_float: true
     df_print: paged
 ---
-# Preparation
+# Preparation (60 min)
 
-## Get Story (5min)
+## Get Story (2 min)
 Purpose: https://pubmed.ncbi.nlm.nih.gov/28790111/
 
+RNA-seq summary: 
+Evaluate an old drug (amiloride) and a new drug (TG003) in two cancer cell lines with different mutations (BM: p53mut, JJ: del(17p))
+
+<!-- Results: More deregulated genes in BM (5000) vs JJ (1000) -->
 ***
 
-## Get Tools (15min)
+## Get Tools (15 min)
 
 **Warmup Tasks**:
 
@@ -83,7 +87,7 @@ In case of doubt, use package name explicitly: e.g. stats::sd()
 
 ***
 
-## Get Data (30 min)
+## Get Data (40 min)
 GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077
 
 In principle, you can download the data from GEO but we have already prepared the data in a convenient format
@@ -98,7 +102,7 @@ Data comes in various formats. For now we assume that the data is available as t
 ```{r import_data}
 dfile="../data/counts_qc.tsv"                          # location of data file
 data <- read.csv(file=dfile, header=TRUE, sep="\t")
-data <- data %>% column_to_rownames("geneID")                           # geneID -> rownames
+data <- data %>% column_to_rownames("geneID")          # geneID -> rownames
 ```
 
 **Discussion** Inspect the data. What does R mean with variables? What are observations? 
@@ -117,7 +121,7 @@ Often the metadata is hidden in the paper (or in the filename). This is bad prac
 ```{r import_meta}
 mfile="../data/counts_qc_meta.tsv"                     # location of metadata file
 metadata <- read.csv(file=mfile, header=TRUE, sep="\t")
-metadata <- metadata %>% column_to_rownames("sample")  # geneID -> rownames
+metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
 
 # convert text strings to categorical variable (characters --> factors)
 metadata$condition = as.factor(metadata$condition)
@@ -132,7 +136,7 @@ metadata$celltype  = as.factor(metadata$celltype)
 # Break (10 min)
 ***
 
-## Define Design (15 min)
+# Design (20 min)
 For each gene, the data matrix contains a vector of counts ($y$) which depends on the vector of samples ($x$)
 
 ```{r gene_plot, echo=FALSE}
@@ -145,7 +149,8 @@ gene = data %>%
 ggplot(gene, aes(x=sample, y=count)) + geom_point(size=3) + theme(axis.text.x=element_blank())    #plot against sample
 ```
 
-**Goal**: model expected counts $y$ as a function of sample $x$ (c.f. linear regression)
+## Goal
+Model expected counts $y$ as a function of sample $x$ (c.f. linear regression)
 
 $$
 y_i = \beta_0 + \beta_1 x_i + \epsilon_i ~~~~~ (i = 1\ldots N) \\ \\
@@ -160,6 +165,7 @@ $$
 
 
 **Discussion**: What should $x$ be? 
+<br><br><br><br><br><br><br><br><br>
 
 **Notice**: The researcher needs to decide *which factors* should be included in the model:
 
@@ -173,17 +179,14 @@ ggplot(gene, aes(x=condition, y=count, col=condition)) + geom_point(size=3)  #pl
 ```
 
 
-
-
-
-**R-syntax**:
+## The R-syntax
 ```{r design, echo=TRUE}
 my_design <- ~ condition 
 #my_design <- ~ condition + celltype   # !convention for later! last factor is condition of interest
 ```
 
 
-### Interlude: Model Matrix (5 min)
+## Interlude: Model Matrix (5 min)
 **Discussion**: How to convert sample condition into something numerical?
 
 **Idea**: binary encoding of categorical variable $x$ (switch on and of contributions)
@@ -197,26 +200,48 @@ $$
 (c.f. linear regression $\to$ multivariate linear regression)
 
 
-**Upshot**: A design can be translated into a model matrix
+**Upshot**: A factorial design can be translated into a (binary) model matrix
+
 ```{r model_matrix}
 MM=model.matrix(my_design, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
 
-**Tasks** (for Part II/III): 
+**Tasks** (better for Part II/III): 
 
 - Include an additional factor (+ celltype) and observe the design matrix 
 - Bonus: include an interaction term (+ condition:celltype) and discuss its interpretation
 
 
-### Interlude: Experimental Design (10min)
+## Interlude: Experimental Design (5 min)
 https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md (50min)
 
 PREPARE FIGURE
-Batches, Replicates, Sequencing Depth
+
+### Sequencing Depth
+Control the sampling noise:
+
+Need deeper for lowly expressed genes and isoform studies
+
+### Replication
+Replication is key to estimate variance. 
+
+Typically variances: biological > sample prep > sequencing
+
+Biological replication is essential to learn about biology!
+Most studies are underpowered.
+
+### Confounding
+Sex, Age
+
+### Batches
 
 
-# Create DESeq2 object (10 min)
+
+**Poll**
+
+
+# Create DESeq2 object (5 min)
 Each software has their own data representation.
 A DESeq2 data object combines data, metadata and the design formula in one single object
 
@@ -257,12 +282,15 @@ dds <- DESeqDataSetFromHTSeqCount(sampleTable, directory = ".", design = my_desi
 #library("airway")
 #data("airway")
 #DESeqDataSet(airway, design = ~ cell + dex)
+
+# Alternative 4: Synthetic Data Generation (two conditions)
+# dds <- makeExampleDESeqDataSet(n = 1000, m = 6, betaSD = 2)
 ```
 
 
-# Data Exploration (30-40 min)
+# Data Exploration (40 min)
 
-## Look at the (raw) data!
+## Show me the (raw) data! (15 min)
 
 - Data Structure, 
 - Entries, Visualization
@@ -282,7 +310,7 @@ Mr <- M %>% head(10)                                 # just the first
 #Mr <- M %>% data.frame() %>% sample_n(10)           # random rows
 ```
 
-## Visualize
+## Visualize (15 min)
 ```{r visual_explore}
 pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, main="First glimpse")
 
@@ -298,12 +326,15 @@ ann$seq_depth=colSums(counts(dds))/1e6    # sequencing depth in millions
 ```
 
 ## genome-wide correlations
-```{r correlations}
-C <- cor(M)                               # get sample-sample correlations: other correlations
+
+**Question**: How to calculate correlation matrix?
+
+```{r correlations, echo=FALSE}
+C <- cor(M)       # get sample-sample correlations: other correlations
 pheatmap(C, annotation = ann)
 ```
 
-### Interlude: Customizing Colors
+### Interlude: Customizing Colors (5 min)
 
 Often we need to adjust colours or ensure consistency across a project.
 Refer to library(RColorBrewer) for more systematic and educated choices.
@@ -321,7 +352,7 @@ my_colors = list( celltype= ct_col, condition = cn_col )
 pheatmap(C, annotation = ann, annotation_colors = my_colors)
 ```
 
-## Simple transformation
+## Simple transformation (10 min)
 https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/03_DGE_QC_analysis.html (80min)
 
 **Task** Look at the quantiles and means of the first 3 samples and create a boxplot
@@ -356,37 +387,35 @@ pheatmap(cor(Mt), annotation = ann, annotation_colors = my_colors)
 ```
 
 
-## PCA plot
+## PCA plot (10 min)
 PCA aims to project samples from a high-dimensional space (M=20k+ genes) to a lower dimension (D=2).
-Similar to correlation analysis the main purpose is to identify similar samples.
+Similar to correlation analysis, the main purpose is to identify distinct and similar samples.
 ```{r PCA_manual}
-nt <- 500
-top <- order(rowVars(Mt), decreasing = TRUE)[1:nt] # top variable genes (excl. zero variable)
-pca <- prcomp(t(Mt[top,]), scale=TRUE)
-eigs <- pca$sdev^2
-vars <- round(100*eigs / sum(eigs), 2)
+nt <- 500                                              # set number of most variable genes
+top <- order(rowVars(Mt), decreasing = TRUE)[1:nt]     # calculate variance for each row and sort
 
-rld_PCA = as.data.frame(pca$x[,1:2])                   # only take PC1 and PC2 for plotting
-rld_PCA$condition=ann[rownames(rld_PCA),"condition"]   # add condition label from ann
-rld_PCA$celltype=ann[rownames(rld_PCA),"celltype"]     # add celltype label from ann
+
+pca <- prcomp(t(Mt[top,]), scale=TRUE)                 # perform PCA
+#eigs <- pca$sdev^2                                     # extract eigenvalue
+#vars <- round(100*eigs / sum(eigs), 2)                 # calculate % of explained variance
+
+# prepare data frame for plotting
+rld_PCA <- as.data.frame(pca$x[,1:2])                     # only take PC1 and PC2 (column 1 + 2)
+rld_PCA$condition <- ann[rownames(rld_PCA),"condition"]   # add condition label from ann
+rld_PCA$celltype  <- ann[rownames(rld_PCA),"celltype"]    # add celltype label from ann
 
 ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
   geom_point(size=3) +
-  xlab(paste0("PC1: ",vars[1])) +
-  ylab(paste0("PC2: ",vars[2])) +
+#  xlab(paste0("PC1: ",vars[1])) +
+#  ylab(paste0("PC2: ",vars[2])) +
   scale_colour_manual(values=cn_col)
 ```
-
-
-
-
-
 
 **Tasks / Homework** 
 
 1. Observe and interprete the PCA plot. 
 2. Which factor explains the separation?
-3. Can we go ahead with analysis
+3. Can we go ahead with analysis ?
 4. Optional: 
 Repeat PCA analysis with more sophisticated normalization from the DESeq2 package "rlog()". Notice that the output is not a matrix but a more complicated object. It can be used by the plotPCA() function.
 
