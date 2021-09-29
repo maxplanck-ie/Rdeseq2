@@ -507,7 +507,7 @@ plotDispEsts(dds)
 dds <- DESeq(dds)
 ```
 
-## **4. Extracting results**
+## **4. Extracting results** - 10 min
 To see the results, use the **results()** function which gives you the **log2 fold changes** and the **adjusted p-values**, for the last variable in the design formula (the estimates are of the logarithmic fold change log2(treated/untreated). In our case it will AMIL/DMSO and TG/DMSO).
 
 ```{r run_DESeq2, message=FALSE}
