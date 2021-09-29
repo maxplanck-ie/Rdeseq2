@@ -11,7 +11,7 @@ output:
     df_print: paged
 ---
 
-This outline contains a (minimal) skeleton of a typical DESeq2 workflow - as discussed during the course.  For specific projects, the parts on data exploration, quality controls and filtering are frequently more iterative and require custom-made adoption.
+This outline contains a template of a typical DESeq2 workflow - as discussed during the course.  For specific projects, the parts on data exploration, quality controls and filtering are frequently more iterative and require custom-made adoption.
 
 
 # Installation 
@@ -29,7 +29,7 @@ library(tidyverse)
 ```
 
 
-# Load Data, Metadata and Design
+# Define Data, Metadata and Design
 ```{r import}
 # file with metadata and data links
 fm <- "../data/sampleTable2.csv"      
@@ -69,7 +69,8 @@ plotPCA(rld, intgroup=c("condition", "celltype"))
 
 # Run DESeq
 ```{r DEseq2}
-dds <- DESeq(dds)                           # size factors, dispersion, fit model, run WaldTest
+# calc size factors, dispersion, fit model, run WaldTest
+dds <- DESeq(dds)                           
 
 # Inspection
 colData(dds)                                # sizefactors
@@ -78,9 +79,8 @@ plotDispEsts(dds, main="Dispersion plot")   # dispersion
 
 # DE-Testing
 ```{r testing}
-contrast <- c("condition", "CTRL", "TG")                    # define contrast
-res <- results(dds, contrast=contrast,  lfcThreshold=1, alpha=0.05)     # results table
-
+contrast <- c("condition", "CTRL", "TG")                              # define contrast
+res <- results(dds, contrast=contrast,  lfcThreshold=1, alpha=0.05)   # results table
 res <- lfcShrink(dds, contrast = contrast, type = "normal") # "apeglm" needs package
 sorted_res <- res %>% data.frame() %>% arrange(padj)        # sort by adjusted p-value
 ```
