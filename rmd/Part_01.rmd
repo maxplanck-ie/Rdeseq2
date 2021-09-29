@@ -275,6 +275,9 @@ dds <- DESeqDataSetFromHTSeqCount(sampleTable, directory = ".", design = my_desi
 #library("airway")
 #data("airway")
 #DESeqDataSet(airway, design = ~ cell + dex)
+
+# Alternative 4: Synthetic Data Generation (two conditions)
+# dds <- makeExampleDESeqDataSet(n = 1000, m = 6, betaSD = 2)
 ```
 
 
