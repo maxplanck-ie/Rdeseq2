@@ -39,10 +39,9 @@ There is lots of useful material out there. This course is heavily influenced by
 
 ## Part I: Getting and understanding the data
 
-* Bioinformatic Workflows
-* R-Repetition
-* Data, Metadata and Design
-* Experimental Design: seq. depth and replication
+* Warmup & R-epetition
+* Data, Metadata & Design
+* Experimental Design
 * Data Exploration
 * Quality Control
 
