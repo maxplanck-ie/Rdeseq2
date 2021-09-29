@@ -22,7 +22,13 @@ Purpose: https://pubmed.ncbi.nlm.nih.gov/28790111/
 **Warmup Tasks**:
 
 1. Start Rstudio session
-2. Create a new project directory, e.g. DESeq2_Course
+2. Select R-version: 4.0.3
+3. Create a new R-project, e.g. DESeq2_Course
+4. Open a new notebook: e.g. DESeq2_notebook
+
+**Poll 1**: How do you get information about the current R-version and loaded packages?
+
+
 
 **Remember**: 
 Many useful functions are already available with R: base packages.
@@ -50,7 +56,8 @@ install.packages("tidyverse")
 install.packages("pheatmap")
 ```
 
-**Anynymous Poll**: Who has successfully installed the following packages: DESEeq2, tidyverse, pheatmap ?
+**Anynymous Poll 2**: Who has successfully installed the following packages: DESEeq2, tidyverse, pheatmap ?
+
 
 ***
 
@@ -96,10 +103,8 @@ data <- data %>% column_to_rownames("geneID")                           # geneID
 
 **Discussion** Inspect the data. What does R mean with variables? What are observations? 
 
-**Poll**: How many samples are in the data
+**Poll 3**: How many samples are in the data?
 
-1. 18
-2. 57910
 
 **Discussion**: Where are the gene names, and which convention is chosen for them?
 
@@ -147,7 +152,7 @@ y_i = \beta_0 + \beta_1 x_i + \epsilon_i ~~~~~ (i = 1\ldots N) \\ \\
 y = X \cdot \beta
 $$
 
-**Poll**: What is $N$ in this example
+**Poll 4**: What is $N$ in this example
 
 1. number of genes
 2. number of samples
@@ -207,6 +212,7 @@ pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ### Interlude: Experimental Design (10min)
 https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md (50min)
 
+PREPARE FIGURE
 Batches, Replicates, Sequencing Depth
 
 
@@ -262,7 +268,8 @@ dds <- DESeqDataSetFromHTSeqCount(sampleTable, directory = ".", design = my_desi
 - Entries, Visualization
 - Correlations
 
-**Task 1**: Inspect the data structures and dimensions of objects dds and extract the count matrix M (Hint: counts())
+**Task 1**: Inspect the data structures and dimensions of objects dds and extract the count matrix M 
+(Hint: > ?counts)
 
 **Task 2**: Extract the first 10 rows (genes) from count matrix and safe as new data object -> Mr <- (for further use)
 
