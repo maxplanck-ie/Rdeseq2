@@ -27,6 +27,8 @@ The following topics will be covered:
 
 * an **account for rstudio.ie-freiburg.mpg.de**: We will use the Rstudio server at the MPI-IE. If you do not have an account yet, you will need to request an account from core-IT. Please do so well before the course starts.
 
+* **install** the following packages: tidyverse, pheatmap, DESeq2, ...
+
 * **Know your keyboard!** Special characters will be needed throughout the course, e.g. $ , | , [, ], {, }, >, <, #, ~, &, ^, %, !, ?
 
 
