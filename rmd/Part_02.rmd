@@ -81,7 +81,7 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
 (What would you do if you find yourself in the situation where there is something wrong in your dataset? Would you drop the responsible sample? Would you modify the dataset? How would you make that choice?)
 
 Let's fix the data by removing the problematic samples and visualize the resulting PCA:
-```{r fix_data_metadata}
+```{r fix_data_metadata, fig.align="center"}
 #remove the samples from data and metadata:
 dds <- dds[, -c(1,7)]
 metadata <- metadata[-c(1,7),]
@@ -163,11 +163,14 @@ barplot(my_numbers2, names.arg=my_names2, main = "The correct display")
 par(mfrow = c(1,1))
 ```
       - for statistics: for DE analysis, DESeq2 compares all other levels within a variable with the 1st level. So if they are mixed, instead of comparing 'treatment1 to control' and 'treatment2 to control', you might end up with unexpected results! 
-
 <br>
+
 <center>
+
 ![Order of factors influences later comparisons](../images/factor_order_comparison.png){width=60%}
+
 </center>
+
 <br>
 
 
@@ -188,6 +191,7 @@ dds$condition <- factor(dds$condition, levels = c ('DMSO', 'AMIL', 'TG'))  # if 
 
 
 Back to our data. 
+
 **Task 3:** Please reorder the levels for the 'condition' - 2 min
 
 This is the order of the factors before and after re-arrangement:
@@ -205,14 +209,12 @@ dds$condition
 ## **2.1.c. experimental design**
 - contains variables which will be used in data modeling for estimating dispersions and the log fold changes.
 - formula:
-  - starts with a tilde '~'
   - the names used are the names of the columns of the metadata
-  - add the needed variables, with the one you are most interested in explaining at the end
-    - e.g. '~ batch + condition' = measure the effect of condition, while controlling for batch-induced differences
-  - make sure the control condition (e.g. DMSO, WT, PBS) is the reference level
+  - add the needed variables, with **the one you are most interested in explaining at the end**
+    - e.g. '~ celltype + condition' = measure the effect of condition, while controlling for cell type-induced differences
 
 ```{r design, eval=FALSE}
-design <- ~ celltype + condition
+my_design <- ~ celltype + condition
 ```
 
 All that is left now is to make the dds object:
@@ -226,13 +228,18 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=my_design
   - intermediate estimated quantities - during statistical analysis
   - more additional features that you can add manually to the metadata columns of a newly constructed object: `mcols(dds) <- DataFrame(mcols(dds), my_dataframe)`
   
-
-
+  
+# **Break** - 10 min
 
 
 # **3.  Data exploration, visualization and QC ** - 30 min
+To explore your data further to learn more about it, to check if your expectations are met. Also, the downstream analyses rely on a couple of assumptions and we need to see to what degree our data match those assumptions, and to correct it if possible. Also, to create informative, easy to interpret visualizations, the data needs to be transformed before plotting. We need to talk about:
 
-## **3.1. Data pre-filtering**
+- filtering
+- distributions for data modeling: mean, stdvar, variance, dispersion, overdispersion
+- transformations: log, vst, rlog
+
+## **3.1. Data pre-filtering** - 10 min
 Let's look at our data using the 'summary()' function:
 ```{r summary_data}
 summary(counts(dds))[,1:3]  #shows the summary only for the first 3 samples - for brevity
@@ -258,35 +265,9 @@ cat('genes before filter: ', nrow(fdds), '\n')    # prints the number of rows yo
 Notice how many rows you have dropped. In this case you are left only with **`r round(nrow(fdds) * 100 / nrow(dds), digits=2)` %** of the initial number of rows!
 
 
-NOTE1: the threshold depends on the dataset, your goals and the R package you use. With DESeq2 it is recommended to only do a minimal filtering to remove the zero counts. This is because the later analysis will apply their own automatic filtering, such as when using the 'results()' function from DESeq2.
-
-NOTE2: If you have an unequal number of samples in the groups, you should set the minimal number of samples in which the counts should be above a certain value. For example, if your smallest group has only 5 samples and the others more, and you want a stricter threshold (of lets say 10 counts), use the filtering as such: `keep <- rowSums(counts(dds) >= 10) >= 5`
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# **2. Data exploration, visualization and QC**   - 30 min
-After creating the DESeq2 object, you need to explore your data further to learn more about it, to check if your expectations are met. Also, the downstream analyses rely on a couple of assumptions and we need to see to what degree our data match those assumptions, and to correct it if possible. Also, to create informative, easy to interpret visualizations, the data needs to be transformed before plotting. We need to talk about:
-- filtering
-- distributions for data modeling: mean, stdvar, variance, dispersion, overdispersion
-- transformations: log, vst, rlog
 
 
 
@@ -300,60 +281,8 @@ An important step in DE analysis is to model the association between gene counts
   - mean of the group: the average value of a sample
   - variance: the expectation of the squared deviation (stdev^2) of a variable from its population mean. It is a measure of dispersion (of how far a set of numbers is spread out from their average value)
 
-```{r normal_distribution}
-x <- seq(-4, 4, length=200)
-y <- dnorm(x, mean=0, sd=1)
-
-plot(x, y, type="l", lwd=2,  axes=FALSE, ann = FALSE)  #  scatterplot with connected lines (type = "l"); remove axes and the axes titles
-title ("Normal distribution (mean = 0, stdev=1)", cex=0.8)
-
-#choose the colors for the plot:
-custom_grey_pallete <- colorRampPalette(c("grey0", "grey100"))
-my_colors <- custom_grey_pallete(5)
-
-i <- x >= -3 & x <= 3
-polygon(c(-3,x[i],3), c(0,y[i],0), col=my_colors[4])
-
-i <- x >= -2 & x <= 2
-polygon(c(-2,x[i],2), c(0,y[i],0), col=my_colors[3])
-
-i <- x >= -1 & x <= 1
-polygon(c(-1,x[i],1), c(0,y[i],0), col=my_colors[2])
-
-abline(v = 0, lty=2, col='white')
-
-# Display text on the plot. The default "side" parameter is 3, representing the top of the plot.
-mtext("Mean (μ)", side = 3, line=-0.5)               
 
 
-# add multiple labels to the axis
-mtext('Values\nStdev from mean\n Z-score', side =1,
-      line = 3,
-      at = -3.5, adj=1, cex=0.9)
-
-axis(1, at=seq(-3, 3, by=1), labels=c("μ-3σ", "μ-2σ", "μ-1σ", "μ", "μ+1σ", "μ+2σ", "μ+3σ"), cex=0.9)  
-axis(1, at=seq(-3, 3, by=1), labels=c('-3σ', '-2σ', '-1σ', '0', '1σ', '2σ', '3σ'), line=1, tick = FALSE, cex=0.9)
-axis(1, at=seq(-3, 3, by=1), labels=c('-3.0', '-2.0', '-1.0', '0', '1.0', '2.0', '3.0'), line=2, tick = FALSE, cex=0.9)
-
-### remember: value of z-score: z=(value-mean)/sigma
-```
-
-```{r var}
-x <- seq(-8, 8, length=200)
-y <- dnorm(x, mean=0, sd=1)
-z <- dnorm(x, mean=0, sd=3)
-
-plot(x, y, type="l", lwd=2,  axes=FALSE, ann = FALSE )  #  scatterplot with connected lines (type = "l"); remove axes and the axes titles
-title ("Normal distribution (mean = 0)", cex=0.8)
-lines(x,z,col="green")
-
-#legend("topright", legend=c('stdev=1', 'stdev=3'), col=c('black', 'green'))
-
-abline(v = 0, lty=2, col='black')
-abline(v = 0, lty=1, col='green')
-text(2, 0.3, labels="stdev = 1", col = 'black')
-text(3, 0.12, labels="stdev = 3", col = 'green')
-```
 - RNAseq data is:
   - discrete (counts)
   - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small
