@@ -17,19 +17,16 @@ knitr::opts_chunk$set(echo = TRUE)
 setwd("~/Desktop/Rdeseq2/rmd/")
 ```
 
-#### **Load libraries**
+### **Load libraries**
 ```{r paths_libraries, eval=TRUE, message=FALSE}
 library(tidyverse)
 library(DESeq2)
-library(apeglm)
-#library(dplyr)
-library(ggplot2)
 library(pheatmap)
 library(knitr)
 ```
 
 
-## **1. Quick recap** - 50 min
+# **1. Quick recap** - 50 min
 The steps required to do differential expression analysis using DESeq2 package (with default parameters):  NOT RUN
 
 ```{r recap, eval=FALSE}
@@ -55,13 +52,13 @@ Things are a bit more complicated in reality - an interative process.
 <br>
 
 
-### **1.1. Load data, metadata, decide on design**
+## **1.1. Load data, metadata, decide on design**
 You have learned more about loading and fixing data, exploring it and creating a DESeq2 object in the previous day. Here the same steps are summarized and used to load the data for today's lesson.
 
 ```{r load_data_metadata, message=FALSE}
 #Loading data and metadata (sample sheet)
-data <- read.table("../data/qc/counts_qc.tsv", header=TRUE, check.names = TRUE)
-metadata <- read.table("../data/qc/counts_qc_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F)
+data <- read.table("../data/myeloma/myeloma_counts.tsv", header=TRUE, check.names = TRUE)
+metadata <- read.table("../data/myeloma/myeloma_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F)
 colnames(metadata) <- c("sample", "celltype", "condition")
 
 metadata$celltype <- as.factor(metadata$celltype)    # observe the change from 'character' to 'factor'
@@ -74,12 +71,12 @@ head(metadata)
 all(rownames(metadata) == colnames(data))
 ```
 
-#### **1.1.a. count data**
+### **1.1.a. count data**
 - usually named 'data', 'counts'
 - a matrix with **raw counts** - not normalized, not transformed; integers
 - to explore: head(data), dim(data), str(data), summary(data)
   
-#### **1.1.b. information about the samples**
+### **1.1.b. information about the samples**
 - usually named 'metadata', 'colData'
 - dataframe with all known useful information about the samples: name, condition (control/treatment, WT/KO/KD/OE), batch/ sequencing day, gender, age
 - to explore: head(metadata)
@@ -147,7 +144,7 @@ metadata$condition
 ```
 
 
-#### **1.1.c. experimental design**
+### **1.1.c. experimental design**
 - contains variables which will be used in data modeling for estimating dispersions and the log fold changes.
 - formula:
   - starts with a tilde '~'
@@ -172,7 +169,7 @@ dds_old <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=desig
   - more additional features that you can add manually to the metadata columns of a newly constructed object: `mcols(dds) <- DataFrame(mcols(dds), my_dataframe)`
   
 
-### **1.2. Exploring data - part 1 **
+## **1.2. Exploring data - part 1 **
 Previously you noticed that the PCA shows a problem with our data. The dataset you are working on has been changed for the purpose of teaching you data exploration. But you might find this kind of issue in datasets without them being tampered.
 
 ```{r old_PCA, echo=FALSE, fig.align="center"}
@@ -220,14 +217,14 @@ You can see that now the samples group nicely on the PCA.
 
 
 
-## **2. Data exploration, visualization and QC**   - 30 min
+# **2. Data exploration, visualization and QC**   - 30 min
 After creating the DESeq2 object, you need to explore your data further to learn more about it, to check if your expectations are met. Also, the downstream analyses rely on a couple of assumptions and we need to see to what degree our data match those assumptions, and to correct it if possible. Also, to create informative, easy to interpret visualizations, the data needs to be transformed before plotting. We need to talk about:
 - filtering
 - distributions for data modeling: mean, stdvar, variance, dispersion, overdispersion
 - transformations: log, vst, rlog
 
 
-### **2.1. Data pre-filtering**
+## **2.1. Data pre-filtering**
 Let's look at our data using the 'summary()' function:
 ```{r summary_data}
 summary(counts(dds))[,1:3]  #shows the summary only for the first 3 samples - for brevity
@@ -257,7 +254,7 @@ NOTE1: the threshold depends on the dataset, your goals and the R package you us
 
 NOTE2: If you have an unequal number of samples in the groups, you should set the minimal number of samples in which the counts should be above a certain value. For example, if your smallest group has only 5 samples and the others more, and you want a stricter threshold (of lets say 10 counts), use the filtering as such: `keep <- rowSums(counts(dds) >= 10) >= 5`
 
-### **2.2. Modeling count data**
+## **2.2. Modeling count data**
 An important step in DE analysis is to model the association between gene counts and covariates of interest = find the (cluster of) genes that significantly change their expression, that can be attributed to a combination of factors outlined in your experimental design.
 
 - data can be modeled with various distributions depending on their properties:
@@ -361,7 +358,7 @@ text(3, 0.12, labels="stdev = 3", col = 'green')
 <!-- - for genes with high mean expression, the variance across replicates tends to be greater that the mean -->
 <!-- - for genes with low mean expression, you see quite a bit of scatter = hetero-scedasti-city = for a given expression level in the low range, we obs a lot of variability in the variance values. -->
 
-### **2.3. Data transformation**
+## **2.3. Data transformation**
 DESeq2 needs as input **raw counts** for statistical testing, but for some stages of visualization or downstream analysis, you need **transformed data**. Methods of exploratory analysis of multidimensional data work best for data that has in general the same range of variance at different ranges of the mean values (also called **homoskedastic data**). We just saw that mRNA data is **heteroskedastic** (variance grows with the mean), so if we plot that data, the biggest difference will be given by the genes with the highest counts because they show the largest absolute differences between samples. 
 
 a) logarithmic data - also called **pseudocounts**; used mostly in visualization because of the large dynamic range of the data; the logarithmic function is of the type: log2(count+n0), usually log2(count+1). The 'n0' value is a positive constant that is introduced because of the zero counts (log(0) tends to infinity and this introduces other issues in the visualization). The problem is that the genes with the very lowest counts (which also have a very poor noise-to-signal ratio) contribute the greatest amount the noise (log of small numbers inflates their variance) = **the low counts genes will overly contribute to sample-sample distances**.
@@ -456,7 +453,7 @@ ggplot(rld_new3, aes(PC1, PC2, color=celltype)) +
 
 
 
-## **3. Differential expression analysis**  - 30 min
+# **3. Differential expression analysis**  - 30 min
 The results can be returned using the standard function:
 ```{r dds_DE, eval=FALSE}
 dds <- DESeq(dds)
@@ -467,7 +464,7 @@ There are several steps to generating the DE results, and they are wrapped toget
 - fitting model and testing
 
 
-### **3.1. Size factors**
+## **3.1. Size factors**
 The libraries have different sizes, so when using data for statistical analysis, you must have comparable libraries for the downstream estimations = normalization. The size factors are meant to account for the different sequencing depths.
 ```{r size_libraries}
 colSums(counts(dds))
@@ -488,7 +485,7 @@ colSums(counts(dds, normalized=T))
 
 
 
-### **3.2. Dispersions**
+## **3.2. Dispersions**
 DESeq2 measures variation using the term 'dispersion', that actually connects a gene’s variance and mean expression level. Dispersion is calculated by `Var = μ + α*μ^2`, where `α` = dispersion, `Var` = variance, and `μ` = mean
 
 ```{r estimate dispersions, message=FALSE, warning=FALSE}
@@ -506,7 +503,7 @@ plotDispEsts(dds)
 dds <- DESeq(dds)
 ```
 
-## **4. Extracting results** - 10 min
+# **4. Extracting results** - 10 min
 To see the results, use the **results()** function which gives you the **log2 fold changes** and the **adjusted p-values**, for the last variable in the design formula (the estimates are of the logarithmic fold change log2(treated/untreated). In our case it will AMIL/DMSO and TG/DMSO).
 
 ```{r run_DESeq2, message=FALSE}
