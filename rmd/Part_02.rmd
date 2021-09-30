@@ -26,7 +26,7 @@ library(knitr)
 ```
 
 
-# **1. Quick recap** - 50 min
+# **1. Quick recap** - 40 min
 The steps required to do differential expression analysis using DESeq2 package (with default parameters):  NOT RUN
 
 ```{r recap, eval=FALSE}
