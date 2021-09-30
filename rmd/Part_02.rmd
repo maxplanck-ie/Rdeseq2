@@ -30,7 +30,7 @@ library(knitr)
 
 `dds <- data + metadata + design`
 
-**Task1:** load the data and metadata as done in the previous day.
+**Task1:** load the data and metadata as done in the previous day. Then look at the header of each dataset. -10 min
 
 ```{r make_dds_obj, message=FALSE}
 #loading data and metadata (sample sheet)
@@ -57,7 +57,7 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_desig
 
 **Task2:** plot the samples in a PCA plot - 5 min
 
-Previously you noticed that the PCA shows a problem with our data. But you might find this kind of issue in datasets without them being tampered.
+Previously you noticed that the PCA shows a problem with our data. 
 
 ```{r old_PCA, echo=FALSE, fig.align="center"}
 #plotPCA is the DESeq2 function to plot automatically your samples on a PCA. However, the images don't look to nice. So we use it to extract the values needed for plotting and then using them with ggplot to get a better PCA.
@@ -71,20 +71,35 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
   xlab(paste0("PC1: ",percentVar[1])) +
   ylab(paste0("PC2: ",percentVar[2])) +
   geom_point(aes(x = rld_PCA[1, 1], y = rld_PCA[1, 2]), shape=1, size=3, color="black") +
-  geom_point(aes(x = rld_PCA[7, 1], y = rld_PCA[7, 2]), shape=3, size=3, color="black")
+  geom_point(aes(x = rld_PCA[7, 1], y = rld_PCA[7, 2]), shape=3, size=3, color="black")+
+  geom_text(x = 0, y = -1, label="what does the sample mixing mean?", color="black", size=5) +
+  geom_segment(aes(x = -25, y = -3, xend = -60, yend = -8), arrow = arrow(length = unit(0.5, "cm")), color="black", show.legend = FALSE) +   #arrow1
+  geom_segment(aes(x = 25, y = -3, xend = 60, yend = -8), arrow = arrow(length = unit(0.5, "cm")), color="black", show.legend = FALSE)      #arrow2
 ```
 
 **Poll 1:** What do you think about this PCA plot? Does it need to be fixed? How would you do it? - 5 min
+(What would you do if you find yourself in the situation where there is something wrong in your dataset? Would you drop the responsible sample? Would you modify the dataset? How would you make that choice?)
+
+Let's fix the data by removing the problematic samples and visualize the resulting PCA:
+```{r fix_data_metadata}
+#remove the samples from data and metadata:
+dds <- dds[, -c(1,7)]
+metadata <- metadata[-c(1,7),]
+
+rld_PCA <- plotPCA(rlog(dds, blind = TRUE), intgroup=c("condition", "celltype"), returnData=TRUE)
+percentVar <- round(100 * attr(rld_PCA, "percentVar"), 1)   # rounded values for each axis of PC variance
+
+ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
+  geom_point(size=3) +
+  scale_shape_manual(values=c(3, 1))+    # change shapes of symbols
+  scale_size_manual(values=c(2, 2))+     # change sizes of symbols
+  xlab(paste0("PC1: ",percentVar[1])) +
+  ylab(paste0("PC2: ",percentVar[2])) 
+```
 
 
 
-
-
-
-
-
-
-# **2. Quick recap and more explanations** - 40 min
+# **2. Quick recap and more explanations** - 30 min
 
 The steps required to do differential expression analysis using DESeq2 package (with default parameters):  NOT RUN
 
@@ -106,17 +121,17 @@ res <- results(dds)
 Things are a bit more complicated in reality - an interative process.
 <br>
 <center>
-![Workflow for DESeq2](../images/workflow_DESeq2.png){width=100%}
+![Workflow for DESeq2](../images/workflow_DESeq2.png){width=80%}
 </center>
 <br>
 
 
-### **1.1.a. count data**
+## **2.1.a. count data**
 - usually named 'data', 'counts'
 - a matrix with **raw counts** - not normalized, not transformed; integers
 - to explore: head(data), dim(data), str(data), summary(data)
   
-### **1.1.b. information about the samples**
+## **2.1.b. information about the samples**
 - usually named 'metadata', 'colData'
 - dataframe with all known useful information about the samples: name, condition (control/treatment, WT/KO/KD/OE), batch/ sequencing day, gender, age
 - to explore: head(metadata)
@@ -172,19 +187,22 @@ dds$condition <- factor(dds$condition, levels = c ('DMSO', 'AMIL', 'TG'))  # if 
 ```
 
 
-Back to our data. This is the order of the factors before and after re-arrangement:
+Back to our data. 
+**Task 3:** Please reorder the levels for the 'condition' - 2 min
+
+This is the order of the factors before and after re-arrangement:
 ```{r rearrange_factors}
 #initial factor arrangement:
-metadata$condition
+dds$condition
 
 #rearrange factors
-metadata$condition <- factor(metadata$condition, levels = c("DMSO", "AMIL", "TG"))
+dds$condition <- relevel(dds$condition, ref='DMSO')
 
-metadata$condition
+dds$condition
 ```
 
 
-### **1.1.c. experimental design**
+## **2.1.c. experimental design**
 - contains variables which will be used in data modeling for estimating dispersions and the log fold changes.
 - formula:
   - starts with a tilde '~'
@@ -193,14 +211,14 @@ metadata$condition
     - e.g. '~ batch + condition' = measure the effect of condition, while controlling for batch-induced differences
   - make sure the control condition (e.g. DMSO, WT, PBS) is the reference level
 
-```{r design}
+```{r design, eval=FALSE}
 design <- ~ celltype + condition
 ```
 
 All that is left now is to make the dds object:
 
-```{r ddsObj1}
-dds_old <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=design) 
+```{r ddsObj1, eval=FALSE}
+dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=my_design) 
 ```
 - dds object stores:
   - read counts (data) - call it with `counts(dds)`
@@ -212,24 +230,14 @@ dds_old <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=desig
 
 
 
+# **3.  Data exploration, visualization and QC ** - 30 min
 
-
-
-
-
-
-
-
-
-
-
-
-## **2.1. Data pre-filtering**
+## **3.1. Data pre-filtering**
 Let's look at our data using the 'summary()' function:
 ```{r summary_data}
 summary(counts(dds))[,1:3]  #shows the summary only for the first 3 samples - for brevity
 ```
-**Q2**: notice the output - what do the various parameters tell you about the data? What does the 'mean' tell you, practically?
+**Task 4**: notice the output - what does the 'mean' tell you, practically?
 
 - several types of filtering, some manual others automatic
 - the pre-filtering is helpful but not necessary to remove rows/genes that have very low counts (very unlikely to have biological meaning)
@@ -270,69 +278,6 @@ NOTE2: If you have an unequal number of samples in the groups, you should set th
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## **1.2. Exploring data - part 1 **
-
-
-Let's fix the dataset, to return it to the way the data was originally published:
-```{r fix_data, results='hide', fig.keep='all', fig.align="center"}
-#Fix data:
-#switch rows 1 and 7 in metadata
-metadata <- metadata[c(7, 2:6, 1, 8:nrow(metadata)),]
-rownames(metadata) <- metadata$sample    # needed for plotting with pheatmap
-#metadata$sample <- NULL    #if you want to remove the 'sample' column
-
-#switch column names in counts:
-colnames(data)[c(1,7)] <- c("BM_CTRL_1", "JJ_CTRL_1")
-
-#check if the col and rows are in the same order:
-all(rownames(metadata) == colnames(data))
-
-#new PCA
-design <- ~ celltype + condition        #!!! names must be the same as the columns in the metadata file!!!
-dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=design) 
-rld <- plotPCA(rlog(dds, blind = TRUE), intgroup=c("condition", "celltype"), returnData=TRUE)  # 'plotPCA' is a DESeq2 function used for plotting transformed data; can use ggplot code you learned yesterday
-percentVar <- round(100 * attr(rld, "percentVar"), 1)   # rounded values for each axis of PC variance 
-
-ggplot(rld, aes(PC1, PC2, color=condition, shape=celltype)) +
-  geom_point(size=3) +
-  xlab(paste0("PC1: ",percentVar[1])) +
-  ylab(paste0("PC2: ",percentVar[2])) 
-
-```
-You can see that now the samples group nicely on the PCA.
-
-
-**Q1**: What would you do if you find yourself in the situation where there is something wrong in your dataset? Would you drop the responsible sample? Would you modify the dataset? How would you make that choice?
 
 
 
