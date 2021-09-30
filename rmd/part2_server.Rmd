@@ -278,7 +278,6 @@ custom_grey_pallete <- colorRampPalette(c("grey0", "grey100"))
 my_colors <- custom_grey_pallete(5)
 
 i <- x >= -3 & x <= 3
-#lines(x, y)
 polygon(c(-3,x[i],3), c(0,y[i],0), col=my_colors[4])
 
 i <- x >= -2 & x <= 2
