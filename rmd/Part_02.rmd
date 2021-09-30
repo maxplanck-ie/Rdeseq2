@@ -1,5 +1,5 @@
 ---
-title: "Rcourse_p2"
+title: "DESeq2 Analysis with R: Part 02"
 author: "Mirela Balan"
 date: "`r date() `"
 output:
@@ -26,7 +26,66 @@ library(knitr)
 ```
 
 
-# **1. Quick recap** - 40 min
+# **1. Load data, metadata, check samples** - 20 min
+
+`dds <- data + metadata + design`
+
+**Task1:** load the data and metadata as done in the previous day.
+
+```{r make_dds_obj, message=FALSE}
+#loading data and metadata (sample sheet)
+data <- read.table("../data/myeloma/myeloma_counts.tsv", header=TRUE, check.names = TRUE)
+metadata <- read.table("../data/myeloma/myeloma_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F)
+
+metadata$celltype <- as.factor(metadata$celltype)    # observe the change from 'character' to 'factor'
+metadata$condition <- as.factor(metadata$condition)
+rownames(metadata) <- metadata$sample  
+
+#preview your data and metadata
+head(data)
+head(metadata)
+
+#check if the col and rows are in the same order:
+all(rownames(metadata) == colnames(data))
+
+#create design
+my_design <- ~celltype + condition
+
+#make dds obj
+dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_design)
+```
+
+**Task2:** plot the samples in a PCA plot - 5 min
+
+Previously you noticed that the PCA shows a problem with our data. But you might find this kind of issue in datasets without them being tampered.
+
+```{r old_PCA, echo=FALSE, fig.align="center"}
+#plotPCA is the DESeq2 function to plot automatically your samples on a PCA. However, the images don't look to nice. So we use it to extract the values needed for plotting and then using them with ggplot to get a better PCA.
+rld_PCA <- plotPCA(rlog(dds, blind = TRUE), intgroup=c("condition", "celltype"), returnData=TRUE)
+percentVar <- round(100 * attr(rld_PCA, "percentVar"), 1)   # rounded values for each axis of PC variance
+
+ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
+  geom_point(size=3) +
+  scale_shape_manual(values=c(3, 1))+    # change shapes of symbols
+  scale_size_manual(values=c(2, 2))+     # change sizes of symbols
+  xlab(paste0("PC1: ",percentVar[1])) +
+  ylab(paste0("PC2: ",percentVar[2])) +
+  geom_point(aes(x = rld_PCA[1, 1], y = rld_PCA[1, 2]), shape=1, size=3, color="black") +
+  geom_point(aes(x = rld_PCA[7, 1], y = rld_PCA[7, 2]), shape=3, size=3, color="black")
+```
+
+**Poll 1:** What do you think about this PCA plot? Does it need to be fixed? How would you do it? - 5 min
+
+
+
+
+
+
+
+
+
+# **2. Quick recap and more explanations** - 40 min
+
 The steps required to do differential expression analysis using DESeq2 package (with default parameters):  NOT RUN
 
 ```{r recap, eval=FALSE}
@@ -51,25 +110,6 @@ Things are a bit more complicated in reality - an interative process.
 </center>
 <br>
 
-
-## **1.1. Load data, metadata, decide on design**
-You have learned more about loading and fixing data, exploring it and creating a DESeq2 object in the previous day. Here the same steps are summarized and used to load the data for today's lesson.
-
-```{r load_data_metadata, message=FALSE}
-#Loading data and metadata (sample sheet)
-data <- read.table("../data/myeloma/myeloma_counts.tsv", header=TRUE, check.names = TRUE)
-metadata <- read.table("../data/myeloma/myeloma_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F)
-colnames(metadata) <- c("sample", "celltype", "condition")
-
-metadata$celltype <- as.factor(metadata$celltype)    # observe the change from 'character' to 'factor'
-metadata$condition <- as.factor(metadata$condition)
-rownames(metadata) <- metadata$sample  
-head(data)
-head(metadata)
-
-#check if the col and rows are in the same order:
-all(rownames(metadata) == colnames(data))
-```
 
 ### **1.1.a. count data**
 - usually named 'data', 'counts'
@@ -169,19 +209,99 @@ dds_old <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=desig
   - more additional features that you can add manually to the metadata columns of a newly constructed object: `mcols(dds) <- DataFrame(mcols(dds), my_dataframe)`
   
 
-## **1.2. Exploring data - part 1 **
-Previously you noticed that the PCA shows a problem with our data. The dataset you are working on has been changed for the purpose of teaching you data exploration. But you might find this kind of issue in datasets without them being tampered.
 
-```{r old_PCA, echo=FALSE, fig.align="center"}
-#plotPCA is the DESeq2 function to plot automatically your samples on a PCA. However, the images don't look to nice. So we use it to extract the values needed for plotting and then using them with ggplot to get a better PCA.
-rld_old <- plotPCA(rlog(dds_old, blind = TRUE), intgroup=c("condition", "celltype"), returnData=TRUE)
-percentVar <- round(100 * attr(rld_old, "percentVar"), 1)   # rounded values for each axis of PC variance
 
-ggplot(rld_old, aes(PC1, PC2, color=condition, shape=celltype)) +
-  geom_point(size=3) +
-  xlab(paste0("PC1: ",percentVar[1])) +
-  ylab(paste0("PC2: ",percentVar[2])) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+## **2.1. Data pre-filtering**
+Let's look at our data using the 'summary()' function:
+```{r summary_data}
+summary(counts(dds))[,1:3]  #shows the summary only for the first 3 samples - for brevity
 ```
+**Q2**: notice the output - what do the various parameters tell you about the data? What does the 'mean' tell you, practically?
+
+- several types of filtering, some manual others automatic
+- the pre-filtering is helpful but not necessary to remove rows/genes that have very low counts (very unlikely to have biological meaning)
+  - arbitrary threshold: < 1, < 10
+  - reduces the memory size that the 'dds' object occupies => increases the speed of transformations and calculations
+  - reduces the numbers of comparisons done when testing for significance => improves the outcomes
+
+```{r DESeq2_filtering, fig.align="center"}
+#decide on the threshold you want to use  (= the minimum number of counts you want to keep)
+keep <- rowSums(counts(dds)) > 1
+cat('genes before filter: ', nrow(dds), '\n')    # prints the number of rows you have before the filtering
+
+# keep the desired rows
+fdds <- dds[keep, ]                               # most people keep the 'dds' name, but I will change it to help you differentiate between the different steps and learn. But doing this will fill up your memory.
+cat('genes before filter: ', nrow(fdds), '\n')    # prints the number of rows you have after the filtering
+```
+
+Notice how many rows you have dropped. In this case you are left only with **`r round(nrow(fdds) * 100 / nrow(dds), digits=2)` %** of the initial number of rows!
+
+
+NOTE1: the threshold depends on the dataset, your goals and the R package you use. With DESeq2 it is recommended to only do a minimal filtering to remove the zero counts. This is because the later analysis will apply their own automatic filtering, such as when using the 'results()' function from DESeq2.
+
+NOTE2: If you have an unequal number of samples in the groups, you should set the minimal number of samples in which the counts should be above a certain value. For example, if your smallest group has only 5 samples and the others more, and you want a stricter threshold (of lets say 10 counts), use the filtering as such: `keep <- rowSums(counts(dds) >= 10) >= 5`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## **1.2. Exploring data - part 1 **
+
 
 Let's fix the dataset, to return it to the way the data was originally published:
 ```{r fix_data, results='hide', fig.keep='all', fig.align="center"}
@@ -224,35 +344,7 @@ After creating the DESeq2 object, you need to explore your data further to learn
 - transformations: log, vst, rlog
 
 
-## **2.1. Data pre-filtering**
-Let's look at our data using the 'summary()' function:
-```{r summary_data}
-summary(counts(dds))[,1:3]  #shows the summary only for the first 3 samples - for brevity
-```
-**Q2**: notice the output - what do the various parameters tell you about the data? What does the 'mean' tell you, practically?
 
-- several types of filtering, some manual others automatic
-- the pre-filtering is helpful but not necessary to remove rows/genes that have very low counts (very unlikely to have biological meaning)
-  - arbitrary threshold: < 1, < 10
-  - reduces the memory size that the 'dds' object occupies => increases the speed of transformations and calculations
-  - reduces the numbers of comparisons done when testing for significance => improves the outcomes
-
-```{r DESeq2_filtering, fig.align="center"}
-#decide on the threshold you want to use  (= the minimum number of counts you want to keep)
-keep <- rowSums(counts(dds)) > 1
-cat('genes before filter: ', nrow(dds), '\n')    # prints the number of rows you have before the filtering
-
-# keep the desired rows
-fdds <- dds[keep, ]                               # most people keep the 'dds' name, but I will change it to help you differentiate between the different steps and learn. But doing this will fill up your memory.
-cat('genes before filter: ', nrow(fdds), '\n')    # prints the number of rows you have after the filtering
-```
-
-Notice how many rows you have dropped. In this case you are left only with **`r round(nrow(fdds) * 100 / nrow(dds), digits=2)` %** of the initial number of rows!
-
-
-NOTE1: the threshold depends on the dataset, your goals and the R package you use. With DESeq2 it is recommended to only do a minimal filtering to remove the zero counts. This is because the later analysis will apply their own automatic filtering, such as when using the 'results()' function from DESeq2.
-
-NOTE2: If you have an unequal number of samples in the groups, you should set the minimal number of samples in which the counts should be above a certain value. For example, if your smallest group has only 5 samples and the others more, and you want a stricter threshold (of lets say 10 counts), use the filtering as such: `keep <- rowSums(counts(dds) >= 10) >= 5`
 
 ## **2.2. Modeling count data**
 An important step in DE analysis is to model the association between gene counts and covariates of interest = find the (cluster of) genes that significantly change their expression, that can be attributed to a combination of factors outlined in your experimental design.
