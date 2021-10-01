@@ -15,7 +15,7 @@ output:
 ## Get Story (2 min)
 Purpose: https://pubmed.ncbi.nlm.nih.gov/28790111/
 
-Summary:   
+Goal for this tutorial:   
 Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in two cancer cell lines with different mutations (BM: p53mut, JJ: del(17p))
 
 <!-- Results: More deregulated genes in BM (5000) vs JJ (1000), but focus on alternative isoforms -->
@@ -25,12 +25,12 @@ Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in two can
 
 **Warmup Tasks**:
 
-1. Start Rstudio session
+1. Start Rstudio session @ rstudio.ie-freiburg.mpg.de
 2. Select R-version: 4.0.3
 3. Create a new R-project, e.g. DESeq2_Course
 4. Open a new notebook: e.g. DESeq2_notebook
 
-<br> <br>
+<br> 
 
 **Reminder**: Difference between *Console*, *Scripts* or *Notebooks*.
 
@@ -39,22 +39,24 @@ Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in two can
 
 <br><br>
 
-### Install Tools
-**Reminder**:  Many useful functions are already available with R: base packages.
+### Install Packages
+**Reminder**:  Many useful functions are already available with R: *base packages*.
 
-Many analysis tools come with software **packages** that will need to be installed before use.
-For R, two of the most common and reliable package repositories are **CRAN** or **Bioconductor**.
+Many analysis tools come with software packages that will need to be installed before use.
 
-- https://cran.r-project.org/
-- https://bioconductor.org/
+For R, two of the most common and reliable package repositories are
+
+- **CRAN** https://cran.r-project.org/
+- **Bioconductor** https://bioconductor.org/
 
 **Notice**: 
 
-1. All packages come for a **specific R-version**. This tutorial uses R version 4.0.3 (Oct 2021).
+1. All packages come for a **specific R-version**. This tutorial uses R version 4.0.3.
 2. All packages have specific **package version** (e.g. DESeq2 is version 1.30.1)
 3. Most packages have **dependencies** on other packages that should also be installed 
-4. Installation can be very **time consuming** but needs to be done only once. For the purpose of this course we have precompiled a set of packages for the Rstudio server. To access make sure you select R version 4.0.3 and set the libPaths as below.
+4. Installation can be very **time consuming** but needs to be done only once. 
 
+For the purpose of this course we have preinstalled a set of packages for the Rstudio server. 
 
 ```{r installation, eval=FALSE}
 BiocManager::install("DESeq2")
@@ -62,10 +64,12 @@ install.packages("tidyverse")
 install.packages("pheatmap")
 ```
 
+To access make sure you select R version 4.0.3 and set the libPaths as below.
+
 > **Poll 2**: Who has successfully installed the following packages: DESeq2, tidyverse, pheatmap?
 
 
-### Load Tools
+### Load Packages
 
 > **Task**:  Load the following packages: DESeq2, tidyverse, pheatmap
 
@@ -77,6 +81,7 @@ library(pheatmap)
 ```
 
 **Notice**: Loading new packages enables new functionalities for a given R-session. 
+
 This may result in multiple (sometimes redundant) functions with the same name: e.g. sd()
 
 In case of doubt, use package name explicitly: e.g. stats::sd()
@@ -92,12 +97,14 @@ We assume that the sequencing data has already been processed  (QC, mapping, cou
 to obtain a so-called *count matrix*.  
 
 It contains the number of reads that have been mapped to each gene and for each sample.
+***
+![**Count matrix**. Image from github.com/hbctraining ](../images/count_matrix.png)
 
-![Count matrix. Image from github.com/hbctraining ](../images/count_matrix.png)
+***
 
-In principle, you can download this published data from GEO 
+In principle, you can download the published data for our tutorial from GEO 
 
-- GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077 
+- https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077 
 
 For this course, we have already prepared the data in a convenient format here: 
 
@@ -107,16 +114,18 @@ For this course, we have already prepared the data in a convenient format here:
 **Notice**: It is good style to put data into a separate directory (e.g. data/)
 
 ### Import Data 
-Data can come in various formats. Here we have prepared the data as tab-separated file.
+Data can come in various formats. Here we have prepared the data as tab-separated file with header information.
 
 > **Task**: Read the data e.g. using read.csv()
 
 ```{r import_data}
 dfile="../data/myeloma/myeloma_counts.tsv"      # location of data file
 data <- read.csv(file=dfile, header=TRUE, sep="\t")
+
+#data <- read_tsv(file=dfile)    # diagnostic: problemes(data)
 ```
 
-**Discussion** Inspect the data structure. What does R mean with variables? What are observations? How many samples are in the data ?
+**Discussion** Inspect the data structure. What are the variables? What are observations? How many samples are in the data ?
 
 > **Poll 3**: What is the median expression count in sample "BM_CTRL_3"? 
 ```{r poll3, eval=FALSE}
@@ -127,28 +136,52 @@ data %>% pull("BM_CTRL_3") %>% median()
 
 **Discussion**: Where are the gene names, and which convention is chosen for them?
 
+**Task**: Ensure that the rownames of the count data are gene names.
+
+```{r add_rownames}
+# base-R
+# rownames(data)    # check: may already be defined during read
+# rownames(data) = data$geneID
+# data[,"geneID"] <- NULL
+
+# dplyr
+#data <- data %>% column_to_rownames("geneID")  # geneID -> rownames
+```
+
 ### Import Metadata
-Metadata (=data about data) and typically contains important information on the samples and their origin. Often these are categorical data ("factors") such as cell type, experimental condition or other batch assignments. But it could also be quantitative data (e.g. age).
+Metadata (=data about data) and typically contains important information on the samples and their origin. 
+
+Often these are categorical data such as cell type, experimental condition or other batch assignments. But it could also be quantitative data (e.g. age).
 
 Often the metadata is hidden in the paper (or in the filename). This is bad practise - make sure to have a proper sample sheet. Metadata is just as important as data. Here is the prepared file for this introduction:
 
 - github: https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_meta.tsv
 - local: /data/manke/processing/Rdeseq2/data/myeloma/myeloma_meta.tsv
 
-> **Task**: Read the metadata into an R-object "metadata". Make sure that the columns "condition" and "celltype" are factors. 
+> **Task**: Read the metadata into an R-object "metadata". Inspect the data frame - which data types are included
 
 ```{r import_meta}
-mfile="../data/myeloma/myeloma_meta.tsv"               # location of metadata file
-metadata <- read.csv(file=mfile, header=TRUE, sep="\t")
+mfile <- "../data/myeloma/myeloma_meta.tsv"               # location of metadata file
+#metadata <- read.csv(file=mfile, header=TRUE, sep="\t")
+metadata <- read_tsv(file=mfile)
 metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
-
-# convert text strings to categorical variable (characters --> factors)
-metadata$condition = as.factor(metadata$condition)
-metadata$celltype  = as.factor(metadata$celltype)
 ```
 
 
-**Question**: What is a factor?
+> **Poll 4**: What is a factor?
+
+<br><br><br>
+
+> **Task**  Convert the variables "condition" and "celltype" into factors. 
+
+```{r make_factors}
+# convert text strings to categorical variable (characters --> factors)
+metadata$condition <- as.factor(metadata$condition)
+metadata$celltype  <- as.factor(metadata$celltype)
+```
+
+
+
 
 ***
 # Break (10 min)
@@ -157,23 +190,20 @@ metadata$celltype  = as.factor(metadata$celltype)
 # Design (20 min)
 For each gene, the data matrix contains a vector of counts ($y$) which depends on the vector of samples ($x$)
 
-```{r gene_plot, echo=FALSE}
-# extract and plot a specific gene vector
-gene = data %>% 
-  slice(42) %>%                         # pick gene #42
-  gather(sample, count) %>%             # reshape for ggplot
-  mutate(condition=metadata$condition)  # add condition. Careful: sorder needs to agree here (it does)
+> **Task (optional)**: Extract the 42nd gene in the data matrix and plot it against
 
-ggplot(gene, aes(x=sample, y=count)) + geom_point(size=3) + theme(axis.text.x=element_blank())    #plot against sample
+```{r gene_plot}
+boxplot(data[42,], xlab="sample", ylab="count", names=FALSE) # base-R (ggplot below)
 ```
 
 ### Hope
-Counts ($y$) could be predicted (and controlled) given sufficient information on sample $x$ (c.f. linear regression)
+Counts ($y$) could be predicted (and controlled) given sufficient sample information $x$
 
 $$
 y_i = f(x_i) = \mu + \beta x_i ~~~~~~~~~ (i = 1\ldots n) \\ \\
 $$
-> **Poll 4**: What is $n$ in our example
+
+> **Poll 5**: What is $n$ in our example
 
 1. number of genes
 2. number of samples
@@ -205,7 +235,13 @@ $$
 
 
 ```{r gene_plot_factors, echo=FALSE}
-ggplot(gene, aes(x=condition, y=count, col=condition)) + geom_point(size=3)  #plot against condition
+gene = data %>% 
+  slice(42) %>%                         # pick gene #42
+  gather(sample, count) %>%             # reshape for ggplot (1 sample per row!)
+  mutate(condition=metadata$condition)  # add condition. Careful: order needs to agree 
+
+ggplot(gene, aes(x=condition, y=count, col=condition)) + 
+  geom_point(size=3)  #plot against condition
 ```
 
 
@@ -247,7 +283,10 @@ pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 
 - Include an additional factor (+ celltype) and observe the design matrix 
 - Bonus: include an interaction term (+ condition:celltype) and discuss its interpretation
-
+```{r model_matrix_interaction, eval=FALSE, echo=FALSE}
+MM=model.matrix(~ 0 + condition*celltype, data=metadata)
+pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
+```
 
 ## Interlude: Experimental Design (5 min)
 https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md (50min)
