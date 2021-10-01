@@ -534,6 +534,10 @@ plotDispEsts(fdds)
 ### 4.3. Wald test
 - gene-wise dispersion by fitting a negative binomial general linear model (GLM) to the data and then returning the results using Wald statistics (**nbinomWaldTest**) > tomorrow
 
+```{r run_DE}
+fdds <- DESeq(fdds)
+```
+
 \
 \
 \
@@ -553,7 +557,7 @@ dds_res <- results(dds)
 it gives you the **log2 fold changes** and the **adjusted p-values**, for the last variable in the design formula (the estimates are of the logarithmic fold change log2(treated/untreated). In our case it will AMIL/DMSO and TG/DMSO).
 
 ```{r results_DE}
-dds_res <- results(fdds)
-dds_res
+fdds_res <- results(fdds)
+fdds_res
 ```
 
