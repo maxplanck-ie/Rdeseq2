@@ -424,7 +424,7 @@ head(assay(rld),3)
 
 For high counts, the results are similar to the logarithmic transformation. But for low counts, the values are shrunken towards a middle value. 
 
-```{r diff_log_vst_rlog}
+```{r diff_log_vst_rlog, out.width = '80%', fig.align="center"}
 df <- bind_rows(
   as_tibble(log2(counts(fdds)[, 1:2]+1)) %>%
          mutate(transformation = "log2(x + 1)"),
@@ -439,40 +439,29 @@ ggplot(df, aes(x = x, y = y)) + geom_bin2d(bins=80) +
   coord_fixed() + facet_grid( . ~ transformation)
 ```
 
-
 Does it make a difference to the visualizations?
 
-```{r ploc}
-# th <- data.frame(round(log(counts(fdds)+1)))
-# 
-# th.pca <- prcomp(t(th))
-# pca_data_perc=round(100*th.pca$sdev^2/sum(th.pca$sdev^2),1)
-# 
-# df_pca_data=data.frame(PC1 = th.pca$x[,1], PC2 = th.pca$x[,2], sample = metadata$celltype, condition=metadata$celltype)  #! change condition accordingly!
-# 
-# 
-# ggplot(df_pca_data, aes(PC1, PC2, color=sample)) +
-#   geom_point(size=3) +
-#   xlab(paste0("PC1: ",pca_data_perc[1])) +
-#   ylab(paste0("PC2: ",pca_data_perc[2])) 
-# 
-# #############################
-# rld_new2 <- plotPCA(vst(fdds, blind = TRUE), intgroup='celltype', returnData=TRUE)  # 'plotPCA' is a DESeq2 function used for plotting transformed data; can use ggplot code you learned yesterday
-# percentVar <- round(100 * attr(rld_new2, "percentVar"), 1)   # rounded values for each axis of PC variance 
-# 
-# ggplot(rld_new2, aes(PC1, PC2, color=celltype)) +
-#   geom_point(size=3) +
-#   xlab(paste0("PC1: ",percentVar[1])) +
-#   ylab(paste0("PC2: ",percentVar[2])) 
-# 
-# #############################
-# rld_new3 <- plotPCA(rlog(fdds, blind = TRUE), intgroup='celltype', returnData=TRUE)  # 'plotPCA' is a DESeq2 function used for plotting transformed data; can use ggplot code you learned yesterday
-# percentVar <- round(100 * attr(rld_new3, "percentVar"), 1)   # rounded values for each axis of PC variance 
-# 
-# ggplot(rld_new3, aes(PC1, PC2, color=celltype)) +
-#   geom_point(size=3) +
-#   xlab(paste0("PC1: ",percentVar[1])) +
-#   ylab(paste0("PC2: ",percentVar[2])) 
+```{r ploc, out.width = '80%', fig.align="center"}
+th <- data.frame(round(log(counts(fdds)+1)))
+
+th.pca <- prcomp(t(th))
+pca_data_perc=round(100*th.pca$sdev^2/sum(th.pca$sdev^2),1)
+
+df_pca_data=data.frame(PC1 = th.pca$x[,1], PC2 = th.pca$x[,2], sample = metadata$celltype, condition=metadata$celltype)  #! change condition accordingly!
+
+ggplot(df_pca_data, aes(PC1, PC2, color=sample)) +
+  geom_point(size=3) +
+  xlab(paste0("PC1: ",pca_data_perc[1])) +
+  ylab(paste0("PC2: ",pca_data_perc[2]))
+
+#############################
+rld_new3 <- plotPCA(rlog(fdds, blind = TRUE), intgroup='celltype', returnData=TRUE)  # 'plotPCA' is a DESeq2 function used for plotting transformed data; can use ggplot code you learned yesterday
+percentVar <- round(100 * attr(rld_new3, "percentVar"), 1)   # rounded values for each axis of PC variance
+
+ggplot(rld_new3, aes(PC1, PC2, color=celltype)) +
+  geom_point(size=3) +
+  xlab(paste0("PC1: ",percentVar[1])) +
+  ylab(paste0("PC2: ",percentVar[2]))
 
 ##ref: https://www.biostars.org/p/289333/
 ```
@@ -482,9 +471,10 @@ Does it make a difference to the visualizations?
 \
 
 ## 4. Differential expression analysis  - 30 min
+
 The results can be returned using the standard function:
 
-```{r dds_DE, eval=FALSE}
+```
 dds <- DESeq(dds)
 ```
 
@@ -493,8 +483,10 @@ There are several steps to generating the DE results, and they are wrapped toget
 - estimating dispersions
 - fitting model and testing
 
+\ 
 
 ### 4.1. Size factors
+
 The libraries have different sizes, so when using data for statistical analysis, you must have comparable libraries for the downstream estimations = normalization. The size factors are meant to account for the different sequencing depths.
 
 ```{r size_libraries}
@@ -512,6 +504,7 @@ sizeFactors(dds)
 - to generate the normalized counts we need to divide the counts by the size factors. 
 
 Now, see the changes in the values of the library sizes:
+
 ```{r normalized}
 colSums(counts(dds, normalized=T))
 ```
