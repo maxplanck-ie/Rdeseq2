@@ -37,13 +37,11 @@ Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in two can
 > **Poll 1**: 
 > How do you get information about the current R-version and loaded packages?
 
-<br><br><br>
-
-**Reminder**:  Many useful functions are already available with R: base packages.
-
-
+<br><br>
 
 ### Install Tools
+**Reminder**:  Many useful functions are already available with R: base packages.
+
 Many analysis tools come with software **packages** that will need to be installed before use.
 For R, two of the most common and reliable package repositories are **CRAN** or **Bioconductor**.
 
@@ -64,10 +62,8 @@ install.packages("tidyverse")
 install.packages("pheatmap")
 ```
 
-> **Poll 2**: Who has successfully installed the following packages: DESeq2, tidyverse, pheatmap ?
+> **Poll 2**: Who has successfully installed the following packages: DESeq2, tidyverse, pheatmap?
 
-
-***
 
 ### Load Tools
 
@@ -92,9 +88,12 @@ In case of doubt, use package name explicitly: e.g. stats::sd()
 ***
 
 ## Get Data (40 min)
+We assume that the sequencing data has already been processed  (QC, mapping, counting)
+to obtain a so-called *count matrix*.  
 
-One data set is the so-called *count matrix*.  
 It contains the number of reads that have been mapped to each gene and for each sample.
+
+![Count matrix. Image from github.com/hbctraining ](../images/count_matrix.png)
 
 In principle, you can download this published data from GEO 
 
@@ -105,7 +104,7 @@ For this course, we have already prepared the data in a convenient format here:
 - github: https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_counts.tsv
 - local: /data/manke/processing/Rdeseq2/data/myeloma/myeloma_counts.tsv
 
-Notice: It is good style to put data into a separate directory (e.g. data/)
+**Notice**: It is good style to put data into a separate directory (e.g. data/)
 
 ### Import Data 
 Data can come in various formats. Here we have prepared the data as tab-separated file.
