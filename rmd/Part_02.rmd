@@ -79,7 +79,7 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_desig
 
 Previously you noticed that the PCA shows a problem with our data. 
 
-```{r old_PCA, echo=FALSE, fig.align="center", tidy=TRUE}
+```{r old_PCA, echo=FALSE, out.width = '80%', fig.align="center"}
 #plotPCA is the DESeq2 function to plot automatically your samples on a PCA. However, the images don't look to nice. So we use it to extract the values needed for plotting and then using them with ggplot to get a better PCA.
 rld_PCA <- plotPCA(rlog(dds, blind = TRUE), intgroup=c("condition", "celltype"), returnData=TRUE)
 percentVar <- round(100 * attr(rld_PCA, "percentVar"), 1)   # rounded values for each axis of PC variance
@@ -103,7 +103,7 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
 
 Let's fix the data by removing the problematic samples and visualize the resulting PCA:
 
-```{r fix_data_metadata, fig.align="center", tidy=TRUE}
+```{r fix_data_metadata, out.width = '80%', fig.align="center"}
 #remove the samples from data and metadata:
 dds <- dds[, -c(1,7)]
 metadata <- metadata[-c(1,7),]
@@ -270,7 +270,7 @@ my_design <- ~ celltype + condition
 
 \
 
-#### 2.1.d. the dds object
+#### 2.1.d. dds object
 
 All that is left now is to make the dds object:
 
@@ -353,7 +353,7 @@ Notice how many rows you have dropped. In this case you are left only with **`r 
 
 
 
-```{r print_out}
+```{r print_out, echo=FALSE, comment=''}
 cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small')
 ```
 
@@ -451,6 +451,7 @@ df_pca_data=data.frame(PC1 = th.pca$x[,1], PC2 = th.pca$x[,2], sample = metadata
 
 ggplot(df_pca_data, aes(PC1, PC2, color=sample)) +
   geom_point(size=3) +
+  geom_text(x = 0, y = -1, label="PCA done with log(n+1) transformation", color="black", size=5) +
   xlab(paste0("PC1: ",pca_data_perc[1])) +
   ylab(paste0("PC2: ",pca_data_perc[2]))
 
@@ -460,6 +461,7 @@ percentVar <- round(100 * attr(rld_new3, "percentVar"), 1)   # rounded values fo
 
 ggplot(rld_new3, aes(PC1, PC2, color=celltype)) +
   geom_point(size=3) +
+  geom_text(x = 0, y = -1, label="PCA done with rlog transformation", color="black", size=5) +
   xlab(paste0("PC1: ",percentVar[1])) +
   ylab(paste0("PC2: ",percentVar[2]))
 
@@ -479,6 +481,7 @@ dds <- DESeq(dds)
 ```
 
 There are several steps to generating the DE results, and they are wrapped together in the **DESeq()** function. The 3 main steps are estimations of:
+
 - estimating size factors
 - estimating dispersions
 - fitting model and testing
@@ -490,54 +493,72 @@ There are several steps to generating the DE results, and they are wrapped toget
 The libraries have different sizes, so when using data for statistical analysis, you must have comparable libraries for the downstream estimations = normalization. The size factors are meant to account for the different sequencing depths.
 
 ```{r size_libraries}
-colSums(counts(dds))
+colSums(counts(fdds))
 ```
 
 'DESeq()' function estimates size factors automatically. But if you run `estimateSizeFactors()` before the `DESeq()` functions, these values would be used instead.
 
 ```{r size_factors}
-dds <- estimateSizeFactors(dds)
-sizeFactors(dds)
+fdds <- estimateSizeFactors(fdds)
+sizeFactors(fdds)
 ```
 
 - the larger size factors correspond to the samples with higher sequencing depth. 
-- to generate the normalized counts we need to divide the counts by the size factors. 
+- to generate the normalized counts, you divide the counts by the size factors. 
 
 Now, see the changes in the values of the library sizes:
 
 ```{r normalized}
-colSums(counts(dds, normalized=T))
+colSums(counts(fdds, normalized=T))
 ```
 
+**Poll 5**: Can the size factors be used as quality control? At what value of the size factors should you go back and look at your data?
 
+\
 
 ### 4.2. Dispersions
 
 DESeq2 measures variation using the term 'dispersion', that actually connects a gene’s variance and mean expression level. Dispersion is calculated by `Var = μ + α*μ^2`, where `α` = dispersion, `Var` = variance, and `μ` = mean
 
 ```{r estimate dispersions, message=FALSE, warning=FALSE}
-dds <- estimateDispersions(dds)
+fdds <- estimateDispersions(fdds)
 ```
 
 DESeq2 has a function that allows to visualize the dispersion in your analysis
 
-```{r Visualise dispersions, message=FALSE, warning=FALSE}
-plotDispEsts(dds)
+```{r Visualise dispersions, out.width = '80%', fig.align="center", message=FALSE, warning=FALSE}
+plotDispEsts(fdds)
 ```
 
 
-- gene-wise dispersion by fitting a negative binomial general linear model (GLM) to the data and then returning the results using Wald statistics (**nbinomWaldTest**)
+### 4.3. Wald test
+- gene-wise dispersion by fitting a negative binomial general linear model (GLM) to the data and then returning the results using Wald statistics (**nbinomWaldTest**) > tomorrow
 
-```{r dds_DE2, warning=FALSE, message=FALSE}
-dds <- DESeq(dds)
+```{r run_DE, message=FALSE}
+fdds <- DESeq(fdds)
 ```
+
+\
+\
+\
 
 ## 5. Extracting results - 10 min
 
-To see the results, use the **results()** function which gives you the **log2 fold changes** and the **adjusted p-values**, for the last variable in the design formula (the estimates are of the logarithmic fold change log2(treated/untreated). In our case it will AMIL/DMSO and TG/DMSO).
+To extract the results, use: 
 
-```{r run_DESeq2, message=FALSE}
+```
+# default use gives results only for the last variable in the design formula (in this case 'TG/DMSO')
 dds_res <- results(dds)
-dds_res
+
+# complex use to extract the specified contrast:
+resultsName(dds)
+dds_res <- results(dds, contrast)
+```
+
+it gives you the **log2 fold changes** and the **adjusted p-values** for the specified contrasts (the estimates are of the logarithmic fold change log2(treated/untreated). In our case it will AMIL/DMSO and TG/DMSO.
+
+```{r results_DE}
+fdds_res <- results(fdds)
+fdds_res
 ```
 
