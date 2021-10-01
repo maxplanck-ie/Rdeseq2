@@ -364,19 +364,6 @@ cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs a
 \
 \
 
-```{r mean_vs_variation, warning=FALSE, out.width = '60%', fig.align="center"}
-#overdispersion
-mean_counts <- apply(counts(dds)[,6:8], 1, mean)        # '1' means that the function 'apply' is applied to rows. Use '2' if applied to columns 
-variance_counts <- apply(counts(dds)[,6:8], 1, var)
-df <- data.frame(mean_counts, variance_counts)
-
-ggplot(df) +
-        geom_point(aes(x=mean_counts, y=variance_counts)) + 
-        scale_y_log10(limits = c(1,1e9)) +
-        scale_x_log10(limits = c(1,1e9)) +
-        geom_abline(intercept = 0, slope = 1, color="red")
-```
-
 ```{r mean_vs_variation2, warning=FALSE, out.width = '60%', fig.align="center"}
 #overdispersion
 mean_counts <- apply(counts(fdds)[,6:8], 1, mean)        # '1' means that the function 'apply' is applied to rows. Use '2' if applied to columns 
