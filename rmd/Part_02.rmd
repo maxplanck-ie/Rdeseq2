@@ -46,8 +46,8 @@ b) **Load data and metadata**
 
 ```{r load_data, message=FALSE, tidy=TRUE}
 #loading data and metadata (sample sheet)
-data <- read.table("../data/myeloma/myeloma_counts.tsv", header=TRUE, check.names = TRUE)
-metadata <- read.table("../data/myeloma/myeloma_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F)
+data <- read.table("../data/myeloma/myeloma_counts.tsv", header=TRUE, check.names = TRUE, row.names = 1)
+metadata <- read.table("../data/myeloma/myeloma_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F, row.names = 1)
 
 metadata$celltype <- as.factor(metadata$celltype)    # observe the change from 'character' to 'factor'
 metadata$condition <- as.factor(metadata$condition)
@@ -98,7 +98,8 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
 ```
 
 > **Poll 1:** What do you think about this PCA plot? Does it need to be fixed? How would you do it? - 5 min
-(What would you do if you find yourself in the situation where there is something wrong in your dataset? Would you drop the responsible sample? Would you modify the dataset? How would you make that choice?)
+
+> (What would you do if you find yourself in the situation where there is something wrong in your dataset? Would you drop the responsible sample? Would you modify the dataset? How would you make that choice?)
 
 Let's fix the data by removing the problematic samples and visualize the resulting PCA:
 
@@ -236,7 +237,7 @@ dds$condition <- relevel(dds$condition, ref='DMSO')
 # or in the dds, if you want a specific order for all of them
 dds$condition <- factor(dds$condition, levels = c ('DMSO', 'TG', 'AMIL')) 
 
-# not reorder your factors, but then you have to use the 'contrast' arguments in the results() function 
+# don't reorder the factors, but then remember to use the 'contrast' arguments in the results() function 
 ```
 
 \
@@ -332,22 +333,38 @@ Notice how many rows you have dropped. In this case you are left only with **`r 
 \ 
 
 ### 3.2. Modeling count data
-An important step in DE analysis is to model the association between gene counts and covariates of interest = find the (cluster of) genes that significantly change their expression, that can be attributed to a combination of factors outlined in your experimental design.
 
-- data can be modeled with various distributions depending on their properties:
+**Why is modeling needed?** If we had a large amount of samples for each category we are interested in, we could simply extract the information we need. However, due to various reasons (e.g. availability, cost, time), sequencing is done on a few samples/ individuals, and this means we have a large variation in the data. To extract any meaningful information, we need to use mathematical models that can account for the variability and use sparse data to extrapolate the information
+
+- data can be modeled with various distributions depending on its properties.
 
 - terms:
   - mean of the group: the average value of a sample
   - variance: the expectation of the squared deviation (stdev^2) of a variable from its population mean. It is a measure of dispersion (of how far a set of numbers is spread out from their average value)
 
+> **Poll 3**: what properties can you attribute to RNA-seq data?
+(- discrete, large number of observations, high probability of finding a particular transcript, variance lower than mean;
+- continuous because of the very large number of observations, low probability of finding a particular transcript variance higher than mean;
+- discrete, large number of observations, low probability of finding a particular transcript; variance lower than mean)
 
-- RNAseq data is:
-  - discrete (counts)
-  - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small
-    - Poisson? (assumes that mean = variance)
-    - Binomial? (assumes that mean > variance)
-  
-```{r mean_vs_variation, warning=FALSE}
+\
+\
+\
+
+
+
+```{r print_out}
+cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small')
+```
+
+> **Poll 4**: what kind of distribution would you use for count data?
+(-Poisson distribution; - Binomial distribution; - Negative binomial distribution; - Normal distribution)
+
+\
+\
+\
+
+```{r mean_vs_variation, warning=FALSE, out.width = '60%', fig.align="center"}
 #overdispersion
 mean_counts <- apply(counts(dds)[,6:8], 1, mean)        # '1' means that the function 'apply' is applied to rows. Use '2' if applied to columns 
 variance_counts <- apply(counts(dds)[,6:8], 1, var)
@@ -359,6 +376,20 @@ ggplot(df) +
         scale_x_log10(limits = c(1,1e9)) +
         geom_abline(intercept = 0, slope = 1, color="red")
 ```
+
+```{r mean_vs_variation2, warning=FALSE, out.width = '60%', fig.align="center"}
+#overdispersion
+mean_counts <- apply(counts(fdds)[,6:8], 1, mean)        # '1' means that the function 'apply' is applied to rows. Use '2' if applied to columns 
+variance_counts <- apply(counts(fdds)[,6:8], 1, var)
+df <- data.frame(mean_counts, variance_counts)
+
+ggplot(df) +
+        geom_point(aes(x=mean_counts, y=variance_counts)) + 
+        scale_y_log10(limits = c(1,1e9)) +
+        scale_x_log10(limits = c(1,1e9)) +
+        geom_abline(intercept = 0, slope = 1, color="red")
+```
+
 We observe from above that mean < variance => we should use a **negative binomial** distribution
 
 ```{r negative_binomial_distribution}
