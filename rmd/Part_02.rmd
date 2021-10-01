@@ -300,7 +300,7 @@ To explore your data further to learn more about it, to check if your expectatio
 
 - filtering
 - distributions for data modeling: mean, stdvar, variance, dispersion, overdispersion
-- transformations: log, vst, rlog
+- transformations: log, rlog (vst)
 
 \
 
@@ -377,9 +377,10 @@ ggplot(df) +
         geom_abline(intercept = 0, slope = 1, color="red")
 ```
 
-We observe from above that mean < variance => we should use a **negative binomial** distribution
+- for genes with high mean expression, the variance across replicates tends to be greater that the mean => use a **negative binomial** distribution
+- for genes with low mean expression, there is a large scatter = hetero-scedasti-city = for a given expression level in the low range, we obs a lot of variability in the variance values.
 
-```{r negative_binomial_distribution}
+```{r negative_binomial_distribution, out.width = '60%', fig.align="center"}
 x <- 0:30
 
 plot(x, dnbinom(x, size=0.5, mu=10), type = "l", col='red')
@@ -395,16 +396,15 @@ text(2, 0.3, labels="stdev = 1", col = 'black')
 text(3, 0.12, labels="stdev = 3", col = 'green')
 ```
 
-
-
-<!-- - for genes with high mean expression, the variance across replicates tends to be greater that the mean -->
-<!-- - for genes with low mean expression, you see quite a bit of scatter = hetero-scedasti-city = for a given expression level in the low range, we obs a lot of variability in the variance values. -->
+\
+\
+\
 
 ### 3.3. Data transformation
-DESeq2 needs as input **raw counts** for statistical testing, but for some stages of visualization or downstream analysis, you need **transformed data**. Methods of exploratory analysis of multidimensional data work best for data that has in general the same range of variance at different ranges of the mean values (also called **homoskedastic data**). We just saw that mRNA data is **heteroskedastic** (variance grows with the mean), so if we plot that data, the biggest difference will be given by the genes with the highest counts because they show the largest absolute differences between samples. 
 
-a) logarithmic data - also called **pseudocounts**; used mostly in visualization because of the large dynamic range of the data; the logarithmic function is of the type: log2(count+n0), usually log2(count+1). The 'n0' value is a positive constant that is introduced because of the zero counts (log(0) tends to infinity and this introduces other issues in the visualization). The problem is that the genes with the very lowest counts (which also have a very poor noise-to-signal ratio) contribute the greatest amount the noise (log of small numbers inflates their variance) = **the low counts genes will overly contribute to sample-sample distances**.
-We need to stabilize the variance across the mean, for which we can use:
+DESeq2 needs as input **raw counts** for statistical testing, but for some stages of visualization or downstream analysis, you need **transformed data**. 
+
+**logarithmic data** - mostly in visualization because of the large dynamic range of the data (usually log2(count+1)). Not used in statistical analysis because it makes the genes with the very lowest counts (which also have a very poor noise-to-signal ratio) contribute the greatest amount the noise (log of small numbers inflates their variance) => **the low counts genes will overly contribute to sample-sample distances**.
 
 ```{r log}
 print('dataset with counts before transformation (raw counts):' )  
@@ -414,15 +414,7 @@ print('dataset with counts after logarithmic transformation:' )
 head(log(counts(fdds), 2) ,3) 
 ```
 
-b) variance stabilizing transformations (VTS) - for negative binomial data with a dispersion-mean trend. Faster and much less sensitive to high count outliers that 'rlog' transformation. Use for medium-large datasets (n>30). On the plot, you can see an upward shift for the smaller values
-
-```{r vst}
-print('dataset with counts after VTS transformation:' )  
-vsd <- vst(fdds, blind = FALSE)  # 'blind=FALSE' means that differences between cell lines and treatment (the variables in the design) will not contribute to the expected variance-mean trend of the experiment. The experimental design is not used directly in the transformation, only in estimating the global amount of variability in the counts. For a fully unsupervised transformation, one can set blind = TRUE
-head(assay(vsd),3)
-```
-
-c) regularized logarithm (RLOG) - slower because it requires fitting a shrinkage term for each sample and each gene. Works well for small datasets (n < 30) and when there is a wide range of sequencing depth across samples (an order of magnitude difference).
+We need to stabilize the variance across the mean, for which we can use a **regularized logarithm (RLOG)** transformation. It is slower because it requires fitting a shrinkage term for each sample and each gene. Works well for small datasets (n < 30) and when there is a wide range of sequencing depth across samples (an order of magnitude difference).
 
 ```{r rlog}
 print('dataset with counts after RLOG transformation:' )  
@@ -430,25 +422,21 @@ rld <- rlog(fdds, blind = FALSE)
 head(assay(rld),3)
 ```
 
-- b) and c) have similar properties. For high counts, the results are similar to the logarithmic transformation. But for low counts, the values are shrunken towards a middle value. This makes the data behave more like homoskedastic data. We can see the differences in plots. . Sequencing depth correction is done automatically for the vst and rlog.
+For high counts, the results are similar to the logarithmic transformation. But for low counts, the values are shrunken towards a middle value. 
 
 ```{r diff_log_vst_rlog}
-
-dds <- estimateSizeFactors(dds) # needed for log2 approach to account for sequencing depth
-
 df <- bind_rows(
-  as_tibble(log2(counts(dds, normalized=TRUE)[, 1:2]+1)) %>%
+  as_tibble(log2(counts(fdds)[, 1:2]+1)) %>%
          mutate(transformation = "log2(x + 1)"),
-  as_tibble(assay(vsd)[, 1:2]) %>% mutate(transformation = "vst"),          # normalization and size factors not needed - automatically detected
-  as_tibble(assay(rld)[, 1:2]) %>% mutate(transformation = "rlog"))
-  
-colnames(df)[1:2] <- c("x", "y")  
+  as_tibble(assay(rld)[, 1:2]) %>% mutate(transformation = "rlog"))  # normalization and size factors not needed - automatically detected
 
-lvls <- c("log2(x + 1)", "vst", "rlog")
+colnames(df)[1:2] <- c("x", "y")
+
+lvls <- c("log2(x + 1)", "rlog")
 df$transformation <- factor(df$transformation, levels=lvls)
 
 ggplot(df, aes(x = x, y = y)) + geom_bin2d(bins=80) +
-  coord_fixed() + facet_grid( . ~ transformation) 
+  coord_fixed() + facet_grid( . ~ transformation)
 ```
 
 
@@ -457,38 +445,34 @@ Does it make a difference to the visualizations?
 ```{r ploc}
 # th <- data.frame(round(log(counts(fdds)+1)))
 # 
-# ldds <- DESeqDataSetFromMatrix(countData=th, colData=metadata, design=design) 
-
-th <- data.frame(round(log(counts(fdds)+1)))
-
-th.pca <- prcomp(t(th))
-pca_data_perc=round(100*th.pca$sdev^2/sum(th.pca$sdev^2),1)
-
-df_pca_data=data.frame(PC1 = th.pca$x[,1], PC2 = th.pca$x[,2], sample = metadata$celltype, condition=metadata$celltype)  #! change condition accordingly!
-
-
-ggplot(df_pca_data, aes(PC1, PC2, color=sample)) +
-  geom_point(size=3) +
-  xlab(paste0("PC1: ",pca_data_perc[1])) +
-  ylab(paste0("PC2: ",pca_data_perc[2])) 
-
-#############################
-rld_new2 <- plotPCA(vst(fdds, blind = TRUE), intgroup='celltype', returnData=TRUE)  # 'plotPCA' is a DESeq2 function used for plotting transformed data; can use ggplot code you learned yesterday
-percentVar <- round(100 * attr(rld_new2, "percentVar"), 1)   # rounded values for each axis of PC variance 
-
-ggplot(rld_new2, aes(PC1, PC2, color=celltype)) +
-  geom_point(size=3) +
-  xlab(paste0("PC1: ",percentVar[1])) +
-  ylab(paste0("PC2: ",percentVar[2])) 
-
-#############################
-rld_new3 <- plotPCA(rlog(fdds, blind = TRUE), intgroup='celltype', returnData=TRUE)  # 'plotPCA' is a DESeq2 function used for plotting transformed data; can use ggplot code you learned yesterday
-percentVar <- round(100 * attr(rld_new3, "percentVar"), 1)   # rounded values for each axis of PC variance 
-
-ggplot(rld_new3, aes(PC1, PC2, color=celltype)) +
-  geom_point(size=3) +
-  xlab(paste0("PC1: ",percentVar[1])) +
-  ylab(paste0("PC2: ",percentVar[2])) 
+# th.pca <- prcomp(t(th))
+# pca_data_perc=round(100*th.pca$sdev^2/sum(th.pca$sdev^2),1)
+# 
+# df_pca_data=data.frame(PC1 = th.pca$x[,1], PC2 = th.pca$x[,2], sample = metadata$celltype, condition=metadata$celltype)  #! change condition accordingly!
+# 
+# 
+# ggplot(df_pca_data, aes(PC1, PC2, color=sample)) +
+#   geom_point(size=3) +
+#   xlab(paste0("PC1: ",pca_data_perc[1])) +
+#   ylab(paste0("PC2: ",pca_data_perc[2])) 
+# 
+# #############################
+# rld_new2 <- plotPCA(vst(fdds, blind = TRUE), intgroup='celltype', returnData=TRUE)  # 'plotPCA' is a DESeq2 function used for plotting transformed data; can use ggplot code you learned yesterday
+# percentVar <- round(100 * attr(rld_new2, "percentVar"), 1)   # rounded values for each axis of PC variance 
+# 
+# ggplot(rld_new2, aes(PC1, PC2, color=celltype)) +
+#   geom_point(size=3) +
+#   xlab(paste0("PC1: ",percentVar[1])) +
+#   ylab(paste0("PC2: ",percentVar[2])) 
+# 
+# #############################
+# rld_new3 <- plotPCA(rlog(fdds, blind = TRUE), intgroup='celltype', returnData=TRUE)  # 'plotPCA' is a DESeq2 function used for plotting transformed data; can use ggplot code you learned yesterday
+# percentVar <- round(100 * attr(rld_new3, "percentVar"), 1)   # rounded values for each axis of PC variance 
+# 
+# ggplot(rld_new3, aes(PC1, PC2, color=celltype)) +
+#   geom_point(size=3) +
+#   xlab(paste0("PC1: ",percentVar[1])) +
+#   ylab(paste0("PC2: ",percentVar[2])) 
 
 ##ref: https://www.biostars.org/p/289333/
 ```
