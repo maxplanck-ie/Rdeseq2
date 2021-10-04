@@ -59,6 +59,7 @@ For R, two of the most common and reliable package repositories are
 For the purpose of this course we have preinstalled a set of packages for the Rstudio server. 
 
 ```{r installation, eval=FALSE}
+# Do not run during course !
 BiocManager::install("DESeq2")
 install.packages("tidyverse")
 install.packages("pheatmap")
@@ -97,7 +98,9 @@ We assume that the sequencing data has already been processed  (QC, mapping, cou
 to obtain a so-called *count matrix*.  
 
 It contains the number of reads that have been mapped to each gene and for each sample.
-***
+
+<br><br>
+
 ![**Count matrix**. Image from github.com/hbctraining ](../images/count_matrix.png)
 
 ***
@@ -136,7 +139,7 @@ data %>% pull("BM_CTRL_3") %>% median()
 
 **Discussion**: Where are the gene names, and which convention is chosen for them?
 
-**Task**: Ensure that the rownames of the count data are gene names.
+> **Task**: Ensure that the rownames of the count data are gene names.
 
 ```{r add_rownames}
 # base-R
@@ -149,7 +152,7 @@ data %>% pull("BM_CTRL_3") %>% median()
 ```
 
 ### Import Metadata
-Metadata (=data about data) and typically contains important information on the samples and their origin. 
+Metadata (=data about data); typically contains important information on the samples and their origin. 
 
 Often these are categorical data such as cell type, experimental condition or other batch assignments. But it could also be quantitative data (e.g. age).
 
@@ -172,7 +175,7 @@ metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
 
 <br><br><br>
 
-> **Task**  Convert the variables "condition" and "celltype" into factors. 
+> **Task**  Convert the character variables "condition" and "celltype" into factors. 
 
 ```{r make_factors}
 # convert text strings to categorical variable (characters --> factors)
@@ -188,12 +191,13 @@ metadata$celltype  <- as.factor(metadata$celltype)
 ***
 
 # Design (20 min)
-For each gene, the data matrix contains a vector of counts ($y$) which depends on the vector of samples ($x$)
+For each gene (=row), the data matrix contains a vector of counts ($y$) which depends on the vector of samples ($x$)
 
-> **Task (optional)**: Extract the 42nd gene in the data matrix and plot it against
+> **Task (optional)**: Extract the 42nd gene in the data matrix and plot it against all samples
 
 ```{r gene_plot}
 boxplot(data[42,], xlab="sample", ylab="count", names=FALSE) # base-R (ggplot below)
+abline(h=rowMeans(data[42,]), col="red", lty=2)
 ```
 
 ### Hope
