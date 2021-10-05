@@ -16,6 +16,7 @@
    a) A numerical variable to be multiplied with another (e.g. scale factor)
    b) A categorical variable that can only assume specific values (e.g. treatment)
    c) A nuisance variable that is of no specific interest (e.g. batch)
+   
 5. What is n from y_i = f(x_i) in our example ?
    a) number of genes  
    b) number of samples* 
