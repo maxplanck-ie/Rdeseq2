@@ -37,6 +37,7 @@ library("tibble")
 library("ggplot2")
 library("ggrepel")
 library("pheatmap")
+#.libPaths()
 ```
 # Get the data directroy
 ```{r Get the data directroy, message=FALSE, warning=FALSE}
