@@ -1,0 +1,48 @@
+---
+title: "deseq2 - applied"
+output:
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    df_print: paged
+---
+# Goals:
+# Apply what was learned through the course.
+  # Initial QC and visualisation.
+  # Run the DESeq workflow
+  # Interpret some of the results.
+
+Dataset: MPPs
+
+Background:
+
+We are looking in murine bone marrow cells. More specifically, the stem- and multipotent progenitor cells.
+A (very expensive) experiment was set up, and there is RNA-seq data available three cellTypes:
+ 
+ - HSCs
+ - MPP1
+ - MPP2
+
+collected from both young and aged mice.
+You and your lab are eager to see:
+
+ - Did the experiment work ?
+ - What are the effects of aging on the different cell populations ?
+
+
+# add libraries
+```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
+.libPaths("/data/manke/processing/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library") 
+library("DESeq2")
+library("dplyr")
+library("tibble")
+library("ggplot2")
+library("ggrepel")
+library("pheatmap")
+library("org.Mm.eg.db")
+library("UpSetR")
+```
+
+Go through the whole setup.
