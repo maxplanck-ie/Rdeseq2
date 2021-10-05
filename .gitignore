@@ -1,0 +1,9 @@
+*html
+*Rdata
+*Rproj
+data/*gz
+.Rproj.user
+.Rhistory
+rmd/.rstudio/
+.Ruserdata
+

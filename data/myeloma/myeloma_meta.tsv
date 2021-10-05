@@ -1,4 +1,4 @@
-sample	cellType	txType
+sample	celltype	condition
 JJ_CTRL_1	JJ	DMSO
 BM_CTRL_2	BM	DMSO
 BM_CTRL_3	BM	DMSO

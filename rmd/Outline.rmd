@@ -1,0 +1,127 @@
+---
+title: "DESeq2 Outline"
+author: "MPI-IE Bioinfo-Core"
+#date: "`r date() `"
+output:
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    df_print: paged
+---
+
+This outline contains a template of a typical DESeq2 workflow - as discussed during the course.  For specific projects, the parts on data exploration, quality controls and filtering are frequently more iterative and require custom-made adoption.
+
+
+# Installation 
+```{r installation, eval=FALSE}
+BiocManager::install("DESeq2")
+install.packages("tidyverse")
+install.packages("pheatmap")
+```
+
+# Load Tools
+```{r load, message=FALSE}
+library(DESeq2)
+library(pheatmap)
+library(tidyverse)
+```
+
+
+# Define Data, Metadata and Design
+```{r import}
+# file with metadata and data links
+fm <- "../data/sampleTable2.csv"      
+metadata <- read.csv(fm, header=FALSE)
+colnames(metadata)=c("name","filename", "condition","celltype")
+metadata$condition = as.factor(metadata$condition)
+metadata$celltype  = as.factor(metadata$celltype)
+
+# define design
+my_design <- ~ celltype + condition 
+```
+
+# Create DESeq2 object
+```{r dds}
+dds <- DESeqDataSetFromHTSeqCount(metadata, directory = ".", design = my_design)
+
+# Data Exploration
+rld <- rlog(dds)  
+plotPCA(rld, intgroup=c("condition", "celltype"))
+```
+
+
+
+# Filtering
+```{r filtering}
+# remove genes
+keep_genes <- rowSums(counts(dds)) > 1
+dds <- dds[keep_genes,]
+
+# process samples as required
+# ...
+
+# rerun after filtering
+rld <- rlog(dds)  
+plotPCA(rld, intgroup=c("condition", "celltype"))
+```
+
+# Run DESeq
+```{r DEseq2}
+# calc size factors, dispersion, fit model, run WaldTest
+dds <- DESeq(dds)                           
+
+# Inspection
+colData(dds)                                # sizefactors
+plotDispEsts(dds, main="Dispersion plot")   # dispersion
+```
+
+# DE-Testing
+```{r testing}
+contrast <- c("condition", "CTRL", "TG")                              # define contrast
+res <- results(dds, contrast=contrast,  lfcThreshold=1, alpha=0.05)   # results table
+res <- lfcShrink(dds, contrast = contrast, type = "normal") # "apeglm" needs package
+sorted_res <- res %>% data.frame() %>% arrange(padj)        # sort by adjusted p-value
+```
+
+# Filter Results
+```{r filter}
+padj.cutoff <- 0.05
+summary(res, alpha=padj.cutoff)	
+```
+
+# Visualization
+```{r visualization}
+# MA plot
+plotMA(res, ylim=c(-3,3))
+
+# Volcano Plot
+sorted_res %>% 
+  mutate(significant=padj<padj.cutoff) %>% 
+  mutate(rank=row_number()) %>% 
+  add_rownames("gene_name") %>% 
+  ggplot(aes(x=log2FoldChange, y=-log10(padj), color=significant)) + 
+  geom_point() + 
+  geom_text(aes(label=ifelse(rank<5,gene_name,'')), size = 3, hjust=0,vjust=-0.15)
+  
+# heatmap
+ntop=15
+top_genes = sorted_res %>% head(ntop) %>% row.names()
+top_rld   = assay(rld[top_genes,], normalized=TRUE) 
+ann = data.frame(colData(dds))   
+pheatmap(top_rld, main="Top DE Genes", annotation=ann)
+```
+
+# Output
+```{r output}
+fn <- paste( c(contrast, "results.csv"), collapse='_') # generate meaningful filename
+write.csv(sorted_res,  file=fn, quote=FALSE)
+```
+
+# SessionInfo
+```{r sessionInfo}
+sessionInfo()
+```
+
+
