@@ -40,6 +40,7 @@ library("ggrepel")
 library("pheatmap")
 library("org.Hs.eg.db")
 library("UpSetR")
+library("tidyr")
 ```
 # Get the data directroy
 ```{r Get the data directroy, message=FALSE, warning=FALSE}
@@ -274,7 +275,7 @@ A couple of other relevant notes:
 Let's start by assessing the difference between amiloride treated cells and TG treated cells.
 
 Remember our coefficients:
-```{r coefficients dds message=FALSE, warning=FALSE}
+```{r coefficients dds, message=FALSE, warning=FALSE}
 resultsNames(dds)
 ```
 
@@ -291,7 +292,9 @@ head( data.frame(TGvAMIL) )
 ```
 
 Cave!
-If we want to use shrinking, be careful with the apegml method. ashr-method is a bit more versatile.
+If we want to use shrinking, be careful with the apegml method as lfcShrink method doesn't support all forms of contrasts.
+ashr-method is a bit more versatile.
+
 
 ```{r message=FALSE, warning=FALSE}
 #TGvAMIL_shrunk <- lfcShrink(dds, contrast=c(0,0,0,1,0,0), type="apeglm") # This WONT work.
@@ -304,23 +307,25 @@ Poll2:
 BM
 JJ
 
-We have two options now. Or we re-run deseq with releved factors, or we dive a bit in the contrast setting of results.
+We have two options now. Or we re-run deseq with releveled factors, or we dive a bit in the contrast setting of results.
 For cellType JJ, the difference between condition TG and AMIL is:
 The effect of AMIL-TG + interaction TG-JJ:
+
 ```{r message=FALSE, warning=FALSE}
 TGvAMIL_JJ <- results(dds, contrast = c(0,0,0,1,0,1), alpha=0.05)
+# Recall the contrasts:
+resultsNames(dds)
 ```
 
 Let's glance at the results now.
 
 ```{r message=FALSE, warning=FALSE}
 cleanDF <- function(RESobj){
-  RESdf <- data.frame(RESobj)
-  # Take care of counts
-  RESdf <- RESdf[RESdf$baseMean != 0,]
-  # Take care of Pval NA's
-  RESdf[is.na(RESdf)] <- 1
-  return(RESdf[order(RESdf$padj, decreasing = FALSE),])
+  RESdf <- data.frame(RESobj) %>%
+    filter(baseMean > 0) %>%
+    drop_na() %>%
+    arrange(padj)
+  return(RESdf)
 }
 
 TGvAMIL_JJ_cleaned <- cleanDF(TGvAMIL_JJ)
@@ -328,13 +333,23 @@ TGvAMIL_BM_cleaned <- cleanDF(TGvAMIL)
 
 # Plot Zscores for top20 hits.
 pheatmap(
-  counts(dds, normalized=TRUE)[head( rownames(TGvAMIL_JJ_cleaned) , n=20), ],
+  counts(dds, normalized=TRUE)[head( rownames(TGvAMIL_JJ_cleaned) , n=20), c("JJ_AMIL_1",
+                                                                             "JJ_AMIL_2",
+                                                                             "JJ_AMIL_3",
+                                                                             "JJ_TG_1",
+                                                                             "JJ_TG_2",
+                                                                             "JJ_TG_3")],
   scale = 'row',
   main='TG v AMIL - JJ'
   )
 
 pheatmap(
-  counts(dds, normalized=TRUE)[head( rownames(TGvAMIL_BM_cleaned) , n=20), ],
+  counts(dds, normalized=TRUE)[head( rownames(TGvAMIL_BM_cleaned) , n=20), c("BM_AMIL_1",
+                                                                             "BM_AMIL_2",
+                                                                             "BM_AMIL_3",
+                                                                             "BM_TG_1",
+                                                                             "BM_TG_2",
+                                                                             "BM_TG_3")],
   scale = 'row',
   main='TG v AMIL - JJ'
   )
