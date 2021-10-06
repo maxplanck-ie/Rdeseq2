@@ -1,27 +1,31 @@
 # Poll Questions
 
-1. How do you get information about the current R-version and loaded packages
+## Day 1
+1.1. How do you get information about the current R-version and loaded packages
    a) summary()
    b) sessionInfo()*
    c) getwd()
    
-2. Who has successfully installed the packages
+1.2. Who has successfully installed the packages
 
-3. What is the median expression count in sample "BM_CTRL_3"?
+1.3. What is the median expression count in sample "BM_CTRL_3"?
    a) 520.3338
    b) 873.331
    c) 0*  
    
-4. What is a factor in R?
+1.4. What is a factor in R?
    a) A numerical variable to be multiplied with another (e.g. scale factor)
    b) A categorical variable that can only assume specific values (e.g. treatment)
    c) A nuisance variable that is of no specific interest (e.g. batch)
-5. What is n from y_i = f(x_i) in our example ?
+
+1.5. What is n from y_i = f(x_i) in our example ?
    a) number of genes  
    b) number of samples* 
    c) total number of reads
 
+## Day 2
 
+## Day 3
 3.1 Is there a difference in specifying ~celltype*condition and ~celltype + condition + celltype:condition ?
    a) Yes
    b) No
