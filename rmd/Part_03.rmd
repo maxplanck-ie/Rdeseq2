@@ -19,16 +19,6 @@ output:
   * Visualize the results
   * LRT vs. Wald test
 
-```{r installation, eval=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install("DESeq2")
-BiocManager::install("apeglm")
-install.packages("tidyverse")
-install.packages("dplyr")
-install.packages("ggrepel")
-install.packages("pheatmap")
-```
 # add libraries
 ```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
 .libPaths("/data/manke/processing/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library") 
@@ -111,8 +101,8 @@ Contrasts can be given as a list of 2 character vectors:
 the names of the fold changes for the level of ineterest, and the names of the fold changes for the base level.
 ```{r contrast, message=FALSE, warning=FALSE}
 resultsNames(dds) # to see what names to use
-# contrast_oe <- c("celltype", "JJ", "BM")
-contrast <- list(resultsNames(dds)[1], resultsNames(dds)[2])
+contrast <- c("celltype", "JJ", "BM")
+#contrast <- list(resultsNames(dds)[1], resultsNames(dds)[2])
 ```
 If there is only two factor levels, There is no need to  specify contrasts, DESeq2 will choose the base factor level based on the alphabetical order of the levels.
 
@@ -274,7 +264,7 @@ A couple of other relevant notes:
 Let's start by assessing the difference between amiloride treated cells and TG treated cells.
 
 Remember our coefficients:
-```{r coefficients dds message=FALSE, warning=FALSE}
+```{r coefficients dds, message=FALSE, warning=FALSE}
 resultsNames(dds)
 ```
 
