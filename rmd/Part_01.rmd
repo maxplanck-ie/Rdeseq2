@@ -16,7 +16,7 @@ output:
 Purpose: https://pubmed.ncbi.nlm.nih.gov/28790111/
 
 Goal for this tutorial:   
-Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in two cancer cell lines with different mutations (BM: p53mut, JJ: del(17p))
+Use RNA-seq to compare two drugs (amiloride and TG003) in two cancer cell lines with different mutations (BM: p53mut, JJ: del(17p))
 
 <!-- Results: More deregulated genes in BM (5000) vs JJ (1000), but focus on alternative isoforms -->
 ***
@@ -34,7 +34,11 @@ Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in two can
 
 **Reminder**: Difference between *Console*, *Scripts* or *Notebooks*.
 
-> **Poll 1**: 
+<br>
+
+**Recommendation**: Please use *Notebooks* throughout this course
+
+> **Poll 1.1**: 
 > How do you get information about the current R-version and loaded packages?
 
 <br><br>
@@ -67,7 +71,7 @@ install.packages("pheatmap")
 
 To access make sure you select R version 4.0.3 and set the libPaths as below.
 
-> **Poll 2**: Who has successfully installed the following packages: DESeq2, tidyverse, pheatmap?
+> **Poll 1.2**: Who has successfully installed the following packages: DESeq2, tidyverse, pheatmap?
 
 
 ### Load Packages
@@ -130,7 +134,7 @@ data <- read.csv(file=dfile, header=TRUE, sep="\t")
 
 **Discussion** Inspect the data structure. What are the variables? What are observations? How many samples are in the data ?
 
-> **Poll 3**: What is the median expression count in sample "BM_CTRL_3"? 
+> **Poll 1.3**: What is the median expression count in sample "BM_CTRL_3"? 
 ```{r poll3, eval=FALSE}
 data %>% summary
 data[,"BM_CTRL_3"] %>% median()
@@ -171,7 +175,7 @@ metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
 ```
 
 
-> **Poll 4**: What is a factor?
+> **Poll 1.4**: What is a factor?
 
 <br><br><br>
 
@@ -206,7 +210,7 @@ $$
 y_i = f(x_i) = \mu + \beta x_i ~~~~~~~~~ (i = 1\ldots n) \\ \\
 $$
 
-> **Poll 5**: What is $n$ in our example
+> **Poll 1.5**: What is $n$ in our example
 
 1. number of genes
 2. number of samples
@@ -310,7 +314,7 @@ Usually there are other factors in addition to a simple treatment:
 
 <br><br>
 
-> **Poll 6** You are planning an experiment with 3 treatment levels $(X_1, X_2, X_3)$ and aim for 3 replicates each. Unfortunately, you can process at most 3 samples per day. So you'll need three days $(Z_1, Z_2, Z_3)$. How should you assign your samples to different treatments?
+> **Poll 1.6** You are planning an experiment with 3 treatment levels $(X_1, X_2, X_3)$ and aim for 3 replicates each. Unfortunately, you can process at most 3 samples per day. So you'll need three days $(Z_1, Z_2, Z_3)$. How should you assign your samples to different treatments?
 
 
 ![**Experimental Design - Poll** ](../images/ExpDesign_Poll.jpg)
@@ -334,7 +338,7 @@ $$
 y_i = \mu + \beta x_i + \gamma z_i + \epsilon_i \\ ~~\\
 \mbox{R syntax:} ~~~Y \sim X + Y
 $$
-```{r design, echo=TRUE, eval=FALSE}
+```{r alt_design, echo=TRUE, eval=FALSE}
 my_alt_design <- ~ celltype + condition
 ```
 
@@ -445,14 +449,14 @@ Use > library(RColorBrewer) for systematic and educated choices.
 ct_col = c("white", "black")                   # celltype colours
 names(ct_col) = levels(ann$celltype)
 
-#cn_col <- brewer.pal(n=3, "Dark2")            # avoid RColorBrewer dependence for this course
+#cn_col <- RColorBrewer::brewer.pal(n=3, "Dark2")            # avoid RColorBrewer dependence for this course
 cn_col <- c("#1B9E77", "#D95F02", "#7570B3")   # condition colours
 names(cn_col) = levels(ann$condition)
 
 my_colors = list( celltype= ct_col, condition = cn_col )
 pheatmap(C, annotation = ann, annotation_colors = my_colors)
 
-# adjust also heatmap
+# adjust also color of heatmap
 # blue_colors = RColorBrewer::brewer.pal(9,"Blues"))
 # pheatmap(C, annotation = ann, annotation_colors = my_colors, color=blue_colors) 
 ```
