@@ -19,16 +19,6 @@ output:
   * Visualize the results
   * LRT vs. Wald test
 
-```{r installation, eval=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install("DESeq2")
-BiocManager::install("apeglm")
-install.packages("tidyverse")
-install.packages("dplyr")
-install.packages("ggrepel")
-install.packages("pheatmap")
-```
 # add libraries
 ```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
 .libPaths("/data/manke/processing/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library") 
@@ -64,8 +54,8 @@ The formula for the model includes all sources of variation in the data:
 celltype, condition and the difference as the effect of celltype on condition (celltype:condition)
 
 ```{r build the matrix, message=FALSE, warning=FALSE}
-d <- as.formula(~celltype + condition + celltype:condition)
-dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInfo, design = d)
+design <- ~celltype + condition + celltype:condition
+dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInfo, design = design)
 ```
 
 # Estimate size factors
@@ -255,22 +245,44 @@ length(sig_lrt_genes)
 
 ```
 
+# Biological interpretation
+## Primer
 
 We now have an idea on how we can extract pair-wise comparisons from a multi-factor DESeq2 analysis, 
 and we got a primer on comparisons beyond pair-wise comparisons. What now ?
 Let's try to extract something biologically meaningful from the data.
 
-Poll1:
-Is there a difference between specifying ~celltype*condition and ~celltype + condition + celltype:condition ?
+Remember that we specified our design as:
+
+design ~ celltype + condition + celltype:condition
+```{r return design }
+design
+```
+
+> **Poll 3.1**: 
+> Is there a difference between specifying ~celltype*condition and ~celltype + condition + celltype:condition ?
+
+
+Also remember our factors, and especially what level they have
+```{r return sampleInfoFactors}
+sampleInfo$celltype
+sampleInfo$condition
+```
+
+> **Poll 3.2**: 
+> Given our design (~celltype*condition), what comparison do we look at by specifying results(dds, contrast = c("condition", "DMSO", "TG")) ?
+
 
 To go on, we have to remember that this is in essence a drug repurposing study.
 
 A couple of other relevant notes:
 
- - BM and JJ are two cell lines generated multiple myeloma patients. 
+ - BM and JJ are two cell lines derived from multiple myeloma patients. 
  - (alternative) splicing is affected in these patients.
- - TG003 is a drug commonly used in this disease (clk1 kinase inhibitor)
+ - TG003 is a drug commonly used in this disease (clk1 kinase inhibitor).
  - Amiloride is an old drug (diuretic) that is hypothesized to be a good candidate for repurposing in multiple myeloma.
+
+## The Amiloride effect vs. the TG effect.
 
 Let's start by assessing the difference between amiloride treated cells and TG treated cells.
 
@@ -279,9 +291,9 @@ Remember our coefficients:
 resultsNames(dds)
 ```
 
-Extract TG vs AMIL:
+### Extract AMIL vs TG  - BM cells results:
 
-```{r message=FALSE, warning=FALSE}
+```{r extract AMILvTG - BM results, message=FALSE, warning=FALSE}
 TGvAMIL <- results(dds, contrast = c('condition', 'TG', 'AMIL'), alpha = 0.05)
 head( data.frame(TGvAMIL) )
 
@@ -291,35 +303,47 @@ TGvAMIL <- results(dds, contrast = c(0,0,0,1,0,0), alpha=0.05)
 head( data.frame(TGvAMIL) )
 ```
 
+> **Poll 3.3**: 
+> Given our contrast c('condition', 'TG', 'AMIL'), what does a positive fold change correspond to?
+
 Cave!
-If we want to use shrinking, be careful with the apegml method as lfcShrink method doesn't support all forms of contrasts.
-ashr-method is a bit more versatile.
+If we want to use shrinking, be careful with the normal/apegml method as lfcShrink method doesn't support all forms of contrasts.
+ashr-method is a bit more versatile. A workaround is releveling your factors and rerunning DESeq again.
 
 
-```{r message=FALSE, warning=FALSE}
+```{r Shrinking and contrasts: the pitfall, message=FALSE, warning=FALSE}
 #TGvAMIL_shrunk <- lfcShrink(dds, contrast=c(0,0,0,1,0,0), type="apeglm") # This WONT work.
 TGvAMIL_shrunk <- lfcShrink(dds, coef=c('condition_TG_vs_AMIL'), type="apeglm") # This will work.
 ```
 
-We now have TG vs AMIL, but are these results for the BM or the JJ cells ?
+### Extract AMIL vs TG  - JJ cells results:
 
-Poll2:
-BM
-JJ
+Specifying the right contrast is not immediately clear, and in fact we have two options:
 
-We have two options now. Or we re-run deseq with releveled factors, or we dive a bit in the contrast setting of results.
-For cellType JJ, the difference between condition TG and AMIL is:
-The effect of AMIL-TG + interaction TG-JJ:
+  - relevel the cellType factor for JJ cells, rerun DESeq ( !important ), and extract using the same contrast as we used for BM cells.
+or
+  - specify the contrast as a numerical vector corresponding to our resultsNames(dds) vector.
 
-```{r message=FALSE, warning=FALSE}
+By now you should know how to execute option one, so let's do option two.
+The effect of AMIL-TG in JJ cells can be specified (considering our resultsNames) as:
+the AMIL-TG effect + the interaction term TG-JJ.
+We can specify the contrast as such:
+
+```{r extract AMILvTG - JJ results, message=FALSE, warning=FALSE}
 TGvAMIL_JJ <- results(dds, contrast = c(0,0,0,1,0,1), alpha=0.05)
 # Recall the contrasts:
 resultsNames(dds)
 ```
 
-Let's glance at the results now.
+> **Task**: We have two result objects (TGvAMIL_JJ and TGvAMIL_BM).  
+> 1. Extract the information in this object to a dataframe  
+> 2. Remove rows where the baseMean == 0  
+> 3. Remove rows where the padj column is NA  
+> 4. sort rows in the dataframe for padj (ascending, to get lowest P-values at the top).  
+> Optional: If you're feeling up to it, these steps can be generalized in a function.  
 
-```{r message=FALSE, warning=FALSE}
+
+```{r Clean results and return dataframes, message=FALSE, warning=FALSE}
 cleanDF <- function(RESobj){
   RESdf <- data.frame(RESobj) %>%
     filter(baseMean > 0) %>%
@@ -331,6 +355,36 @@ cleanDF <- function(RESobj){
 TGvAMIL_JJ_cleaned <- cleanDF(TGvAMIL_JJ)
 TGvAMIL_BM_cleaned <- cleanDF(TGvAMIL)
 
+```
+
+Our dataframes are cleaned up, and ready for further analysis. 
+There is one item remaining, and that is to add the gene symbol information.
+Numerous packages are available to this purpose, and the most widely known is {r} [biomArt] (https://bioconductor.org/packages/release/bioc/html/biomaRt.html)
+However, since this packages queries an API, we could risk of being firewalled if we all try to query from the same IP address.
+As an alternative, we can use some prebuilt genome annotation packages that make our life easier.
+For human annotations, this package is called "org.Hs.eg.db". There are others available for mouse (org.Mm.eg.db), etc.
+
+Cave! You will see that there are NA's introduced 
+```{r Map ensemble IDs to gene symbols, warning = FALSE, message=FALSE}
+TGvAMIL_JJ_cleaned$gene_symbol <- mapIds(org.Hs.eg.db,
+                     keys=row.names(TGvAMIL_JJ_cleaned),
+                     column="SYMBOL",
+                     keytype="ENSEMBL",
+                     multiVals="first")
+print(paste0("JJ - NA: ", sum(is.na(TGvAMIL_JJ_cleaned$gene_symbol)), "/", nrow(TGvAMIL_JJ_cleaned), " rows" ) )
+TGvAMIL_JJ_cleaned <- TGvAMIL_JJ_cleaned %>% drop_na(gene_symbol)
+
+TGvAMIL_BM_cleaned$gene_symbol <- mapIds(org.Hs.eg.db,
+                     keys=row.names(TGvAMIL_BM_cleaned),
+                     column="SYMBOL",
+                     keytype="ENSEMBL",
+                     multiVals="first")
+print(paste0("BM - NA: ", sum(is.na(TGvAMIL_BM_cleaned$gene_symbol)), "/", nrow(TGvAMIL_BM_cleaned), " rows" ) )
+TGvAMIL_BM_cleaned <- TGvAMIL_BM_cleaned %>% drop_na(gene_symbol)
+```
+
+
+```{r Plot the top hits.}
 # Plot Zscores for top20 hits.
 pheatmap(
   counts(dds, normalized=TRUE)[head( rownames(TGvAMIL_JJ_cleaned) , n=20), c("JJ_AMIL_1",
@@ -339,6 +393,7 @@ pheatmap(
                                                                              "JJ_TG_1",
                                                                              "JJ_TG_2",
                                                                              "JJ_TG_3")],
+  labels_row=head( TGvAMIL_JJ_cleaned , n=20)$gene_symbol,
   scale = 'row',
   main='TG v AMIL - JJ'
   )
@@ -350,14 +405,15 @@ pheatmap(
                                                                              "BM_TG_1",
                                                                              "BM_TG_2",
                                                                              "BM_TG_3")],
+  labels_row=head( TGvAMIL_BM_cleaned , n=20)$gene_symbol,
   scale = 'row',
-  main='TG v AMIL - JJ'
+  main='TG v AMIL - BM'
   )
 ```
 
 To look at the similarity:
 
-```{r message = FALSE, warning = FALSE}
+```{r Create a list for use in upSet plots, message = FALSE, warning = FALSE}
 upsetList <- list(
   "BM - Up" = rownames( TGvAMIL_BM_cleaned[ (TGvAMIL_BM_cleaned$log2FoldChange > 2) & (TGvAMIL_BM_cleaned$padj < 0.05),] ),
   "BM - Down" = rownames( TGvAMIL_BM_cleaned[ (TGvAMIL_BM_cleaned$log2FoldChange < -2) & (TGvAMIL_BM_cleaned$padj < 0.05),] ),
@@ -370,7 +426,22 @@ upset(fromList(upsetList), order.by = "freq")
 
 
 Finally, look at two specific geneSets.
+ 
  - genes involved in splicing
  - genes involved in apoptosis
  
+```{r KEGG pathways, eval = FALSE, message = FALSE, warning = FALSE}
+print("KEGG")
+# read KEGG genes
+# subset DFs
+# heatmap / w/ pvalues
+```
+
  
+ LRT on treatment effect.
+ 
+```{r LRT, eval = FALSE, message = FALSE, warning = FALSE}
+print("LRT")
+# LRT
+# explore
+```
