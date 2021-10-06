@@ -277,9 +277,9 @@ To go on, we have to remember that this is in essence a drug repurposing study.
 
 A couple of other relevant notes:
 
- - BM and JJ are two cell lines generated multiple myeloma patients. 
+ - BM and JJ are two cell lines derived from multiple myeloma patients. 
  - (alternative) splicing is affected in these patients.
- - TG003 is a drug commonly used in this disease (clk1 kinase inhibitor)
+ - TG003 is a drug commonly used in this disease (clk1 kinase inhibitor).
  - Amiloride is an old drug (diuretic) that is hypothesized to be a good candidate for repurposing in multiple myeloma.
 
 ## The Amiloride effect vs. the TG effect.
@@ -307,8 +307,8 @@ head( data.frame(TGvAMIL) )
 > Given our contrast c('condition', 'TG', 'AMIL'), what does a positive fold change correspond to?
 
 Cave!
-If we want to use shrinking, be careful with the apegml method as lfcShrink method doesn't support all forms of contrasts.
-ashr-method is a bit more versatile.
+If we want to use shrinking, be careful with the normal/apegml method as lfcShrink method doesn't support all forms of contrasts.
+ashr-method is a bit more versatile. A workaround is releveling your factors and rerunning DESeq again.
 
 
 ```{r Shrinking and contrasts: the pitfall, message=FALSE, warning=FALSE}
@@ -335,12 +335,12 @@ TGvAMIL_JJ <- results(dds, contrast = c(0,0,0,1,0,1), alpha=0.05)
 resultsNames(dds)
 ```
 
-> **Task**: We have two result objects (TGvAMIL_JJ and TGvAMIL_BM).
-> Extract the information in this object to a dataframe
-> Remove rows where the baseMean == 0
-> Remove rows where the padj column is NA
-> sort rows in the dataframe for padj (ascending, to get lowest P-values at the top).
-> If you're feeling up to it, these steps can be generalized in a function.
+> **Task**: We have two result objects (TGvAMIL_JJ and TGvAMIL_BM).  
+> 1. Extract the information in this object to a dataframe  
+> 2. Remove rows where the baseMean == 0  
+> 3. Remove rows where the padj column is NA  
+> 4. sort rows in the dataframe for padj (ascending, to get lowest P-values at the top).  
+> Optional: If you're feeling up to it, these steps can be generalized in a function.  
 
 
 ```{r Clean results and return dataframes, message=FALSE, warning=FALSE}
@@ -355,6 +355,36 @@ cleanDF <- function(RESobj){
 TGvAMIL_JJ_cleaned <- cleanDF(TGvAMIL_JJ)
 TGvAMIL_BM_cleaned <- cleanDF(TGvAMIL)
 
+```
+
+Our dataframes are cleaned up, and ready for further analysis. 
+There is one item remaining, and that is to add the gene symbol information.
+Numerous packages are available to this purpose, and the most widely known is {r} [biomArt] (https://bioconductor.org/packages/release/bioc/html/biomaRt.html)
+However, since this packages queries an API, we could risk of being firewalled if we all try to query from the same IP address.
+As an alternative, we can use some prebuilt genome annotation packages that make our life easier.
+For human annotations, this package is called "org.Hs.eg.db". There are others available for mouse (org.Mm.eg.db), etc.
+
+Cave! You will see that there are NA's introduced 
+```{r Map ensemble IDs to gene symbols, warning = FALSE, message=FALSE}
+TGvAMIL_JJ_cleaned$gene_symbol <- mapIds(org.Hs.eg.db,
+                     keys=row.names(TGvAMIL_JJ_cleaned),
+                     column="SYMBOL",
+                     keytype="ENSEMBL",
+                     multiVals="first")
+print(paste0("JJ - NA: ", sum(is.na(TGvAMIL_JJ_cleaned$gene_symbol)), "/", nrow(TGvAMIL_JJ_cleaned), " rows" ) )
+TGvAMIL_JJ_cleaned <- TGvAMIL_JJ_cleaned %>% drop_na(gene_symbol)
+
+TGvAMIL_BM_cleaned$gene_symbol <- mapIds(org.Hs.eg.db,
+                     keys=row.names(TGvAMIL_BM_cleaned),
+                     column="SYMBOL",
+                     keytype="ENSEMBL",
+                     multiVals="first")
+print(paste0("BM - NA: ", sum(is.na(TGvAMIL_BM_cleaned$gene_symbol)), "/", nrow(TGvAMIL_BM_cleaned), " rows" ) )
+TGvAMIL_BM_cleaned <- TGvAMIL_BM_cleaned %>% drop_na(gene_symbol)
+```
+
+
+```{r Plot the top hits.}
 # Plot Zscores for top20 hits.
 pheatmap(
   counts(dds, normalized=TRUE)[head( rownames(TGvAMIL_JJ_cleaned) , n=20), c("JJ_AMIL_1",
@@ -363,6 +393,7 @@ pheatmap(
                                                                              "JJ_TG_1",
                                                                              "JJ_TG_2",
                                                                              "JJ_TG_3")],
+  labels_row=head( TGvAMIL_JJ_cleaned , n=20)$gene_symbol,
   scale = 'row',
   main='TG v AMIL - JJ'
   )
@@ -374,8 +405,9 @@ pheatmap(
                                                                              "BM_TG_1",
                                                                              "BM_TG_2",
                                                                              "BM_TG_3")],
+  labels_row=head( TGvAMIL_BM_cleaned , n=20)$gene_symbol,
   scale = 'row',
-  main='TG v AMIL - JJ'
+  main='TG v AMIL - BM'
   )
 ```
 
@@ -394,7 +426,22 @@ upset(fromList(upsetList), order.by = "freq")
 
 
 Finally, look at two specific geneSets.
+ 
  - genes involved in splicing
  - genes involved in apoptosis
  
+```{r KEGG pathways, eval = FALSE, message = FALSE, warning = FALSE}
+print("KEGG")
+# read KEGG genes
+# subset DFs
+# heatmap / w/ pvalues
+```
+
  
+ LRT on treatment effect.
+ 
+```{r LRT, eval = FALSE, message = FALSE, warning = FALSE}
+print("LRT")
+# LRT
+# explore
+```
