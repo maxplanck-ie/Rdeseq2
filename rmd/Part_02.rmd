@@ -13,12 +13,18 @@ output:
     df_print: paged
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
-setwd("~/Desktop/Rdeseq2/rmd/")
-```
-
+## Goals:
+- going over the DESeq2 workflow
+- indepth explanations for:
+  - general formating for data and metadata 
+  - factorization
+  - pre-filtering
+  - RNA-seq data distribution
+  - modelling data
+  - data transformation
+  - size factors and normalization
+  - dispersions
+- extracting the results
 \
 \
 \
@@ -39,12 +45,13 @@ a) **Load libraries**
 library(tidyverse)
 library(DESeq2)
 library(pheatmap)
-library(knitr)
 ```
 
 b) **Load data and metadata**
 
 ```{r load_data, message=FALSE, tidy=TRUE}
+setwd("/data/processing3/balan/Rdeseq2/rmd")
+
 #loading data and metadata (sample sheet)
 data <- read.table("../data/myeloma/myeloma_counts.tsv", header=TRUE, check.names = TRUE, row.names = 1)
 metadata <- read.table("../data/myeloma/myeloma_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F, row.names = 1)
