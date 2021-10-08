@@ -11,8 +11,8 @@ output:
 # Goals:
 * Different steps of a differential gene expression analysis
   * multi-factor design
-  * Normalisation: Estimating size factors
-  * Checking for the dispertion
+  * Normalisation: Estimating size factors (has been explained before)
+  * Checking for the dispertion (has been explained before)
   * Building up contrasts
   * Make a results table
   * Summarize and extract a list of significant differentially expressed genes
@@ -55,6 +55,7 @@ print(sampleInfo)
 # Building a deseq data set with a multi-factor design:
 ## factors and designs:
 To see nicely visulised slides check: https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing
+
 ### The simplest case:
  * one factor with two levels
 
@@ -88,7 +89,7 @@ null hypothesis:
 
     beta1 = 0
 
-### A more complex case:
+### A complex case:
  * One factor with more than two levels
 
 |samples |condition<factor> |
@@ -131,7 +132,7 @@ Null hypothesis:
     cond2 vs cond3
     beta1 - beta2 = 0
 
-### Even a more complex case:
+### More complex case:
   * Two factors, with interaction
   
 |samples |condition<factor> | treatment<factor> |
@@ -216,6 +217,26 @@ dds <- DESeq(dds)
 ```
 # Steps required to generate a results table for pairwise comparisons (Wald test)
 By default DESeq2 uses the Wald test to identify genes that are differentially expressed between two groups of samples. Results can be extracted for a number of different comparisons.
+This is done through the following steps:
+  * A regression model fits to each gene (glm.nb),
+  * Each gene model coefficient (LFC) is extimated using maximum likelihood,
+  * The shrunken estimate of LFC is divided by its standard error, resulting in a z-statistic,
+  * z-statistic is compared to a standard normal distribution to compute the p-values,
+  * P values are adjusted for multiple testing using the procedure of Benjamini and Hochberg.
+
+```{r pvalue, eval=TRUE, message=FALSE, warning=FALSE}
+    # P-value distribution
+    res <- results(dds)
+    # print(mcols(res, use.names=TRUE))
+    res.df <- res %>% data.frame() 
+    print(ggplot(res.df) +
+        geom_histogram(aes(res.df$pvalue, fill = "a"), colour = "grey20", alpha = 0.5, stat = "bin") +
+        geom_histogram(aes(res.df$padj, fill = "b"), colour = "grey20", alpha = 0.5, stat = "bin") +
+        scale_fill_manual(name = "group", values = c("a" = "steelblue", "b" = "grey20"),
+                    labels = c("a" = "p-value", "b" = "padj")) +
+        geom_vline(xintercept = 0.05, colour = "red")
+    )
+```
 
 # Make a pairwise comparison (using contrast)
 Contrasts can be given as a list of 2 character vectors:
@@ -331,9 +352,8 @@ A commonly used plot to have a global view of the expression is volcano plot; in
 
 ```
 #Likelihood ratio test
-DESeq2 also offers the Likelihood Ratio Test as an alternative when evaluating expression change across more than two levels. Genes which are identified as significant, are those that are changing in expression in any direction across the different factor levels.
-There is no need for contrasts since we are not making a pair-wise comparison.
-The LRT is comparing the full model to the reduced model to identify significant genes. The p-values are determined solely by the difference in deviance between the ‘full’ and ‘reduced’ model formula (not the log2 fold changes). Essentially the LRT test is testing whether the term(s) removed in the ‘reduced’ model explains a significant amount of variation in the data
+DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one class compared to another, it identifies genes which are changing in expression in any direction across the different factor levels. Therefore, there is no need for contrasts since we are not making a pair-wise comparison.
+The LRT is comparing the 'full' model to the 'reduced' model to identify significant genes. The p-values are determined solely by the difference in deviance between the ‘full’ and the ‘reduced’ model formula (not the log2 fold changes). Essentially the LRT test is testing whether the term(s) removed in the ‘reduced’ model explains a significant amount of variation in the data
 ```{r lrt, message=FALSE, warning=FALSE}
 # which model are we interested in as reduced?
 dds_lrt <- DESeq(dds, test="LRT", reduced = ~celltype + condition)
