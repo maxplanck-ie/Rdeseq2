@@ -161,7 +161,8 @@ Often the metadata is hidden in the paper (or in the filename). This is bad prac
 - github: https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_meta.tsv
 - local: /data/manke/processing/Rdeseq2/data/myeloma/myeloma_meta.tsv
 
-> **Task**: Read the metadata into an R-object "metadata". Inspect the data frame - which data types are included
+> **Task**: Read the metadata into an R-object "metadata". Inspect the data frame - which data types are included?
+Make sure that the rownames of the metadata are valid sample names.
 
 ```{r import_meta}
 mfile <- "../data/myeloma/myeloma_meta.tsv"               # location of metadata file
@@ -206,14 +207,14 @@ $$
 y_i = f(x_i) = \mu + \beta x_i ~~~~~~~~~ (i = 1\ldots n) \\ \\
 $$
 
-> **Poll 5**: What is $n$ in our example
+> **Poll 5**: What is $n$ in our example?
 
 1. number of genes
 2. number of samples
 3. total number of reads
 
 ### Goal
-Model counts $y_i$ as a function of sample $x_i$ + noise factor ($\epsilon_i$)
+Model the counts ($y_i$) as a function of sample $x_i$ + noise factor ($\epsilon_i$)
 
 $$
 y_i = \mu + \beta x_i + \epsilon_i 
@@ -251,7 +252,8 @@ ggplot(gene, aes(x=condition, y=count, col=condition)) +
 Define your design:
 
 ```{r design, echo=TRUE}
-my_design <- ~ condition   # here: X = condition
+# here: X = condition
+my_design <- ~ condition  # notice the tilde *not* minus
 ```
 
 **Notice**: The variables need to correspond to columns in the metadata.
@@ -260,7 +262,9 @@ my_design <- ~ condition   # here: X = condition
 
 **Notice**: More complicated designs are possible and often necessary ($\to$ day 2 and 3)
 
-## Interlude: Model Matrix (5 min)
+*** 
+
+## Interlude: Model Matrix (5 min) --> Day 3
 **Discussion**: How to convert sample factor (e.g. condition) into something numerical?
 
 **Idea**: binary encoding of categorical variable $x$ (switch on and of contributions)
@@ -281,14 +285,16 @@ MM=model.matrix(my_design, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
 
-> **Tasks** (better for Part II/III): 
+> **Tasks** 
 
 - Include an additional factor (+ celltype) and observe the design matrix 
 - Bonus: include an interaction term (+ condition:celltype) and discuss its interpretation
 ```{r model_matrix_interaction, eval=FALSE, echo=FALSE}
-MM=model.matrix(~ 0 + condition*celltype, data=metadata)
+MM=model.matrix(~ condition*celltype, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
+
+***
 
 ## Interlude: Experimental Design (10 min)
 https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md (50min)
@@ -328,13 +334,14 @@ Sequencing           | Control with sequencing depth (read sampling)
 Analysis             | Control software version and parameters
 
 
-**Practical Notice**: Some *nuisance factors* (e.g. batches) may be known and measurable, but are not of primary interest - they should be included in the model.
+**Practical Notice**:   
+Some *nuisance factors* (e.g. batches) may be known and measurable, but are not of primary interest - they should be included as metadata and in the model.
 
 $$
 y_i = \mu + \beta x_i + \gamma z_i + \epsilon_i \\ ~~\\
-\mbox{R syntax:} ~~~Y \sim X + Y
+\mbox{R syntax:} ~~~Y \sim X + Z
 $$
-```{r design, echo=TRUE, eval=FALSE}
+```{r alt_design, echo=TRUE, eval=FALSE}
 my_alt_design <- ~ celltype + condition
 ```
 
@@ -393,8 +400,9 @@ dds <- DESeqDataSetFromHTSeqCount(sampleTable, directory = ".", design = my_desi
 
 ## Show me the (raw) data! (15 min)
 
-- Data Structure, 
-- Entries, Visualization
+- Data Structure 
+- Data Entries 
+- Visualization
 - Correlations
 
 > **Task 1**: Inspect the data structures and dimensions of objects dds and extract the count matrix M 
@@ -493,7 +501,15 @@ Mt <- log2(M + 1)      # simple log-transform; (why + 1 ?)
 
 pheatmap(cor(Mt), annotation = ann, annotation_colors = my_colors)
 ```
-**Discussion**: overall high correlations?
+
+
+**Discussion**: Notice the overall high correlations? How would you explore this further
+
+```{r smoothScatter}
+# correlation coeff. is only a single number
+smoothScatter(Mt[,1], Mt[,5])
+```
+
 
 **Upshot**: transformations are important for data exploration
 
