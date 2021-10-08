@@ -16,7 +16,7 @@ output:
 Purpose: https://pubmed.ncbi.nlm.nih.gov/28790111/
 
 Goal for this tutorial:   
-Use RNA-seq to compare two drugs (amiloride and TG003) in two cancer cell lines with different mutations (BM: p53mut, JJ: del(17p))
+Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in two cancer cell lines with different mutations (BM: p53mut, JJ: del(17p))
 
 <!-- Results: More deregulated genes in BM (5000) vs JJ (1000), but focus on alternative isoforms -->
 ***
@@ -34,11 +34,7 @@ Use RNA-seq to compare two drugs (amiloride and TG003) in two cancer cell lines 
 
 **Reminder**: Difference between *Console*, *Scripts* or *Notebooks*.
 
-<br>
-
-**Recommendation**: Please use *Notebooks* throughout this course
-
-> **Poll 1.1**: 
+> **Poll 1**: 
 > How do you get information about the current R-version and loaded packages?
 
 <br><br>
@@ -71,7 +67,7 @@ install.packages("pheatmap")
 
 To access make sure you select R version 4.0.3 and set the libPaths as below.
 
-> **Poll 1.2**: Who has successfully installed the following packages: DESeq2, tidyverse, pheatmap?
+> **Poll 2**: Who has successfully installed the following packages: DESeq2, tidyverse, pheatmap?
 
 
 ### Load Packages
@@ -134,7 +130,7 @@ data <- read.csv(file=dfile, header=TRUE, sep="\t")
 
 **Discussion** Inspect the data structure. What are the variables? What are observations? How many samples are in the data ?
 
-> **Poll 1.3**: What is the median expression count in sample "BM_CTRL_3"? 
+> **Poll 3**: What is the median expression count in sample "BM_CTRL_3"? 
 ```{r poll3, eval=FALSE}
 data %>% summary
 data[,"BM_CTRL_3"] %>% median()
@@ -165,7 +161,8 @@ Often the metadata is hidden in the paper (or in the filename). This is bad prac
 - github: https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_meta.tsv
 - local: /data/manke/processing/Rdeseq2/data/myeloma/myeloma_meta.tsv
 
-> **Task**: Read the metadata into an R-object "metadata". Inspect the data frame - which data types are included
+> **Task**: Read the metadata into an R-object "metadata". Inspect the data frame - which data types are included?
+Make sure that the rownames of the metadata are valid sample names.
 
 ```{r import_meta}
 mfile <- "../data/myeloma/myeloma_meta.tsv"               # location of metadata file
@@ -175,7 +172,7 @@ metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
 ```
 
 
-> **Poll 1.4**: What is a factor?
+> **Poll 4**: What is a factor?
 
 <br><br><br>
 
@@ -210,14 +207,14 @@ $$
 y_i = f(x_i) = \mu + \beta x_i ~~~~~~~~~ (i = 1\ldots n) \\ \\
 $$
 
-> **Poll 1.5**: What is $n$ in our example
+> **Poll 5**: What is $n$ in our example?
 
 1. number of genes
 2. number of samples
 3. total number of reads
 
 ### Goal
-Model counts $y_i$ as a function of sample $x_i$ + noise factor ($\epsilon_i$)
+Model the counts ($y_i$) as a function of sample $x_i$ + noise factor ($\epsilon_i$)
 
 $$
 y_i = \mu + \beta x_i + \epsilon_i 
@@ -255,7 +252,8 @@ ggplot(gene, aes(x=condition, y=count, col=condition)) +
 Define your design:
 
 ```{r design, echo=TRUE}
-my_design <- ~ condition   # here: X = condition
+# here: X = condition
+my_design <- ~ condition  # notice the tilde *not* minus
 ```
 
 **Notice**: The variables need to correspond to columns in the metadata.
@@ -264,7 +262,9 @@ my_design <- ~ condition   # here: X = condition
 
 **Notice**: More complicated designs are possible and often necessary ($\to$ day 2 and 3)
 
-## Interlude: Model Matrix (5 min)
+*** 
+
+## Interlude: Model Matrix (5 min) --> Day 3
 **Discussion**: How to convert sample factor (e.g. condition) into something numerical?
 
 **Idea**: binary encoding of categorical variable $x$ (switch on and of contributions)
@@ -285,14 +285,16 @@ MM=model.matrix(my_design, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
 
-> **Tasks** (better for Part II/III): 
+> **Tasks** 
 
 - Include an additional factor (+ celltype) and observe the design matrix 
 - Bonus: include an interaction term (+ condition:celltype) and discuss its interpretation
 ```{r model_matrix_interaction, eval=FALSE, echo=FALSE}
-MM=model.matrix(~ 0 + condition*celltype, data=metadata)
+MM=model.matrix(~ condition*celltype, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
+
+***
 
 ## Interlude: Experimental Design (10 min)
 https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md (50min)
@@ -314,7 +316,7 @@ Usually there are other factors in addition to a simple treatment:
 
 <br><br>
 
-> **Poll 1.6** You are planning an experiment with 3 treatment levels $(X_1, X_2, X_3)$ and aim for 3 replicates each. Unfortunately, you can process at most 3 samples per day. So you'll need three days $(Z_1, Z_2, Z_3)$. How should you assign your samples to different treatments?
+> **Poll 6** You are planning an experiment with 3 treatment levels $(X_1, X_2, X_3)$ and aim for 3 replicates each. Unfortunately, you can process at most 3 samples per day. So you'll need three days $(Z_1, Z_2, Z_3)$. How should you assign your samples to different treatments?
 
 
 ![**Experimental Design - Poll** ](../images/ExpDesign_Poll.jpg)
@@ -332,11 +334,12 @@ Sequencing           | Control with sequencing depth (read sampling)
 Analysis             | Control software version and parameters
 
 
-**Practical Notice**: Some *nuisance factors* (e.g. batches) may be known and measurable, but are not of primary interest - they should be included in the model.
+**Practical Notice**:   
+Some *nuisance factors* (e.g. batches) may be known and measurable, but are not of primary interest - they should be included as metadata and in the model.
 
 $$
 y_i = \mu + \beta x_i + \gamma z_i + \epsilon_i \\ ~~\\
-\mbox{R syntax:} ~~~Y \sim X + Y
+\mbox{R syntax:} ~~~Y \sim X + Z
 $$
 ```{r alt_design, echo=TRUE, eval=FALSE}
 my_alt_design <- ~ celltype + condition
@@ -397,8 +400,9 @@ dds <- DESeqDataSetFromHTSeqCount(sampleTable, directory = ".", design = my_desi
 
 ## Show me the (raw) data! (15 min)
 
-- Data Structure, 
-- Entries, Visualization
+- Data Structure 
+- Data Entries 
+- Visualization
 - Correlations
 
 > **Task 1**: Inspect the data structures and dimensions of objects dds and extract the count matrix M 
@@ -449,14 +453,14 @@ Use > library(RColorBrewer) for systematic and educated choices.
 ct_col = c("white", "black")                   # celltype colours
 names(ct_col) = levels(ann$celltype)
 
-#cn_col <- RColorBrewer::brewer.pal(n=3, "Dark2")            # avoid RColorBrewer dependence for this course
+#cn_col <- brewer.pal(n=3, "Dark2")            # avoid RColorBrewer dependence for this course
 cn_col <- c("#1B9E77", "#D95F02", "#7570B3")   # condition colours
 names(cn_col) = levels(ann$condition)
 
 my_colors = list( celltype= ct_col, condition = cn_col )
 pheatmap(C, annotation = ann, annotation_colors = my_colors)
 
-# adjust also color of heatmap
+# adjust also heatmap
 # blue_colors = RColorBrewer::brewer.pal(9,"Blues"))
 # pheatmap(C, annotation = ann, annotation_colors = my_colors, color=blue_colors) 
 ```
@@ -497,7 +501,15 @@ Mt <- log2(M + 1)      # simple log-transform; (why + 1 ?)
 
 pheatmap(cor(Mt), annotation = ann, annotation_colors = my_colors)
 ```
-**Discussion**: overall high correlations?
+
+
+**Discussion**: Notice the overall high correlations? How would you explore this further
+
+```{r smoothScatter}
+# correlation coeff. is only a single number
+smoothScatter(Mt[,1], Mt[,5])
+```
+
 
 **Upshot**: transformations are important for data exploration
 
