@@ -183,8 +183,7 @@ metadata$condition <- as.factor(metadata$condition)
 metadata$celltype  <- as.factor(metadata$celltype)
 ```
 
-
-
+**Discussion**: Is there any metadata for genes?
 
 ***
 # Break (10 min)
@@ -231,14 +230,10 @@ $$
 - combination of variables: e.g. condition and celltype
 
 
-**Notice**: Some *nuisance factors* (e.g. batches) may be known and measurable, but are not of primary interest - they should be included.
-
-$$
-y_i = \mu + \beta x_i + \gamma z_i + \epsilon_i
-$$
 
 
-```{r gene_plot_factors, echo=FALSE}
+
+```{r gene_plot_factors}
 gene = data %>% 
   slice(42) %>%                         # pick gene #42
   gather(sample, count) %>%             # reshape for ggplot (1 sample per row!)
@@ -246,21 +241,24 @@ gene = data %>%
 
 ggplot(gene, aes(x=condition, y=count, col=condition)) + 
   geom_point(size=3)  #plot against condition
+
+# compare DESeq2 functionality
+# plotCounts(dds, gene="ENSG00000003509", col=metadata$condition)
 ```
 
 
-### The R-syntax: $Y \sim X + Z$
+### The R-syntax: $Y \sim X$
 Define your design:
 
 ```{r design, echo=TRUE}
-my_design <- ~ condition 
-#my_design <- ~ condition + celltype   # !convention for later! last factor is condition of interest
+my_design <- ~ condition   # here: X = condition
 ```
+
 **Notice**: The variables need to correspond to columns in the metadata.
 
-> **Task**: Which variables can be used to define the design?
+> **Task**: Which other variables could be used to define the design?
 
-**Notice**: More complicated designs are possible ($\to$ day 3)
+**Notice**: More complicated designs are possible and often necessary ($\to$ day 2 and 3)
 
 ## Interlude: Model Matrix (5 min)
 **Discussion**: How to convert sample factor (e.g. condition) into something numerical?
@@ -292,33 +290,57 @@ MM=model.matrix(~ 0 + condition*celltype, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
 
-## Interlude: Experimental Design (5 min)
+## Interlude: Experimental Design (10 min)
 https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md (50min)
 
-PREPARE FIGURE
-
-### Sequencing Depth
-Control the sampling noise:
-
-Need deeper for lowly expressed genes and isoform studies
-
-### Replication
-Replication is key to estimate variance. 
-
-Typically variances: biological > sample prep > sequencing
-
-Biological replication is essential to learn about biology!
-Most studies are underpowered.
-
-### Confounding
-Sex, Age
-
-### Batches
 
 
+![**A typical experiment** ](../images/ExpDesign.jpg)
 
-> **Poll 5**
+<br><br><br>
 
+### The problem: more factors!
+Usually there are other factors in addition to a simple treatment:
+
+- known and interesting: multi-factorial design and interaction effects (genotype * treatment)
+- known and uninteresting: batch, covariates
+- unknown and unvoidable: noise
+
+... all contribute to total variability and limit our ability to detect treatment-related differences $\to$ account for them as much as possible !
+
+<br><br>
+
+> **Poll 6** You are planning an experiment with 3 treatment levels $(X_1, X_2, X_3)$ and aim for 3 replicates each. Unfortunately, you can process at most 3 samples per day. So you'll need three days $(Z_1, Z_2, Z_3)$. How should you assign your samples to different treatments?
+
+
+![**Experimental Design - Poll** ](../images/ExpDesign_Poll.jpg)
+
+### Sources of Variability
+
+
+| Source | What can be done about it |
+|-------|:-----|
+Treatment            | Observe!?
+Biological           | Estimate with **replication**
+Sample Preparation   | Estimate with batch controls (**blocking**)
+Unknown Confounders  | Reduce risk by **randomization** 
+Sequencing           | Control with sequencing depth (read sampling)
+Analysis             | Control software version and parameters
+
+
+**Practical Notice**: Some *nuisance factors* (e.g. batches) may be known and measurable, but are not of primary interest - they should be included in the model.
+
+$$
+y_i = \mu + \beta x_i + \gamma z_i + \epsilon_i \\ ~~\\
+\mbox{R syntax:} ~~~Y \sim X + Y
+$$
+```{r design, echo=TRUE, eval=FALSE}
+my_alt_design <- ~ celltype + condition
+```
+
+
+***
+<br><br>
 
 # Create DESeq2 object (5 min)
 Each software has their own data representation.
@@ -326,7 +348,7 @@ A DESeq2 data object combines data, metadata and the design formula in one singl
 
     dds = data + metadata + design
 
-At later stages of the calculations new data may be added.
+All subsequent calculations will use this object (and modify it).
 
 
 > **Task**: Create a DESeq data set.
@@ -406,19 +428,19 @@ ann$seq_depth=colSums(counts(dds))/1e6    # sequencing depth in millions
 
 ## genome-wide correlations
 
-**Question**: How to calculate correlation matrix?
+**Question**: How to calculate the sample-sample correlation matrix?
 
 ```{r correlations, echo=FALSE}
-C <- cor(M)       # get sample-sample correlations: other correlations
+C <- cor(M)       # get sample-sample correlations: other correlations?
 pheatmap(C, annotation = ann)
 ```
 
 ### Interlude: Customizing Colors (5 min)
 
 Often we need to adjust colours or ensure consistency across a project.
-Refer to library(RColorBrewer) for more systematic and educated choices.
+Use > library(RColorBrewer) for systematic and educated choices.
 
-**Goal**: Define list of colours to be used in subsequent applications 
+**Goal**: Define list of colours to be used for metadata? 
 ```{r colour, echo=TRUE}
 ct_col = c("white", "black")                   # celltype colours
 names(ct_col) = levels(ann$celltype)
@@ -429,6 +451,10 @@ names(cn_col) = levels(ann$condition)
 
 my_colors = list( celltype= ct_col, condition = cn_col )
 pheatmap(C, annotation = ann, annotation_colors = my_colors)
+
+# adjust also heatmap
+# blue_colors = RColorBrewer::brewer.pal(9,"Blues"))
+# pheatmap(C, annotation = ann, annotation_colors = my_colors, color=blue_colors) 
 ```
 
 ## Simple transformation (10 min)
