@@ -34,7 +34,9 @@ Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in two can
 
 **Reminder**: Difference between *Console*, *Scripts* or *Notebooks*.
 
-> **Poll 1**: 
+**Recommondation**: Please use Notebooks throughout the course (and beyond).
+
+> **Poll 1.1**: 
 > How do you get information about the current R-version and loaded packages?
 
 <br><br>
@@ -56,7 +58,9 @@ For R, two of the most common and reliable package repositories are
 3. Most packages have **dependencies** on other packages that should also be installed 
 4. Installation can be very **time consuming** but needs to be done only once. 
 
-For the purpose of this course we have preinstalled a set of packages for the Rstudio server. 
+> **Poll 1.2**: Who has successfully installed the following packages: DESeq2, tidyverse, pheatmap?
+
+
 
 ```{r installation, eval=FALSE}
 # Do not run during course !
@@ -65,9 +69,10 @@ install.packages("tidyverse")
 install.packages("pheatmap")
 ```
 
+For the purpose of this course we have preinstalled a set of packages for the Rstudio server. 
+
 To access make sure you select R version 4.0.3 and set the libPaths as below.
 
-> **Poll 2**: Who has successfully installed the following packages: DESeq2, tidyverse, pheatmap?
 
 
 ### Load Packages
@@ -122,7 +127,7 @@ Data can come in various formats. Here we have prepared the data as tab-separate
 > **Task**: Read the data e.g. using read.csv()
 
 ```{r import_data}
-dfile="../data/myeloma/myeloma_counts.tsv"      # location of data file
+dfile="/data/manke/processing/RdeseqData/myeloma/myeloma_counts.tsv"      # location of data file
 data <- read.csv(file=dfile, header=TRUE, sep="\t")
 
 #data <- read_tsv(file=dfile)    # diagnostic: problemes(data)
@@ -130,7 +135,11 @@ data <- read.csv(file=dfile, header=TRUE, sep="\t")
 
 **Discussion** Inspect the data structure. What are the variables? What are observations? How many samples are in the data ?
 
-> **Poll 3**: What is the median expression count in sample "BM_CTRL_3"? 
+```{r head_data}
+data %>% head()
+```
+
+> **Poll 1.3**: What is the median expression count in sample "BM_CTRL_3"? 
 ```{r poll3, eval=FALSE}
 data %>% summary
 data[,"BM_CTRL_3"] %>% median()
@@ -165,14 +174,17 @@ Often the metadata is hidden in the paper (or in the filename). This is bad prac
 Make sure that the rownames of the metadata are valid sample names.
 
 ```{r import_meta}
-mfile <- "../data/myeloma/myeloma_meta.tsv"               # location of metadata file
+mfile <- "/data/manke/processing/RdeseqData/myeloma/myeloma_meta.tsv"               # location of metadata file
 #metadata <- read.csv(file=mfile, header=TRUE, sep="\t")
 metadata <- read_tsv(file=mfile)
 metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
 ```
 
+```{r head_metadata}
+metadata %>% head()
+```
 
-> **Poll 4**: What is a factor?
+> **Poll 1.4**: What is a factor?
 
 <br><br><br>
 
@@ -207,7 +219,7 @@ $$
 y_i = f(x_i) = \mu + \beta x_i ~~~~~~~~~ (i = 1\ldots n) \\ \\
 $$
 
-> **Poll 5**: What is $n$ in our example?
+> **Poll 1.5**: What is $n$ in our example?
 
 1. number of genes
 2. number of samples
@@ -316,7 +328,7 @@ Usually there are other factors in addition to a simple treatment:
 
 <br><br>
 
-> **Poll 6** You are planning an experiment with 3 treatment levels $(X_1, X_2, X_3)$ and aim for 3 replicates each. Unfortunately, you can process at most 3 samples per day. So you'll need three days $(Z_1, Z_2, Z_3)$. How should you assign your samples to different treatments?
+> **Poll 1.6** You are planning an experiment with 3 treatment levels $(X_1, X_2, X_3)$ and aim for 3 replicates each. Unfortunately, you can process at most 3 samples per day. So you'll need three days $(Z_1, Z_2, Z_3)$. How should you assign your samples to different treatments?
 
 
 ![**Experimental Design - Poll** ](../images/ExpDesign_Poll.jpg)
@@ -415,11 +427,14 @@ dds <- DESeqDataSetFromHTSeqCount(sampleTable, directory = ".", design = my_desi
 ```{r donwsample}
 dds                         # dds object --> inspect: str(dds), dim(dds)
 M <- counts(dds)            # get gene-sample matrix
-Mr <- M %>% head(10)                                 # just the first
+( Mr <- M %>% head(10) )                                 # just the first
 #Mr <- M %>% data.frame() %>% sample_n(10)           # random rows
 ```
 
 ## Visualize (15 min)
+
+> **Task**: Create heatmap for the first view genes in Mr (?pheatmap). How would you add metadata as below?
+
 ```{r visual_explore}
 pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, main="First glimpse")
 
@@ -438,7 +453,7 @@ ann$seq_depth=colSums(counts(dds))/1e6    # sequencing depth in millions
 
 **Question**: How to calculate the sample-sample correlation matrix?
 
-```{r correlations, echo=FALSE}
+```{r correlations}
 C <- cor(M)       # get sample-sample correlations: other correlations?
 pheatmap(C, annotation = ann)
 ```
@@ -510,8 +525,9 @@ pheatmap(cor(Mt), annotation = ann, annotation_colors = my_colors)
 smoothScatter(Mt[,1], Mt[,5])
 ```
 
+> **Task**: Compare this to an untransformed scatterplot.
 
-**Upshot**: transformations are important for data exploration
+**Upshot**: transformations are important for data exploration !
 
 
 ## PCA plot (10 min)
