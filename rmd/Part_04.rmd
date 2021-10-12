@@ -10,9 +10,9 @@ output:
 ---
 # Goals:
 # Apply what was learned through the course.
-  # Initial QC and visualisation.
-  # Run the DESeq workflow
-  # Interpret some of the results.
+  * Initial QC and visualisation.
+  * Run the DESeq workflow
+  * Interpret some of the results.
 
 Dataset: MPPs
 
