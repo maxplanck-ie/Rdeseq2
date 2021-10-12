@@ -27,3 +27,8 @@
    b) No. If one factor is above 5 or bellow 0.5
    c) No. The values simply show the differences in library sizes and are used just to normalize the counts.
    d) Yes. Any large variation from the rest of the group should be investigated. Can mean that we have a bad sample that needs to be excluded.
+
+6. For small count means, dispersion is ....? For large count means, dispersion is ....?
+   a) higher, lower
+   b) they don't correlate
+   c) lower, higher
