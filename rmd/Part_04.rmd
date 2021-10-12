@@ -42,6 +42,7 @@ library("tibble")
 library("ggplot2")
 library("pheatmap")
 library("UpSetR")
+library("tidyr")
 ```
 
 Read in the data.
