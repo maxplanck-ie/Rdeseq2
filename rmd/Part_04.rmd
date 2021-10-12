@@ -77,7 +77,7 @@ print(sampleInfo$condition)
 
 # Build DESeq object.
 
-```{r relevel condition factor, message=FALSE, warning=FALSE, paged.print=FALSE}
+```{r build DESeq, message=FALSE, warning=FALSE, paged.print=FALSE}
 dds <- DESeqDataSetFromMatrix(countData=countdata,
                               colData=sampleInfo,
                               design = ~celltype*condition
