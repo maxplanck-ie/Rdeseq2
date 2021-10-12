@@ -37,11 +37,9 @@ output:
 
 \
 
-> **Task 1:** load the needed libraries, the data and metadata as done in the previous day. Then look at the header of each dataset and their dimensions. -10 min
-
 a) **Load libraries**
 ```{r paths_libraries, eval=TRUE, message=FALSE}
-.libPaths("/data/manke/processing/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library")
+.libPaths("/data/processing3/RdeseqCourse/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library")
 library(tidyverse)
 library(DESeq2)
 library(pheatmap)
@@ -53,12 +51,11 @@ b) **Load data and metadata**
 setwd("/data/processing3/balan/Rdeseq2/rmd")
 
 #loading data and metadata (sample sheet)
-data <- read.table("../data/myeloma/myeloma_counts.tsv", header=TRUE, check.names = TRUE, row.names = 1)
-metadata <- read.table("../data/myeloma/myeloma_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F, row.names = 1)
+data <- read.table("/data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv", header=TRUE, check.names = TRUE, row.names = 1)
+metadata <- read.table("/data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F, row.names = 1)
 
 metadata$celltype <- as.factor(metadata$celltype)    # observe the change from 'character' to 'factor'
 metadata$condition <- as.factor(metadata$condition)
-rownames(metadata) <- metadata$sample  
 
 #preview your data and metadata
 head(data)
@@ -82,7 +79,7 @@ my_design <- ~celltype + condition
 dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_design)
 ```
 
-> **Task 2:** plot the samples in a PCA plot - 5 min
+
 
 Previously you noticed that the PCA shows a problem with our data. 
 
@@ -116,6 +113,8 @@ dds <- dds[, -c(1,7)]
 metadata <- metadata[-c(1,7),]
 
 rld_PCA <- plotPCA(rlog(dds, blind = TRUE), intgroup=c("condition", "celltype"), returnData=TRUE)
+
+# cosmetic changes:
 percentVar <- round(100 * attr(rld_PCA, "percentVar"), 1)   # rounded values for each axis of PC variance
 
 ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
@@ -196,7 +195,8 @@ Things are a bit more complicated in reality - an interative process.
 - to explore: head(metadata)
   - rows of the metadata should be named with sample names (important for downstream steps)
   - **column names of the data should be identical and in the same order with the row names of the metadata!**: `all(colnames(data)==rownames(metadata))` should output 'TRUE'
-- factorization!
+
+##### Understanding factors
   - used to represent categorical data 
   - stored as integers that have associated labels: R sorts the labels alphabetically
 
@@ -213,11 +213,11 @@ Things are a bit more complicated in reality - an interative process.
 par(mfrow = c(1,2))
 
 my_numbers1 <- c(25, 12, 34)
-my_names1 <- c('high', 'low', 'medium')
+my_names1 <- c('treat.2', 'control', 'treat.1')
 barplot(my_numbers1, names.arg = my_names1, main = 'Not what you want')
 
 my_numbers2 <- c(12, 34, 25)
-my_names2 <- c('low', 'medium', 'high')
+my_names2 <- c('control', 'treat.1', 'treat.2')
 barplot(my_numbers2, names.arg=my_names2, main = "The correct display")
 par(mfrow = c(1,1))
 ```
@@ -235,9 +235,6 @@ par(mfrow = c(1,1))
 
   - how to reorder factors:  
 ```
-# in the metadata dataframe:
-metadata$condition <- factor(metadata$condition, levels = c ('DMSO', 'AMIL', 'TG'))
-
 # or in the dds object, if you only care about what is the reference level:
 dds$condition <- relevel(dds$condition, ref='DMSO')   
 
@@ -249,7 +246,7 @@ dds$condition <- factor(dds$condition, levels = c ('DMSO', 'TG', 'AMIL'))
 
 \
 
-> **Task 3:** Please reorder the levels for the 'condition' column - 2 min
+> **Task 3:** Please reorder factors with 'DMSO' as baseline - 2 min
 
 This is the order of the factors before and after re-arrangement:
 ```{r rearrange_factors}
@@ -317,7 +314,9 @@ Let's look at our data using the 'summary()' function:
 summary(counts(dds))[,1:3]  #shows the summary only for the first 3 samples - for brevity
 ```
 
-> **Q2**: Notice the output - what does the 'mean' tell you, practically?
+> **Poll 2**: Notice the output - what does the 'mean' tell you, practically?
+
+\
 
 - several types of filtering, some manual others automatic
 - the pre-filtering is helpful but not necessary to remove rows/genes that have very low counts (very unlikely to have biological meaning)
@@ -339,75 +338,7 @@ Notice how many rows you have dropped. In this case you are left only with **`r 
 
 \ 
 
-### 3.2. Modeling count data
-
-**Why is modeling needed?** If we had a large amount of samples for each category we are interested in, we could simply extract the information we need. However, due to various reasons (e.g. availability, cost, time), sequencing is done on a few samples/ individuals, and this means we have a large variation in the data. To extract any meaningful information, we need to use mathematical models that can account for the variability and use sparse data to extrapolate the information
-
-- data can be modeled with various distributions depending on its properties.
-
-- terms:
-  - mean of the group: the average value of a sample
-  - variance: the expectation of the squared deviation (stdev^2) of a variable from its population mean. It is a measure of dispersion (of how far a set of numbers is spread out from their average value)
-
-> **Poll 3**: what properties can you attribute to RNA-seq data?
-(- discrete, large number of observations, high probability of finding a particular transcript, variance lower than mean;
-- continuous because of the very large number of observations, low probability of finding a particular transcript variance higher than mean;
-- discrete, large number of observations, low probability of finding a particular transcript; variance lower than mean)
-
-\
-\
-\
-
-
-
-```{r print_out, echo=FALSE, comment=''}
-cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small')
-```
-
-> **Poll 4**: what kind of distribution would you use for count data?
-(-Poisson distribution; - Binomial distribution; - Negative binomial distribution; - Normal distribution)
-
-\
-\
-\
-
-```{r mean_vs_variation2, warning=FALSE, out.width = '60%', fig.align="center"}
-#overdispersion
-mean_counts <- apply(counts(fdds)[,6:8], 1, mean)        # '1' means that the function 'apply' is applied to rows. Use '2' if applied to columns 
-variance_counts <- apply(counts(fdds)[,6:8], 1, var)
-df <- data.frame(mean_counts, variance_counts)
-
-ggplot(df) +
-        geom_point(aes(x=mean_counts, y=variance_counts)) + 
-        scale_y_log10(limits = c(1,1e9)) +
-        scale_x_log10(limits = c(1,1e9)) +
-        geom_abline(intercept = 0, slope = 1, color="red")
-```
-
-- for genes with high mean expression, the variance across replicates tends to be greater that the mean => use a **negative binomial** distribution
-- for genes with low mean expression, there is a large scatter = hetero-scedasti-city = for a given expression level in the low range, we obs a lot of variability in the variance values.
-
-```{r negative_binomial_distribution, out.width = '60%', fig.align="center"}
-x <- 0:30
-
-plot(x, dnbinom(x, size=0.5, mu=10), type = "l", col='red')
-lines(x, dnbinom(x, size=1, mu=10), type = "l", col='orange')
-lines(x, dnbinom(x, size=2, mu=10), type = "l", col='green')
-lines(x, dnbinom(x, size=5, mu=10), type = "l", col='blue')
-lines(x, dnbinom(x, size=10, mu=10), type = "l", col='purple')
-lines(x, dnbinom(x, size=15, mu=10), type = "l", col='black')
-lines(x, dnbinom(x, size=20, mu=10), type = "l", col='pink')
-
-title ("Negative binomial distribution (mean = 10)", cex=0.8)
-text(2, 0.3, labels="stdev = 1", col = 'black')
-text(3, 0.12, labels="stdev = 3", col = 'green')
-```
-
-\
-\
-\
-
-### 3.3. Data transformation
+### 3.2. Data transformation
 
 DESeq2 needs as input **raw counts** for statistical testing, but for some stages of visualization or downstream analysis, you need **transformed data**. 
 
@@ -431,20 +362,28 @@ head(assay(rld),3)
 
 For high counts, the results are similar to the logarithmic transformation. But for low counts, the values are shrunken towards a middle value. 
 
+
 ```{r diff_log_vst_rlog, out.width = '80%', fig.align="center"}
-df <- bind_rows(
-  as_tibble(log2(counts(fdds)[, 1:2]+1)) %>%
-         mutate(transformation = "log2(x + 1)"),
-  as_tibble(assay(rld)[, 1:2]) %>% mutate(transformation = "rlog"))  # normalization and size factors not needed - automatically detected
+df1 <- data.frame(rlg_base2=log2(counts(fdds)[, 1]+1))
+df2 <- data.frame(rlg=assay(rld)[, 1])
 
-colnames(df)[1:2] <- c("x", "y")
+df <- merge(df1, df2, by=0) # merge the 2 dataframes by rownames
 
-lvls <- c("log2(x + 1)", "rlog")
-df$transformation <- factor(df$transformation, levels=lvls)
 
-ggplot(df, aes(x = x, y = y)) + geom_bin2d(bins=80) +
-  coord_fixed() + facet_grid( . ~ transformation)
+#colnames(df)[1:2] <- c("log(n+1)", "rlog")
+
+#df$transformation <- factor(df$transformation, levels=lvls)
+
+ggplot(df, aes(x=rlg_base2, y=rlg)) +
+      geom_point(size=1, shape=3) +
+      ggtitle("Comparing 'log2(n+1)' and 'rlog' data transformation") +
+      xlab("log2(n+1) transformation") + ylab("rlog transformation") +
+      theme(plot.title = element_text(hjust=0.5))
+  
+
 ```
+
+
 
 Does it make a difference to the visualizations?
 
@@ -475,11 +414,12 @@ ggplot(rld_new3, aes(PC1, PC2, color=celltype)) +
 ##ref: https://www.biostars.org/p/289333/
 ```
 
+
 \
 \
 \
 
-## 4. Differential expression analysis  - 30 min
+## 4. Differential expression analysis - 30 min
 
 The results can be returned using the standard function:
 
@@ -489,13 +429,96 @@ dds <- DESeq(dds)
 
 There are several steps to generating the DE results, and they are wrapped together in the **DESeq()** function. The 3 main steps are estimations of:
 
-- estimating size factors
-- estimating dispersions
-- fitting model and testing
+- estimating size factors                 - estimateSizeFactors()
+- estimating gene-wise dispersions
+- fitting model (curve) to gene-wise dispersion estimates
+- shrink gene-wise dispersion estimates
+- general linear model fit for each gene 
+- testing for DE
 
 \ 
 
-### 4.1. Size factors
+<br>
+
+<center>
+
+![](../images/DE_testing.png){width=80%}
+
+**What do we mean when we talk about finding the DE genes? The red and blue dots stand for the gene count in each sample of the conditions we are testing for. Ref: https://hbctraining.github.io/DGE_workshop/lessons/04_DGE_DESeq2_analysis.html**  
+
+*** 
+</center>
+
+<br>
+
+
+### 4.1. Modeling count data
+
+**Why is modeling needed?** If we had a large amount of samples for each category we are interested in, we could simply extract the information we need. However, due to various reasons (e.g. availability, cost, time), sequencing is done on a few samples/ individuals, and this means we have a large variation in the data. To extract any meaningful information, we need to use mathematical models that can account for the variability and use sparse data to extrapolate the information
+
+<!-- Each organisms reacts to an intervention to a certain degree. In order to conclude from the data if one gene in DE or not using a handful of samples, we need to have a mathematical model that tells us what happens to the gene with a certain degree of confidence. -->
+
+
+- data can be modeled with various distributions depending on its properties.
+
+- terms:
+  - mean of the group: the average value of a sample
+  - variance: the expectation of the squared deviation (stdev^2) of a variable from its population mean. It is a measure of dispersion (of how far a set of numbers is spread out from their average value)
+
+> **Poll 3**: What properties can you attribute to RNA-seq data?
+
+\
+\
+\
+
+```{r print_out, echo=FALSE, comment=''}
+cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small \n   - variance is higher than mean')
+```
+
+> **Poll 4**: what kind of distribution would you use for count data?
+
+\
+\
+\
+
+```{r mean_vs_variation2, warning=FALSE, out.width = '60%', fig.align="center"}
+#overdispersion
+mean_counts <- apply(counts(fdds)[,6:8], 1, mean)        # '1' means that the function 'apply' is applied to rows. Use '2' if applied to columns 
+variance_counts <- apply(counts(fdds)[,6:8], 1, var)
+df <- data.frame(mean_counts, variance_counts)
+
+ggplot(df) +
+        geom_point(aes(x=mean_counts, y=variance_counts)) + 
+        scale_y_log10(limits = c(1,1e9)) +
+        scale_x_log10(limits = c(1,1e9)) +
+        geom_abline(intercept = 0, slope = 1, color="red")
+```
+
+- for genes with high mean expression, the variance across replicates tends to be greater that the mean => use a **negative binomial** distribution
+- for genes with low mean expression, there is a large scatter = hetero-scedasti-city = for a given expression level in the low range, we obs a lot of variability in the variance values.
+
+```{r negative_binomial_distribution, out.width = '60%', fig.align="center"}
+x <- 0:30
+
+plot(x, dpois(x, lambda = mean(x)),  type = "l", col='green')     # Poisson: mean = variance = lambda
+#lines(x, dnbinom(x, size=0.5, mu=10), type = "l", col='red')
+#lines(x, dnbinom(x, size=1, mu=10), type = "l", col='orange')
+lines(x, dnbinom(x, size=10, mu=mean(x)), type = "l", col='blue') # NB:mean < variance; size =  dispersion parameter (shape)
+
+
+title ("Poisson vs Negative binomial distribution", cex=0.8)
+text(25, 0.08, labels="Poisson", col = 'green')
+text(24, 0.07, labels="NB", col = 'blue')
+
+```
+
+\
+\
+\
+
+
+
+### 4.2. Size factors
 
 The libraries have different sizes, so when using data for statistical analysis, you must have comparable libraries for the downstream estimations = normalization. The size factors are meant to account for the different sequencing depths.
 
@@ -503,7 +526,7 @@ The libraries have different sizes, so when using data for statistical analysis,
 colSums(counts(fdds))
 ```
 
-'DESeq()' function estimates size factors automatically. But if you run `estimateSizeFactors()` before the `DESeq()` functions, these values would be used instead.
+'DESeq()' function estimates size factors automatically. But if you run `estimateSizeFactors()` or another function to estimate factors before the `DESeq()` functions, those initial values would be used instead. Why can you do this in 2 different ways? `estimateSizeFactors()` uses the 'median of ratios method', which compensated for the size of the libraries. But the factors can be calculated through different methods to compensate for other sources of bias: differing dependence on GC content, gene length, etc.
 
 ```{r size_factors}
 fdds <- estimateSizeFactors(fdds)
@@ -519,13 +542,33 @@ Now, see the changes in the values of the library sizes:
 colSums(counts(fdds, normalized=T))
 ```
 
-**Poll 5**: Can the size factors be used as quality control? At what value of the size factors should you go back and look at your data?
+> **Poll 5**: Can the size factors be used as quality control? At what value of the size factors should you go back and look at your data?
 
 \
+\
+\
 
-### 4.2. Dispersions
+
+
+\ 
+
+### 4.3. Dispersions
 
 DESeq2 measures variation using the term 'dispersion', that actually connects a gene’s variance and mean expression level. Dispersion is calculated by `Var = μ + α*μ^2`, where `α` = dispersion, `Var` = variance, and `μ` = mean
+=> 
+$$
+\alpha = \frac{(var - \mu)} {\mu^2} = \frac{var} {\mu^2} - \frac{1} {\mu} \\ \\
+$$
+
+<=> it means that dispersion $\alpha$ is inversely proportional to the mean $\mu$, and directly proportional to the variance $var$
+
+> **Poll 6**: for small count means, dispersion $\alpha$ is ....? For large mean counts, dispersion $\alpha$ is ....?
+
+\
+\
+\
+
+For genes with same mean $/mu$, the dispersion $\alpha$ will differ only based on their variance $var$. So the dispersion estimates will differ much more between the genes with small means.
 
 ```{r estimate dispersions, message=FALSE, warning=FALSE}
 fdds <- estimateDispersions(fdds)
@@ -538,7 +581,7 @@ plotDispEsts(fdds)
 ```
 
 
-### 4.3. Wald test
+### 4.4. Wald test
 - gene-wise dispersion by fitting a negative binomial general linear model (GLM) to the data and then returning the results using Wald statistics (**nbinomWaldTest**) > tomorrow
 
 ```{r run_DE, message=FALSE}
