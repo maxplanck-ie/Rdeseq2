@@ -37,8 +37,6 @@ output:
 
 \
 
-> **Task 1:** load the needed libraries, the data and metadata as done in the previous day. Then look at the header of each dataset and their dimensions. -10 min
-
 a) **Load libraries**
 ```{r paths_libraries, eval=TRUE, message=FALSE}
 .libPaths("/data/manke/processing/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library")
@@ -58,7 +56,6 @@ metadata <- read.table("../data/myeloma/myeloma_meta.tsv", header=TRUE, check.na
 
 metadata$celltype <- as.factor(metadata$celltype)    # observe the change from 'character' to 'factor'
 metadata$condition <- as.factor(metadata$condition)
-rownames(metadata) <- metadata$sample  
 
 #preview your data and metadata
 head(data)
@@ -82,7 +79,7 @@ my_design <- ~celltype + condition
 dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_design)
 ```
 
-> **Task 2:** plot the samples in a PCA plot - 5 min
+
 
 Previously you noticed that the PCA shows a problem with our data. 
 
@@ -198,7 +195,8 @@ Things are a bit more complicated in reality - an interative process.
 - to explore: head(metadata)
   - rows of the metadata should be named with sample names (important for downstream steps)
   - **column names of the data should be identical and in the same order with the row names of the metadata!**: `all(colnames(data)==rownames(metadata))` should output 'TRUE'
-- factorization!
+
+##### Understanding factors
   - used to represent categorical data 
   - stored as integers that have associated labels: R sorts the labels alphabetically
 
@@ -215,11 +213,11 @@ Things are a bit more complicated in reality - an interative process.
 par(mfrow = c(1,2))
 
 my_numbers1 <- c(25, 12, 34)
-my_names1 <- c('high', 'low', 'medium')
+my_names1 <- c('treat.2', 'control', 'treat.1')
 barplot(my_numbers1, names.arg = my_names1, main = 'Not what you want')
 
 my_numbers2 <- c(12, 34, 25)
-my_names2 <- c('low', 'medium', 'high')
+my_names2 <- c('control', 'treat.1', 'treat.2')
 barplot(my_numbers2, names.arg=my_names2, main = "The correct display")
 par(mfrow = c(1,1))
 ```
@@ -237,9 +235,6 @@ par(mfrow = c(1,1))
 
   - how to reorder factors:  
 ```
-# in the metadata dataframe:
-metadata$condition <- factor(metadata$condition, levels = c ('DMSO', 'AMIL', 'TG'))
-
 # or in the dds object, if you only care about what is the reference level:
 dds$condition <- relevel(dds$condition, ref='DMSO')   
 
@@ -251,7 +246,7 @@ dds$condition <- factor(dds$condition, levels = c ('DMSO', 'TG', 'AMIL'))
 
 \
 
-> **Task 3:** Please reorder the levels for the 'condition' column - 2 min
+> **Task 3:** Please reorder factors with 'DMSO' as baseline - 2 min
 
 This is the order of the factors before and after re-arrangement:
 ```{r rearrange_factors}
@@ -367,20 +362,28 @@ head(assay(rld),3)
 
 For high counts, the results are similar to the logarithmic transformation. But for low counts, the values are shrunken towards a middle value. 
 
+
 ```{r diff_log_vst_rlog, out.width = '80%', fig.align="center"}
-df <- bind_rows(
-  as_tibble(log2(counts(fdds)[, 1:2]+1)) %>%
-         mutate(transformation = "log2(x + 1)"),
-  as_tibble(assay(rld)[, 1:2]) %>% mutate(transformation = "rlog"))  # normalization and size factors not needed - automatically detected
+df1 <- data.frame(rlg_base2=log2(counts(fdds)[, 1]+1))
+df2 <- data.frame(rlg=assay(rld)[, 1])
 
-colnames(df)[1:2] <- c("x", "y")
+df <- merge(df1, df2, by=0) # merge the 2 dataframes by rownames
 
-lvls <- c("log2(x + 1)", "rlog")
-df$transformation <- factor(df$transformation, levels=lvls)
 
-ggplot(df, aes(x = x, y = y)) + geom_bin2d(bins=80) +
-  coord_fixed() + facet_grid( . ~ transformation)
+#colnames(df)[1:2] <- c("log(n+1)", "rlog")
+
+#df$transformation <- factor(df$transformation, levels=lvls)
+
+ggplot(df, aes(x=rlg_base2, y=rlg)) +
+      geom_point(size=1, shape=3) +
+      ggtitle("Comparing 'log2(n+1)' and 'rlog' data transformation") +
+      xlab("log2(n+1) transformation") + ylab("rlog transformation") +
+      theme(plot.title = element_text(hjust=0.5))
+  
+
 ```
+
+
 
 Does it make a difference to the visualizations?
 
@@ -410,6 +413,7 @@ ggplot(rld_new3, aes(PC1, PC2, color=celltype)) +
 
 ##ref: https://www.biostars.org/p/289333/
 ```
+
 
 \
 \

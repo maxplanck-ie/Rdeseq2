@@ -1,7 +1,7 @@
 ---
 title: "DESeq2 Analysis with R: Part 00"
-author: "Thomas Manke"
-date: "`r date() `"
+author: "Bioinfo-Core @ MPI-IE"
+#date: "`r date() `"
 output: html_document
 ---
 
@@ -47,22 +47,24 @@ There is lots of useful material out there. This course is heavily influenced by
 
 
 ## Part II: Data Transformations and Model
-* Filtering (Genes & Samples)
-* Quality Control
+
+* Quality Controls & Filtering
 * Data Transformations and Normalization
 * Size Factors
-* Modeling Count Data
-* (Over) Dispersion
+* Modeling Count Data: NB and Over-dispersion
 * Running DESeq2
 
 ## Part III: Differentially Expressed Genes
-* Contrasts
-* Hypothesis tests: Wald test
-* Inspecting, Visualization
-* shrinkage
+
+* Multifactorial Designs & Complex Contrasts
+* Hypothesis tests: Wald test & LRT
+* Inspection & Visualization
+* Assessing Overlaps
+* Gene Annotations
 * Exporting results
-* Multifactorial Designs
-* (Timecourse Analysis)
+
+## Part IV: On your own 
+* Run a full DESeq2 Analysis
 
 ***
 
