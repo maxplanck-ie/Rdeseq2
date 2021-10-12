@@ -18,35 +18,35 @@ output:
   * Summarize and extract a list of significant differentially expressed genes
   * Visualize the results
   * LRT vs. Wald test
+  * Biological interpretation
 
 ```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
 # add libraries
-.libPaths("/data/manke/processing/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library")
+.libPaths("/data/processing3/RdeseqCourse/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library")
 library("DESeq2")
 library("dplyr")
 library("tibble")
 library("ggplot2")
 library("ggrepel")
 library("pheatmap")
-library("org.Hs.eg.db")
+library("EnsDb.Hsapiens.v75")
 library("UpSetR")
 library("tidyr")
+library("ashr")
 ```
 
 ```{r Get the data directroy, message=FALSE, warning=FALSE}
-# Get the data directroy
-setwd("/data/processing1/leily/r_course/Rdeseq2/")
-data_dir <- paste(getwd(), "data", "myeloma", sep = .Platform$file.sep)
-#print(data_dir)
+# Get the data directory
+data_dir <- "/data/manke/processing/RdeseqData/myeloma/"
 
 # Read count matrix
-# paste(data_dir,"myeloma_counts.tsv", sep = "/")
-countdata <- read.table("corrected_counts.tsv", header=TRUE, check.names = TRUE)
+countdata <- read.table(paste0(data_dir, "corrected_counts.tsv", sep=''),
+                        header=TRUE, check.names = TRUE)
 #head(countdata)
 
 # Read samplesheet , detects conditions, generate the formula
-# paste(data_dir,"myeloma_meta.tsv", sep = "/")
-sampleInfo <- read.table( "corrected_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F)
+sampleInfo <- read.table(paste0(data_dir, "corrected_meta.tsv", sep=''),
+                          header=TRUE, check.names = TRUE, stringsAsFactor = F)
 sampleInfo$celltype <- as.factor(sampleInfo$celltype)
 sampleInfo$condition <- as.factor(sampleInfo$condition)
 print(sampleInfo)
@@ -54,7 +54,7 @@ print(sampleInfo)
 
 # Building a deseq data set with a multi-factor design:
 ## factors and designs:
-To see nicely visulised slides check: https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing
+Multi-factor design with increasing complexity are nicely explained in these [slides](https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing)
 
 ### The simplest case:
  * one factor with two levels
@@ -71,7 +71,7 @@ Design:
       ~1+condition (or ~condition)
       = beta0 + beta1 * cond2
 
-This resutls in the coefficient for the intercept and coefficient for the effect of “cond2” (i.e. differences between cond2 vs. cond1).
+This results in the coefficient for the intercept and coefficient for the effect of “cond2” (i.e. differences between cond2 vs. cond1).
 
     [1] "Intercept" (beta0)             "condition_cond2_vs_cond1" (beta1)
 
@@ -175,8 +175,8 @@ Null hypothesis:
     beta3 = 0
 
 ```{r build the matrix, message=FALSE, warning=FALSE}
-d <- as.formula(~celltype + condition + celltype:condition)
-dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInfo, design = d)
+design <- as.formula(~celltype + condition + celltype:condition)
+dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInfo, design = design)
 ```
 
 # Estimate size factors
@@ -372,7 +372,7 @@ sig_res_lrt <- res_lrt %>%
                data.frame() %>%
                rownames_to_column(var="gene") %>%
                as_tibble() %>%
-               filter(padj < 0.05)
+               dplyr::filter(padj < 0.05)
 head(sig_res_lrt)
 # Get sig gene lists
 sig_lrt_genes <- sig_res_lrt %>%
@@ -386,21 +386,41 @@ length(sig_lrt_genes)
 ```
 
 
+# Biological interpretation
+## Introduction
+
 We now have an idea on how we can extract pair-wise comparisons from a multi-factor DESeq2 analysis,
 and we got a primer on comparisons beyond pair-wise comparisons. What now ?
 Let's try to extract something biologically meaningful from the data.
 
-Poll1:
-Is there a difference between specifying ~celltype*condition and ~celltype + condition + celltype:condition ?
+Remember our design was specified as follows:
 
-To go on, we have to remember that this is in essence a drug repurposing study.
+```{r designPrinter, message=FALSE, warning=FALSE}
+print(design)
+```
+
+and our factors:
+
+```{r design, message=FALSE, warning=FALSE}
+print(sampleInfo$celltype)
+print(sampleInfo$condition)
+```
+
+
+> **Poll1**:
+> Is there a difference between specifying ~celltype*condition and ~celltype + condition + celltype:condition ?
+
+
+To move on, remember that this is in essence a drug repurposing study.
 
 A couple of other relevant notes:
 
- - BM and JJ are two cell lines generated multiple myeloma patients.
- - (alternative) splicing is affected in these patients.
+ - BM and JJ are two cell lines generated from multiple myeloma patients.
+ - (alternative) splicing is affected in this cancer.
  - TG003 is a drug commonly used in this disease (clk1 kinase inhibitor)
  - Amiloride is an old drug (diuretic) that is hypothesized to be a good candidate for repurposing in multiple myeloma.
+
+## amiloride vs TG
 
 Let's start by assessing the difference between amiloride treated cells and TG treated cells.
 
@@ -411,13 +431,13 @@ resultsNames(dds)
 
 Extract TG vs AMIL:
 
-```{r message=FALSE, warning=FALSE}
-TGvAMIL <- results(dds, contrast = c('condition', 'TG', 'AMIL'), alpha = 0.05)
+```{r extract TG vs AMIL, message=FALSE, warning=FALSE}
+TGvAMIL <- lfcShrink(dds, contrast = c('condition', 'TG', 'AMIL'), type="ashr")
 head( data.frame(TGvAMIL) )
 
 #or
 
-TGvAMIL <- results(dds, contrast = c(0,0,0,1,0,0), alpha=0.05)
+TGvAMIL <- lfcShrink(dds, contrast = c(0,0,0,1,0,0), type="ashr")
 head( data.frame(TGvAMIL) )
 ```
 
@@ -425,36 +445,55 @@ Cave!
 If we want to use shrinking, be careful with the apegml method as lfcShrink method doesn't support all forms of contrasts.
 ashr-method is a bit more versatile.
 
+> **Poll 3.2**:
+> We now have TG vs AMIL results, but are these under the BM or JJ condition ??
 
-```{r message=FALSE, warning=FALSE}
-#TGvAMIL_shrunk <- lfcShrink(dds, contrast=c(0,0,0,1,0,0), type="apeglm") # This WONT work.
-TGvAMIL_shrunk <- lfcShrink(dds, coef=c('condition_TG_vs_AMIL'), type="apeglm") # This will work.
+> **Poll3.3**:
+> Given our contrast c('condition', 'TG', 'AMIL'), what would a (significant) positive foldchange correspond to ?
+
+```{r return celltype, message=FALSE, warning=FALSE}
+print(sampleInfo$celltype)
 ```
 
-We now have TG vs AMIL, but are these results for the BM or the JJ cells ?
+We have two options now. Or we re-run deseq with releveled factors, or we dive a bit in the contrast setting of results. Please note if you insist on using apeglm or normal method for shrinking, you have no other choice then to relevel !
 
-Poll2:
-BM
-JJ
-
-We have two options now. Or we re-run deseq with releveled factors, or we dive a bit in the contrast setting of results.
 For cellType JJ, the difference between condition TG and AMIL is:
 The effect of AMIL-TG + interaction TG-JJ:
 
 ```{r message=FALSE, warning=FALSE}
-TGvAMIL_JJ <- results(dds, contrast = c(0,0,0,1,0,1), alpha=0.05)
+TGvAMIL_JJ <- lfcShrink(dds, contrast = c(0,0,0,1,0,1), type="ashr")
 # Recall the contrasts:
 resultsNames(dds)
 ```
 
-Let's glance at the results now.
+## Clean & Annotate
 
-```{r message=FALSE, warning=FALSE}
+One more 'issue' we need to tackle: we only have transcript IDs, not actual gene names. There are a couple of packages that take care of the conversion, and one of the most used is [biomaRt](https://bioconductor.org/packages/release/bioc/html/biomaRt.html). For this course we won't rely on it, since it uses an API (and we'll probably get blocked). An alternative is the [org.Hs.eg.db](https://bioconductor.org/packages/release/data/annotation/html/org.Hs.eg.db.html) package, which keeps all needed files locally (note the Hs stands for Homo Sapiens, and thus can only be used for this matter. As you probably guessed, for most model organisms there is a package like this (mm, sp, ...) ). Since the data is processed with GRCh37, we will use the following database: "EnsDb.Hsapiens.v75". How to utilize these libraries differs from library to library, but is usually pretty well documented.
+
+In our case we can use:
+
+
+> ensembldb::select(EnsDb.Hsapiens.v79, keys= ensemble, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
+
+Cave! Some function between ensembldb (part of EnsDb.Hsapiens.v79) and dplyr overlap. Explicitely state the library when calling them to avoid errors.
+
+> **Task**:
+> Treat both result objects as such that we have:
+> A dataframe
+> genes with baseMean 0 are filtered out.
+> rows with 'NA' are filtered out.
+> Optional: create an additional column in the dataframe with the gene symbols
+> Optional: Wrap the operations in a function
+
+
+```{r parseResults, message=FALSE, warning=FALSE}
 cleanDF <- function(RESobj){
   RESdf <- data.frame(RESobj) %>%
-    filter(baseMean > 0) %>%
+    dplyr::filter(baseMean > 0) %>%
     drop_na() %>%
     arrange(padj)
+  RESdf$gene_symbol <- ensembldb::select(EnsDb.Hsapiens.v75, keys = rownames(RESdf),
+                                         keytype = "GENEID", columns = c("SYMBOL", "GENEID"))$SYMBOL
   return(RESdf)
 }
 
@@ -470,8 +509,9 @@ pheatmap(
                                                                              "JJ_TG_2",
                                                                              "JJ_TG_3")],
   scale = 'row',
-  main='TG v AMIL - JJ'
-  )
+  main='TG v AMIL - JJ',
+  labels_row = paste0(head(TGvAMIL_JJ_cleaned$gene_symbol, n=20), ' ', head(rownames(TGvAMIL_JJ_cleaned), n=20 ))
+)
 
 pheatmap(
   counts(dds, normalized=TRUE)[head( rownames(TGvAMIL_BM_cleaned) , n=20), c("BM_AMIL_1",
@@ -481,13 +521,14 @@ pheatmap(
                                                                              "BM_TG_2",
                                                                              "BM_TG_3")],
   scale = 'row',
-  main='TG v AMIL - JJ'
+  main='TG v AMIL - JJ',
+  labels_row = paste0(head(TGvAMIL_BM_cleaned$gene_symbol, n=20), ' ', head(rownames(TGvAMIL_BM_cleaned), n=20 ))
   )
 ```
 
 To look at the similarity:
 
-```{r message = FALSE, warning = FALSE}
+```{r UpsetPlot, message = FALSE, warning = FALSE}
 upsetList <- list(
   "BM - Up" = rownames( TGvAMIL_BM_cleaned[ (TGvAMIL_BM_cleaned$log2FoldChange > 2) & (TGvAMIL_BM_cleaned$padj < 0.05),] ),
   "BM - Down" = rownames( TGvAMIL_BM_cleaned[ (TGvAMIL_BM_cleaned$log2FoldChange < -2) & (TGvAMIL_BM_cleaned$padj < 0.05),] ),
@@ -498,7 +539,115 @@ upsetList <- list(
 upset(fromList(upsetList), order.by = "freq")
 ```
 
+## Apoptosis & Spliceosome
 
 Finally, look at two specific geneSets.
  - genes involved in splicing
  - genes involved in apoptosis
+ 
+```{r Pathways, message = FALSE, warning = FALSE}
+data_dir <- "/data/manke/processing/RdeseqData/genesets/"
+kegg_apoptosis <-  read.table(paste0(data_dir, "KEGG_apoptosis.txt", sep=''),
+                          header=FALSE, stringsAsFactor = F)
+kegg_apoptosis <- kegg_apoptosis$V1
+
+kegg_spliceosome <-  read.table(paste0(data_dir, "KEGG_spliceosome.txt", sep=''),
+                          header=FALSE, stringsAsFactor = F)
+kegg_spliceosome <- kegg_spliceosome$V1
+
+retIDsfromSymbolList <- function(df, symbols){
+  return(rownames(df[(df$gene_symbol %in% symbols) & (df$padj < 0.05),]) )
+}
+# spliceosome
+
+pheatmap(
+  counts(dds, normalized=TRUE)[retIDsfromSymbolList(TGvAMIL_BM_cleaned,
+                                                    kegg_spliceosome), c("BM_CTRL_2",
+                                                                         "BM_CTRL_3",
+                                                                         "BM_AMIL_1",
+                                                                         "BM_AMIL_2",
+                                                                         "BM_AMIL_3",
+                                                                         "BM_TG_1",
+                                                                         "BM_TG_2",
+                                                                         "BM_TG_3")],
+  scale = 'row',
+  main='TG v AMIL - JJ : spliceosome',
+  fontsize=5,
+  labels_row = TGvAMIL_BM_cleaned[(TGvAMIL_BM_cleaned$gene_symbol %in% kegg_spliceosome) & (TGvAMIL_BM_cleaned$padj < 0.05),]$gene_symbol
+)
+
+# Apoptosis
+
+pheatmap(
+  counts(dds, normalized=TRUE)[retIDsfromSymbolList(TGvAMIL_BM_cleaned,
+                                                    kegg_apoptosis), c("BM_CTRL_2",
+                                                                         "BM_CTRL_3",
+                                                                         "BM_AMIL_1",
+                                                                         "BM_AMIL_2",
+                                                                         "BM_AMIL_3",
+                                                                         "BM_TG_1",
+                                                                         "BM_TG_2",
+                                                                         "BM_TG_3")],
+  scale = 'row',
+  main='TG v AMIL - JJ : apoptosis',
+  fontsize=5,
+  labels_row = TGvAMIL_BM_cleaned[(TGvAMIL_BM_cleaned$gene_symbol %in% kegg_apoptosis) & (TGvAMIL_BM_cleaned$padj < 0.05),]$gene_symbol
+)
+```
+
+## LRT
+
+Finally, let's look at the treatment factor using LRT. For this we'll use ~celltype as the reduced model.
+
+```{r lrt-condition, message=FALSE, warning=FALSE}
+# which model are we interested in as reduced?
+dds_lrt <- DESeq(dds, test="LRT", reduced = ~celltype)
+res_lrt <- results(dds_lrt)
+```
+
+Now let's clean the dataframe, write out the results in a tsv file, and redo our heatmap exercise for the
+pathways.
+
+```{r parse lrt, message=FALSE, warning=FALSE}
+res_lrt_clean <- cleanDF(res_lrt)
+res_lrt_clean
+# Write out results in a tsv file.
+
+write.table(res_lrt_clean, file="~/lrtResults.tsv", quote = FALSE, sep = "\t")
+
+# spliceosome
+pheatmap(
+  counts(dds, normalized=TRUE)[retIDsfromSymbolList(res_lrt_clean,
+                                                    kegg_spliceosome), c("BM_CTRL_2",
+                                                                         "BM_CTRL_3",
+                                                                         "BM_AMIL_1",
+                                                                         "BM_AMIL_2",
+                                                                         "BM_AMIL_3",
+                                                                         "BM_TG_1",
+                                                                         "BM_TG_2",
+                                                                         "BM_TG_3")],
+  scale = 'row',
+  main='LRT : spliceosome',
+  fontsize=5,
+  labels_row = res_lrt_clean[(res_lrt_clean$gene_symbol %in% kegg_spliceosome) & (res_lrt_clean$padj < 0.05),]$gene_symbol
+)
+
+# Apoptosis
+pheatmap(
+  counts(dds, normalized=TRUE)[retIDsfromSymbolList(res_lrt_clean,
+                                                    kegg_apoptosis), c("BM_CTRL_2",
+                                                                         "BM_CTRL_3",
+                                                                         "BM_AMIL_1",
+                                                                         "BM_AMIL_2",
+                                                                         "BM_AMIL_3",
+                                                                         "BM_TG_1",
+                                                                         "BM_TG_2",
+                                                                         "BM_TG_3")],
+  scale = 'row',
+  main='LRT : apoptosis',
+  fontsize=5,
+  labels_row = TGvAMIL_BM_cleaned[(res_lrt_clean$gene_symbol %in% kegg_apoptosis) & (res_lrt_clean$padj < 0.05),]$gene_symbol
+)
+
+```
+

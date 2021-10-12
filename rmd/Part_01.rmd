@@ -80,7 +80,7 @@ To access make sure you select R version 4.0.3 and set the libPaths as below.
 > **Task**:  Load the following packages: DESeq2, tidyverse, pheatmap
 
 ```{r load, message=FALSE}
-.libPaths("/data/manke/processing/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library")  # thank you, Ward
+.libPaths("/data/processing3/RdeseqCourse/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library")  # thank you, Ward
 library(DESeq2)
 library(tidyverse)
 library(pheatmap)
@@ -127,7 +127,7 @@ Data can come in various formats. Here we have prepared the data as tab-separate
 > **Task**: Read the data e.g. using read.csv()
 
 ```{r import_data}
-dfile="/data/manke/processing/RdeseqData/myeloma/myeloma_counts.tsv"      # location of data file
+dfile="/data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv"      # location of data file
 data <- read.csv(file=dfile, header=TRUE, sep="\t")
 
 #data <- read_tsv(file=dfile)    # diagnostic: problemes(data)
@@ -174,7 +174,7 @@ Often the metadata is hidden in the paper (or in the filename). This is bad prac
 Make sure that the rownames of the metadata are valid sample names.
 
 ```{r import_meta}
-mfile <- "/data/manke/processing/RdeseqData/myeloma/myeloma_meta.tsv"               # location of metadata file
+mfile <- "/data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv"               # location of metadata file
 #metadata <- read.csv(file=mfile, header=TRUE, sep="\t")
 metadata <- read_tsv(file=mfile)
 metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
