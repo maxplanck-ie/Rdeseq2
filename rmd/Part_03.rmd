@@ -1,5 +1,5 @@
 ---
-title: "deseq2"
+title: "DESeq2 Analysis with R: Part 03"
 output:
   html_document:
     code_folding: hide
@@ -653,3 +653,18 @@ pheatmap(
 )
 
 ```
+
+
+
+# Systematic Construction of Contrast
+Ref: https://github.com/tavareshugo/tutorial_DESeq2_contrasts/blob/main/DESeq2_contrasts.Rmd
+
+```{r syst_contrast}
+mod_mat = model.matrix( design(dds), colData(dds))
+AMIL_BM <- which(dds$condition=="AMIL" & dds$celltype=="BM")
+TG_JJ   <- which(dds$condition=="TG"   & dds$celltype=="JJ")
+( cont=colMeans(mod_mat[AMIL_BM,]) - colMeans(mod_mat[TG_JJ,]) )
+
+
+```
+

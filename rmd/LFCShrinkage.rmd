@@ -1,0 +1,37 @@
+---
+title: "LFC Shrinkage - Motivation"
+output:
+  html_document:
+    code_folding: hide
+    df_print: paged
+---
+
+When dealing with count data, estimates for the median (e.g. $\lambda$) and fold changes are more noisy for low counts than estimates from high counts.
+
+This can be illustated by a simulation of four Poisson variables with
+two different base counts, and with a fixed fold-change applied to both:
+
+```{r simulation}
+N=1000               
+lam=c(low=2,high=20)  # lowly and highly expressed gene
+fc=2                  # fix fold-change
+pc=0                  # pseudo-count
+
+dv=data.frame(low_b = rpois(N,lam["low"]), 
+              low_a = rpois(N,fc*lam["low"]), 
+              high_b = rpois(N, lam["high"]), 
+              high_a = rpois(N,fc*lam["high"])
+              )
+
+dv$fc_low=(dv$low_a+pc) / (dv$low_b+pc)
+dv$fc_high=(dv$high_a+pc) / (dv$high_b+pc)
+
+br=seq(-6,6,by=0.1)
+my_red=rgb(1,0,0,0.5)
+my_blue=rgb(0,0,1,0.5)
+hist(log2(dv$fc_low), breaks = br, col=my_blue, xlab="log2-FC", main="histogram of log2-FC")
+hist(log2(dv$fc_high),breaks = br, col=my_red, add=TRUE)
+abline(v=log2(fc), lwd=2)
+legend("topright", c("low count", "high count"), col=c(my_blue, my_red), pch=15)
+```
+
