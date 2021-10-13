@@ -6,29 +6,23 @@
    c) There is a mixup in the samples. We need to talk with the sequencing facility so that they change the samples and sequence again
    d) The PCA shows that there is a problem with our samples. We delete the data from our dataset
    
-2. Notice the output - what does the 'mean' tell you, practically?
-   a) The mean of each column helps to figure out if the libraries have the same size
-   b) It shows that we have lots of zero counts
-   c) It tells us the average number of counts for each sample
-
-3. What properties can you attribute to RNA-seq data?
+2. What properties can you attribute to RNA-seq data?
    a) Large number of discrete observations; high probability of finding a particular transcript; variance lower than mean
    b) Continuous distribution because of the very large number of observations; low probability of finding a particular transcript; variance higher than mean
    c) Large number of discrete observations; low probability of finding a particular transcript; variance lower than mean
    
-4. What kind of distribution would you use for count data?
+3. What kind of distribution would you use for count data?
    a) Poisson distribution
    b) Binomial distribution
    c) Negative binomial distribution
    d) Normal distribution 
    
-5. Can the size factors be used as quality control? At what value of the size factors should you go back and look at your data?
-   a) Yes. If one factor is either more than double or less than half the value of the average of factors  
-   b) No. If one factor is above 5 or bellow 0.5
-   c) No. The values simply show the differences in library sizes and are used just to normalize the counts.
-   d) Yes. Any large variation from the rest of the group should be investigated. Can mean that we have a bad sample that needs to be excluded.
+4. Can the size factors be used as quality control? At what value of the size factors should you go back and look at your data?
+   a) No. If one factor is above 5 or bellow 0.5
+   b) No. The values simply show the differences in library sizes and are used just to normalize the counts.
+   c) Yes. Any large variation from the rest of the group should be investigated. Can mean that we have a bad sample that needs to be excluded.
 
-6. For small count means, dispersion is ....? For large count means, dispersion is ....?
+5. For small count means, dispersion is ....? For large count means, dispersion is ....?
    a) higher, lower
    b) they don't correlate
    c) lower, higher

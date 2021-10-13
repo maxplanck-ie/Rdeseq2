@@ -129,7 +129,7 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
 \
 \
 
-## 2. Quick recap and (semi-)deep dive into concepts - 30 min
+## 2. Brief overview and (semi-)deep dive into concepts - 30 min
 
 \
 
@@ -143,7 +143,7 @@ dds <- DESeqDataSetFromMatrix(countData = matrix_with_count_data,
                               colData = dataframe_with_sample_information,
                               design = what_variables_interest_you)
 
-# explore data & QC: transform data, plot (PCA, heatmap)
+# explore data & QC: transform data, plot (filtering, PCA, heatmap)
 
 # perform statistical analysis
 dds <- DESeq(dds)
@@ -246,7 +246,7 @@ dds$condition <- factor(dds$condition, levels = c ('DMSO', 'TG', 'AMIL'))
 
 \
 
-> **Task 3:** Please reorder factors with 'DMSO' as baseline - 2 min
+> **Task 3.a):** Please reorder factors with 'DMSO' as baseline - 2 min
 
 This is the order of the factors before and after re-arrangement:
 ```{r rearrange_factors}
@@ -258,7 +258,7 @@ dds$condition <- relevel(dds$condition, ref='DMSO')
 
 dds$condition
 ```
-
+**Task 3.b):** Please reorder factors with 'AMIL' as baseline - 2 min
 \ 
 
 #### 2.1.c. experimental design
@@ -287,36 +287,11 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=my_design
   - sample info (metadata) - call it with `colData(dds)`
   - intermediate estimated quantities - during statistical analysis
   - more additional features that you can add manually to the metadata columns of a newly constructed object: `mcols(dds) <- DataFrame(mcols(dds), my_dataframe)`
+  - every time you change anything about the 'data', 'metadata' or 'design', you have to re-create the dds object!
   
-\
-\
-\
-
-## Break - 10 min
-
-\
-\
-\
-
-## 3.  Data exploration, visualization and QC  - 30 min
-
-To explore your data further to learn more about it, to check if your expectations are met. Also, the downstream analyses rely on a couple of assumptions and we need to see to what degree our data match those assumptions, and to correct it if possible. Also, to create informative, easy to interpret visualizations, the data needs to be transformed before plotting. We need to talk about:
-
-- filtering
-- distributions for data modeling: mean, stdvar, variance, dispersion, overdispersion
-- transformations: log, rlog (vst)
-
-\
-
-### 3.1. Data pre-filtering - 10 min
-Let's look at our data using the 'summary()' function:
-```{r summary_data}
-summary(counts(dds))[,1:3]  #shows the summary only for the first 3 samples - for brevity
-```
-
-> **Poll 2**: Notice the output - what does the 'mean' tell you, practically?
-
-\
+  
+  
+### 3.2. Data pre-filtering - 10 min
 
 - several types of filtering, some manual others automatic
 - the pre-filtering is helpful but not necessary to remove rows/genes that have very low counts (very unlikely to have biological meaning)
@@ -335,8 +310,26 @@ cat('genes before filter: ', nrow(fdds), '\n')    # prints the number of rows yo
 ```
 
 Notice how many rows you have dropped. In this case you are left only with **`r round(nrow(fdds) * 100 / nrow(dds), digits=2)` %** of the initial number of rows!
+\
+\
+\
 
-\ 
+## Break - 10 min
+
+\
+\
+\
+
+## 3.  Data exploration, visualization and QC  - 30 min
+
+To explore your data further to learn more about it, to check if your expectations are met. Also, the downstream analyses rely on a couple of assumptions and we need to see to what degree our data match those assumptions, and to correct it if possible. Also, to create informative, easy to interpret visualizations, the data needs to be transformed before plotting. We need to talk about:
+
+- distributions for data modeling: mean, stdvar, variance, dispersion, overdispersion
+- transformations: log, rlog (vst)
+
+\
+\
+
 
 ### 3.2. Data transformation
 
@@ -359,8 +352,6 @@ print('dataset with counts after RLOG transformation:' )
 rld <- rlog(fdds, blind = FALSE)
 head(assay(rld),3)
 ```
-
-For high counts, the results are similar to the logarithmic transformation. But for low counts, the values are shrunken towards a middle value. 
 
 
 ```{r diff_log_vst_rlog, out.width = '80%', fig.align="center"}
@@ -441,14 +432,14 @@ There are several steps to generating the DE results, and they are wrapped toget
 
 ```{r mean_of_group}
 
-df <- data.frame(counts(fdds)[,c(1,2)])
-# df2 <- rlog(counts(fdds)[,c(1,2)])
-boxplot(counts(fdds)[,c(1,2)])  # c(1,2,11,13,15)
-# #boxplot(rlog(counts(fdds)[,c(1,2)]))  # c(1,2,11,13,15)
-means <- colMeans(counts(fdds)[,c(1,2)])
-abline(h=means, col='red')
-# boxplot(df)
-# boxplot(df2)
+# df <- data.frame(counts(fdds)[,c(1,2)])
+# # df2 <- rlog(counts(fdds)[,c(1,2)])
+# boxplot(counts(fdds)[,c(1,2)])  # c(1,2,11,13,15)
+# # #boxplot(rlog(counts(fdds)[,c(1,2)]))  # c(1,2,11,13,15)
+# means <- colMeans(counts(fdds)[,c(1,2)])
+# abline(h=means, col='red')
+# # boxplot(df)
+# # boxplot(df2)
 # 
 # 
 # 
@@ -460,9 +451,6 @@ abline(h=means, col='red')
 # ggplot(gene, aes(x=condition, y=count, col=condition)) + 
 #   geom_point(size=3)  #plot against condition
 ```
-
-**What do we mean when we talk about finding the DE genes? The red and blue dots stand for the gene count in each sample of the conditions we are testing for. Ref: https://hbctraining.github.io/DGE_workshop/lessons/04_DGE_DESeq2_analysis.html**  
-
 
 
 ### 4.1. Modeling count data
@@ -593,6 +581,10 @@ DESeq2 has a function that allows to visualize the dispersion in your analysis
 plotDispEsts(fdds)
 ```
 
+Bad examples of dispersion plots:
+```{r, echo=FALSE, out.width = '50%', fig.align="center"}
+knitr::include_graphics(c("../images/disp_badPlot_1.png", "../images/disp_badPlot_2.png"))
+```
 
 ### 4.4. Wald test
 - gene-wise dispersion by fitting a negative binomial general linear model (GLM) to the data and then returning the results using Wald statistics (**nbinomWaldTest**) > tomorrow
