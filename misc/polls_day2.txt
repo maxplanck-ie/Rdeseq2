@@ -16,13 +16,8 @@
    b) Binomial distribution
    c) Negative binomial distribution
    d) Normal distribution 
-   
-4. Can the size factors be used as quality control? At what value of the size factors should you go back and look at your data?
-   a) No. If one factor is above 5 or bellow 0.5
-   b) No. The values simply show the differences in library sizes and are used just to normalize the counts.
-   c) Yes. Any large variation from the rest of the group should be investigated. Can mean that we have a bad sample that needs to be excluded.
 
-5. For small count means, dispersion is ....? For large count means, dispersion is ....?
+4. For small count means, dispersion is ....? For large count means, dispersion is ....?
    a) higher, lower
    b) they don't correlate
    c) lower, higher
