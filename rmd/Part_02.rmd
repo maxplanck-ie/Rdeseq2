@@ -1,9 +1,7 @@
 ---
-title: |
-<center> "DESeq2 Analysis with R: Part 02"
-
+title: "DESeq2 Analysis with R: Part 02"
 author: "Mirela Balan"
-date: "`r date() `"
+#date: "`r date() `"
 output:
   html_document:
     code_folding: hide
@@ -486,6 +484,12 @@ cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs a
 #overdispersion
 mean_counts <- apply(counts(fdds)[,6:8], 1, mean)        # '1' means that the function 'apply' is applied to rows. Use '2' if applied to columns 
 variance_counts <- apply(counts(fdds)[,6:8], 1, var)
+
+#simpler
+#smoothScatter(log10(mean_counts), log10(variance_counts))
+#abline(0,1, col="red")
+
+
 df <- data.frame(mean_counts, variance_counts)
 
 ggplot(df) +
