@@ -31,6 +31,14 @@ You and your lab are eager to see:
  - Did the experiment work ?
  - What are the effects of aging on the different cell populations ?
 
+Hint: a list of cell-cycle genes (KEGG) are available under:
+
+> /data/processing3/RdeseqCourse/Data/genesets/KEGG_cellcycle.txt
+
+Cave!: rownames in the count object are lowercase-capitalized, the KEGG_cellcycle ones are fully capitalized.
+
+> Good luck and have fun!
+
 # Hands-on
 Load some libraries.
 
