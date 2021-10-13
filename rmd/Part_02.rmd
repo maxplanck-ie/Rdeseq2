@@ -436,18 +436,31 @@ There are several steps to generating the DE results, and they are wrapped toget
 
 \ 
 
-<br>
 
-<center>
+```{r mean_of_group}
 
-![](../images/DE_testing.png){width=80%}
+df <- data.frame(counts(fdds)[,c(1,2)])
+# df2 <- rlog(counts(fdds)[,c(1,2)])
+boxplot(counts(fdds)[,c(1,2)])  # c(1,2,11,13,15)
+# #boxplot(rlog(counts(fdds)[,c(1,2)]))  # c(1,2,11,13,15)
+means <- colMeans(counts(fdds)[,c(1,2)])
+abline(h=means, col='red')
+# boxplot(df)
+# boxplot(df2)
+# 
+# 
+# 
+# gene = df %>% 
+#   select(BM_CTRL_2, BM_CTRL_3) %>%      # pick the 2 samples = select the columns
+#   gather(sample, count) %>%             # reshape for ggplot (1 sample per row!)
+#   mutate(condition=metadata$condition)  # add condition. Careful: order needs to agree 
+# 
+# ggplot(gene, aes(x=condition, y=count, col=condition)) + 
+#   geom_point(size=3)  #plot against condition
+```
 
 **What do we mean when we talk about finding the DE genes? The red and blue dots stand for the gene count in each sample of the conditions we are testing for. Ref: https://hbctraining.github.io/DGE_workshop/lessons/04_DGE_DESeq2_analysis.html**  
 
-*** 
-</center>
-
-<br>
 
 
 ### 4.1. Modeling count data

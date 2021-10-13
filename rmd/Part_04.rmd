@@ -16,6 +16,16 @@ output:
 
 Dataset: MPPs
 
+Data is available under
+
+> /data/processing3/RdeseqCourse/Data/data/mpp/
+
+with:
+
+> mpp_counts.tsv
+
+> mpp_meta.tsv
+
 Background:
 
 We are looking in murine bone marrow cells. More specifically, the stem- and multipotent progenitor cells.
@@ -31,6 +41,16 @@ You and your lab are eager to see:
  - Did the experiment work ?
  - What are the effects of aging on the different cell populations ?
 
+Hint: a list of cell-cycle genes (KEGG) are available under:
+
+> /data/processing3/RdeseqCourse/Data/genesets/KEGG_cellcycle.txt
+
+
+<span style="color:red">Cave!: rownames in the count object are lowercase-capitalized, the KEGG_cellcycle ones are fully capitalized.</span> 
+
+
+> Good luck and have fun!
+
 # Hands-on
 Load some libraries.
 
@@ -43,6 +63,7 @@ library("ggplot2")
 library("pheatmap")
 library("UpSetR")
 library("tidyr")
+library("stringr")
 ```
 
 Read in the data.
@@ -130,9 +151,132 @@ head(res_lrt_clean)
 ```{r heatmap_lrt, message=FALSE, warning=FALSE}
 
 pheatmap(
-  counts(dds, normalized=TRUE)[head( rownames(res_lrt_clean) , n=25),],
+  counts(dds, normalized=TRUE)[head( rownames(res_lrt_clean) , n=20),],
+  scale = 'row',
+  main='Age effect - LRT top 20',
+  labels_row = head(rownames(res_lrt_clean), n=20 )
+)
+
+```
+
+```{r heatmap_lrt_full, message=FALSE, warning=FALSE}
+
+pheatmap(
+  counts(dds, normalized=TRUE)[rownames(res_lrt_clean[res_lrt_clean$padj < 0.05,]),],
   scale = 'row',
   main='Age effect - LRT',
-  labels_row = head(rownames(res_lrt_clean), n=25 )
+  show_rownames = FALSE
 )
+
+```
+
+```{r cell cycle, message=FALSE, warning=FALSE}
+# Get cell cycle genes.
+# Get the data directory
+data_dir <- "/data/processing3/RdeseqCourse/Data/genesets/"
+
+# Read count matrix
+cellcycle <- read.table(paste0(data_dir, "KEGG_cellcycle.txt", sep=''),
+                        header=FALSE)
+cellcycle <- cellcycle$V1
+
+rownames(res_lrt_clean) <- toupper(rownames(res_lrt_clean))
+res_lrt_clean_cycle <- res_lrt_clean[cellcycle,] %>% drop_na()
+
+pheatmap(
+  counts(dds, normalized=TRUE)[str_to_title(rownames(res_lrt_clean_cycle[res_lrt_clean_cycle$padj < 0.05,])),],
+  scale = 'row',
+  main='cell cycle genes - LRT',
+  show_rownames = FALSE
+)
+
+```
+
+```{r Age effect under cellTypes, message=FALSE, warning=FALSE}
+# Remember our base levels and our coefficients.
+print(resultsNames(dds))
+
+# Get our pair-wise comparisons. Note we immediately clean up our results.
+
+# The easiest to fetch is the age effect in HSC cells.
+ageEffect_HSC <- cleanDF( lfcShrink(dds, contrast = c('condition', 'Aged', 'Young'), type="ashr") )
+
+# Now let's get the age effect in MPP1 cells. (Which is the condition effect + our interaction term).
+ageEffect_MPP1 <- cleanDF( lfcShrink(dds, contrast = c(0,0,0,1,1,0), type='ashr') )
+
+# Lastly, let's get the age effect in MPP1 cells.
+ageEffect_MPP2 <- cleanDF( lfcShrink(dds, contrast = c(0,0,0,1,0,1), type='ashr') )
+
+```
+
+```{r LTHSC, message=FALSE, warning=FALSE}
+pheatmap(
+  counts(dds, normalized=TRUE)[head( rownames(ageEffect_HSC), n=20), c("Young_HSC_1", "Young_HSC_2",
+                                                                       "Aged_HSC_1", "Aged_HSC_2")],
+  scale = 'row',
+  main='age effect - HSCs',
+  show_rownames = TRUE,
+  annotation_row = ageEffect_HSC[c(1:20), c('log2FoldChange'), drop=FALSE]
+  )
+
+# cell cycle
+ageEffect_HSC_cycle <- ageEffect_HSC
+rownames(ageEffect_HSC_cycle) <- toupper(rownames(ageEffect_HSC) )
+ageEffect_HSC_cycle <- ageEffect_HSC_cycle[cellcycle,] %>% drop_na()
+
+pheatmap(
+  counts(dds, normalized=TRUE)[str_to_title(rownames(ageEffect_HSC_cycle[ageEffect_HSC_cycle$padj < 0.05,])), c("Young_HSC_1", "Young_HSC_2", "Aged_HSC_1", "Aged_HSC_2")],
+  scale = 'row',
+  main='cell cycle genes - HSC',
+  show_rownames = FALSE
+)
+
+```
+
+```{r MPP1, message=FALSE, warning=FALSE}
+pheatmap(
+  counts(dds, normalized=TRUE)[head( rownames(ageEffect_MPP1), n=20), c("Young_MPP1_1", "Young_MPP1_2",
+                                                                       "Aged_MPP1_1", "Aged_MPP1_2")],
+  scale = 'row',
+  main='age effect - MPP1',
+  show_rownames = TRUE,
+  annotation_row = ageEffect_MPP1[c(1:20), c('log2FoldChange'), drop=FALSE]
+  )
+
+# cell cycle
+ageEffect_MPP1_cycle <- ageEffect_MPP1
+rownames(ageEffect_MPP1_cycle) <- toupper(rownames(ageEffect_MPP1_cycle) )
+ageEffect_MPP1_cycle <- ageEffect_MPP1_cycle[cellcycle,] %>% drop_na()
+
+pheatmap(
+  counts(dds, normalized=TRUE)[str_to_title(rownames(ageEffect_MPP1_cycle[ageEffect_MPP1_cycle$padj < 0.05,])), c("Young_MPP1_1", "Young_MPP1_2", "Aged_MPP1_1", "Aged_MPP1_2")],
+  scale = 'row',
+  main='cell cycle genes - MPP1',
+  show_rownames = FALSE
+)
+
+```
+
+```{r MPP2, message=FALSE, warning=FALSE}
+pheatmap(
+  counts(dds, normalized=TRUE)[head( rownames(ageEffect_MPP2), n=20), c("Young_MPP2_1", "Young_MPP2_2",
+                                                                       "Aged_MPP2_1", "Aged_MPP2_2")],
+  scale = 'row',
+  main='age effect - MPP2',
+  show_rownames = TRUE,
+  annotation_row = ageEffect_MPP2[c(1:20), c('log2FoldChange'), drop=FALSE]
+  )
+
+# cell cycle
+ageEffect_MPP2_cycle <- ageEffect_MPP2
+rownames(ageEffect_MPP2_cycle) <- toupper(rownames(ageEffect_MPP2_cycle) )
+ageEffect_MPP2_cycle <- ageEffect_MPP2_cycle[cellcycle,] %>% drop_na()
+
+pheatmap(
+  counts(dds, normalized=TRUE)[str_to_title(rownames(ageEffect_MPP2_cycle[ageEffect_MPP2_cycle$padj < 0.05,])), c("Young_MPP2_1", "Young_MPP2_2", "Aged_MPP2_1", "Aged_MPP2_2")],
+  scale = 'row',
+  main='cell cycle genes - MPP2',
+  show_rownames = FALSE
+)
+
 ```
