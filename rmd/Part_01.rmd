@@ -246,6 +246,7 @@ $$
 
 
 
+
 ```{r gene_plot_factors}
 gene = data %>% 
   slice(42) %>%                         # pick gene #42
@@ -268,11 +269,14 @@ Define your design:
 my_design <- ~ condition  # notice the tilde *not* minus
 ```
 
-**Notice**: The variables need to correspond to columns in the metadata.
+> **Discussion**: Which other variables could be used to define the design?
 
-> **Task**: Which other variables could be used to define the design?
+<br><br><br><br>
 
-**Notice**: More complicated designs are possible and often necessary ($\to$ day 2 and 3)
+**Notice 1**: The variables need to correspond to columns in the metadata.
+
+**Notice 2**: More complicated designs are possible and often necessary ($\to$ day 2 and 3)
+
 
 *** 
 
@@ -356,6 +360,10 @@ $$
 ```{r alt_design, echo=TRUE, eval=FALSE}
 my_alt_design <- ~ celltype + condition
 ```
+
+**Repeat**: The choice of factors rests with the researcher.
+
+![**Factor Choices**.](../images/myeloma_factors.jpeg)
 
 
 ***
@@ -574,7 +582,6 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
   ylab(paste0("PC2: ",percentVar[2])) +
   scale_colour_manual(values=cn_col)
 ```
-
 
 
 

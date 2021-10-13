@@ -599,3 +599,6 @@ fdds_res
 - pvalue: Wald test p-value
 - padj: BH adjusted p-values
 
+
+## 6. Saving and exporting results - 10 min
+
