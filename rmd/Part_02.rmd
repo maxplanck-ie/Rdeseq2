@@ -439,16 +439,14 @@ There are several steps to generating the DE results, and they are wrapped toget
 \ 
 
 
-![](../images/DE_testing.png){width=80%}
-
 ```{r mean_of_group}
 
-# df <- data.frame(counts(fdds)[,c(1,2)])
+df <- data.frame(counts(fdds)[,c(1,2)])
 # df2 <- rlog(counts(fdds)[,c(1,2)])
-# #boxplot(counts(fdds)[,c(1,2)])  # c(1,2,11,13,15)
+boxplot(counts(fdds)[,c(1,2)])  # c(1,2,11,13,15)
 # #boxplot(rlog(counts(fdds)[,c(1,2)]))  # c(1,2,11,13,15)
-# #means <- colMeans(counts(fdds)[,c(1,2)])
-# #abline(h=means, col='red')
+means <- colMeans(counts(fdds)[,c(1,2)])
+abline(h=means, col='red')
 # boxplot(df)
 # boxplot(df2)
 # 
