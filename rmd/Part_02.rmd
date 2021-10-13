@@ -194,7 +194,7 @@ Things are a bit more complicated in reality - an interative process.
   - rows of the metadata should be named with sample names (important for downstream steps)
   - **column names of the data should be identical and in the same order with the row names of the metadata!**: `all(colnames(data)==rownames(metadata))` should output 'TRUE'
 
-##### Understanding factors
+##### **Understanding factors**
   - used to represent categorical data 
   - stored as integers that have associated labels: R sorts the labels alphabetically
 
@@ -244,7 +244,9 @@ dds$condition <- factor(dds$condition, levels = c ('DMSO', 'TG', 'AMIL'))
 
 \
 
-> **Task 3.a):** Please reorder factors with 'DMSO' as baseline - 2 min
+> **Task 1.a):** Please reorder factors with 'DMSO' as baseline - 2 min
+
+\
 
 This is the order of the factors before and after re-arrangement:
 ```{r rearrange_factors}
@@ -256,7 +258,8 @@ dds$condition <- relevel(dds$condition, ref='DMSO')
 
 dds$condition
 ```
-**Task 3.b):** Please reorder factors with 'AMIL' as baseline - 2 min
+> **Task 1.b):** Please reorder factors with 'AMIL' as baseline - 2 min
+
 \ 
 
 #### 2.1.c. experimental design
@@ -464,7 +467,7 @@ There are several steps to generating the DE results, and they are wrapped toget
   - mean of the group: the average value of a sample
   - variance: the expectation of the squared deviation (stdev^2) of a variable from its population mean. It is a measure of dispersion (of how far a set of numbers is spread out from their average value)
 
-> **Poll 3**: What properties can you attribute to RNA-seq data?
+> **Poll 2**: What properties can you attribute to RNA-seq data?
 
 \
 \
@@ -474,7 +477,7 @@ There are several steps to generating the DE results, and they are wrapped toget
 cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small \n   - variance is higher than mean')
 ```
 
-> **Poll 4**: what kind of distribution would you use for count data?
+> **Poll 3**: what kind of distribution would you use for count data?
 
 \
 \
@@ -505,10 +508,8 @@ ggplot(df) +
 ```{r negative_binomial_distribution, out.width = '60%', fig.align="center"}
 x <- 0:30
 
-plot(x, dpois(x, lambda = mean(x)),  type = "l", col='green')     # Poisson: mean = variance = lambda
-#lines(x, dnbinom(x, size=0.5, mu=10), type = "l", col='red')
-#lines(x, dnbinom(x, size=1, mu=10), type = "l", col='orange')
-lines(x, dnbinom(x, size=10, mu=mean(x)), type = "l", col='blue') # NB:mean < variance; size =  dispersion parameter (shape)
+plot(x, dpois(x, lambda = mean(x)),  type = "p", col='green')     # Poisson: mean = variance = lambda
+lines(x, dnbinom(x, size=10, mu=mean(x)), type = "p", col='blue') # NB:mean < variance; size =  dispersion parameter (shape)
 
 
 title ("Poisson vs Negative binomial distribution", cex=0.8)
@@ -547,7 +548,7 @@ Now, see the changes in the values of the library sizes:
 colSums(counts(fdds, normalized=T))
 ```
 
-> **Poll 5**: Can the size factors be used as quality control? At what value of the size factors should you go back and look at your data?
+> **Discuss**: Can the size factors be used as quality control? At what value of the size factors should you go back and look at your data?
 
 \
 \
@@ -567,7 +568,7 @@ $$
 
 <=> it means that dispersion $\alpha$ is inversely proportional to the mean $\mu$, and directly proportional to the variance $var$
 
-> **Poll 6**: for small count means, dispersion $\alpha$ is ....? For large mean counts, dispersion $\alpha$ is ....?
+> **Poll 4**: for small count means, dispersion $\alpha$ is ....? For large mean counts, dispersion $\alpha$ is ....?
 
 \
 \
