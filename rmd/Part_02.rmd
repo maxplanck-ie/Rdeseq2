@@ -449,6 +449,17 @@ There are several steps to generating the DE results, and they are wrapped toget
 cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small \n   - variance is higher than mean')
 ```
 
+<br>
+
+<center>
+
+![](../images/expression_model.png){width=80%}
+
+</center>
+
+<br>
+
+
 > **Poll 3**: what kind of distribution would you use for count data?
 
 \
@@ -559,7 +570,7 @@ plotDispEsts(fdds)
 ```
 
 Bad examples of dispersion plots:
-```{r, echo=FALSE, out.width = '50%', fig.align="center"}
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
 knitr::include_graphics(c("../images/disp_badPlot_1.png", "../images/disp_badPlot_2.png"))
 ```
 
@@ -604,5 +615,31 @@ fdds_res
 - padj: BH adjusted p-values
 
 
-## 6. Saving and exporting results - 10 min
+## 6. Exporting results and further analyses - 10 min
 
+- why export data?
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics(c("../images/analysis_tools.png"))
+```
+
+- you can save your results in a 'tsv' file:
+
+```{r export_results}
+write.table(fdds_res, file="../misc/results.tsv", col.names=T, row.names = T, sep = "\t", quote=F)
+```
+
+
+- use the exported data for downstream analysis: 
+  - shiny apps on  MPI-IE website: http://deep5.ie-freiburg.mpg.de:3838/bioinfo_official_apps/landing_page/
+
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics("../images/shiny_apps.png")
+```
+
+  - ClusterProfiler:
+
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics("../images/gene2functions.png")
+```
+ 
+  - Ingenuity Pathway Analysis (IPA): tool to help interprete and analyze omics data (e.g. functional enrichment of DEGs)
