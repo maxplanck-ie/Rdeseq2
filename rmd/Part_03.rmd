@@ -37,12 +37,15 @@ library("ashr")
 
 ```{r Get the data directroy, message=FALSE, warning=FALSE}
 # Get the data directory
-data_dir <- "/data/manke/processing/RdeseqData/myeloma/"
+data_dir <- "/data/processing3/RdeseqCourse/Data/myeloma/"
 
 # Read count matrix
 countdata <- read.table(paste0(data_dir, "corrected_counts.tsv", sep=''),
                         header=TRUE, check.names = TRUE)
-#head(countdata)
+tmp.df <- countdata[,-1]
+rownames(tmp.df) <- countdata[,1]
+countdata <- tmp.df
+head(countdata)
 
 # Read samplesheet , detects conditions, generate the formula
 sampleInfo <- read.table(paste0(data_dir, "corrected_meta.tsv", sep=''),
@@ -58,27 +61,36 @@ Multi-factor design with increasing complexity are nicely explained in these [sl
 
 ### The simplest case:
  * one factor with two levels
+ 
+```{r Only used to make the figure}
+# sampleInfo$celltype <- factor(sampleInfo$celltype, levels = c ('JJ', 'BM'))
+```
 
-|samples |condition<factor> |
+
+|samples |celltype<factor> |
 |:-------|:-----|
-|sample1 |cond1 |
-|sample2 |cond1 |
-|sample3 |cond2 |
-|sample4 |cond2 |
+|sample1 |JJ |
+|sample2 |JJ |
+|sample3 |BM |
+|sample4 |BM |
 
 Design:
 
-      ~1+condition (or ~condition)
-      = beta0 + beta1 * cond2
+      ~1+celltype (or ~celltype)
+      = beta0 + beta1 * BM
 
-This results in the coefficient for the intercept and coefficient for the effect of “cond2” (i.e. differences between cond2 vs. cond1).
+This results in the coefficient for the intercept and coefficient for the effect of “BM” (i.e. differences between BM vs. JJ).
 
-    [1] "Intercept" (beta0)             "condition_cond2_vs_cond1" (beta1)
+    [1] "Intercept" (beta0)             "celltype_BM_vs_JJ" (beta1)
 
+
+```{r, echo=FALSE, out.width = '50%', fig.align="center"}
+knitr::include_graphics(c("../images/case1.png"))
+```
 
 This can be shown by dummy variables:
 
-|samples | (Intercept) | condtioncond2 |
+|samples | (Intercept) | celltypeBM |
 |:-------|:----|:----|
 |sample1 |1 | 0 |
 |sample2 |1 | 0 |
@@ -94,25 +106,29 @@ null hypothesis:
 
 |samples |condition<factor> |
 |:-------|:-----|
-|sample1 |cond1 |
-|sample2 |cond1 |
-|sample3 |cond2 |
-|sample4 |cond2 |
-|sample5 |cond3 |
-|sample6 |cond3 |
+|sample1 |AMIL |
+|sample2 |AMIL |
+|sample3 |DMSO |
+|sample4 |DMSO |
+|sample5 |TG |
+|sample6 |TG |
 
       ~1+condition
-      = beta0 + beta1 * cond2 + beta2 * cond3
+      = beta0 + beta1 * DMSO + beta2 * TG
       beta0 = Intercept
-      beta1 = condition_cond2_vs_cond1
-      beta2 = condition_cond3_vs_cond1
+      beta1 = condition_DMSO_vs_AMIL
+      beta2 = condition_TG_vs_AMIL
 Coefficients:
 
-      [1] "Intercept"              "condition_cond2_vs_cond1" "condition_cond3_vs_cond1"
+      [1] "Intercept"              "condition_DMSO_vs_AMIL" "condition_TG_vs_AMIL"
+
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics(c("../images/case2.png"))
+```
 
 Model matrix:
 
-|samples | (Intercept) | condtioncond2 | condtioncond3 |
+|samples | (Intercept) | conditionDMSO | condittionTG |
 |:-------|:----|:----|:----|
 |sample1 |1 | 0 | 0 |
 |sample2 |1 | 0 | 0 |
@@ -123,47 +139,58 @@ Model matrix:
 
 Null hypothesis:
 
-    cond2 vs cond1
+    DMSO vs AMIL
     beta1 = 0
 
-    cond3 vs cond1
+    TG vs AMIL
     beta2 = 0
 
-    cond2 vs cond3
+    DMSO vs TG
     beta1 - beta2 = 0
 
 ### More complex case:
   * Two factors, with interaction
 
-|samples |condition<factor> | treatment<factor> |
+|samples |celltype<factor> | condition<factor> |
 |:-------|:-----|:-----|
-|sample1 |cond1 |treat1|
-|sample2 |cond1 |treat1|
-|sample3 |cond1 |treat2|
-|sample4 |cond1 |treat2|
-|sample5 |cond2 |treat1|
-|sample6 |cond2 |treat1|
-|sample7 |cond2 |treat2|
-|sample8 |cond2 |treat2|
+|sample1 |JJ |AMIL|
+|sample2 |JJ |AMIL|
+|sample3 |JJ |DMSO|
+|sample4 |JJ |DMSO|
+|sample5 |JJ |TG|
+|sample6 |JJ |TG|
+|sample7 |BM |AMIL|
+|sample8 |BM |AMIL|
+|sample9 |BM |DMSO|
+|sample10 |BM |DMSO|
+|sample11 |BM |TG|
+|sample12 |BM |TG|
 
-The formula for the model includes all sources of variation in the data. Thus, it should contain the condition, treatment and the difference as the effect of condtion on the treatment (condtion:treatment)
+The formula for the model includes all sources of variation in the data. Thus, it should contain the celltype, condition and the difference as the effect of celltype on the condition (celltype:condtion)
+
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics(c("../images/case3.png"))
+```
 
 Design:
 
-    ~1 + condition + treatment + condition:treatment
-    = beta0 + beta1 * cond2 + beta2 * treatment2 + beta3 * cond2.treat2
+    ~1 + celltype + condition + celltype:condition
+    = beta0 + beta1 * BM + beta2 * DMSO + beta3 * TG + beta4 * BM.DMSO + beta4 * BM.TG
+
       beta0 = Intercept
-      beta1 = condition_cond2_vs_cond1
-      beta2 = treatment_treat2_vs_treat1
-      beta3 = conditioncond2.treatmenttreat2
+      beta1 = celltype_BM_vs_JJ
+      beta2 = condition_DMSO_vs_AMIL
+      beta3 = condition_TG_vs_AMIL
+      beta4 = celltypeBM.conditionDMSO
+      beta5 = celltypeBM.conditionTG
 
 Null hypothesis:
 
-    cond2 vs cond1 (treat1)
+    BM vs JJ (AMIL)
     beta1 = 0
 
-    cond2 vs cond1 (treat2)
-    beta1 + beta3 = 0
+    BM vs JJ (DMSO)
+    beta1 + beta4 = 0
 
     treat2 vs treat1 (cond1):
     beta2 = 0
@@ -176,8 +203,10 @@ Null hypothesis:
 
 ```{r build the matrix, message=FALSE, warning=FALSE}
 design <- as.formula(~celltype + condition + celltype:condition)
+# design <- as.formula(~condition)
 dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInfo, design = design)
 ```
+
 
 # Estimate size factors
 DESeq2 automatically estimates the size factors when performing the differential expression analysis. However, if `estimateSizeFactors()` is called, then DESeq2 will use these values.
@@ -222,10 +251,17 @@ By default DESeq2 uses the Wald test to identify genes that are differentially e
 This is done through the following steps:
   
   * A regression model fits to each gene (glm.nb),
-  * Each gene model coefficient (LFC) is extimated using maximum likelihood,
+  * Each gene model coefficient (LFC) is estimated using maximum likelihood,
   * The shrunken estimate of LFC is divided by its standard error, resulting in a z-statistic,
   * z-statistic is compared to a standard normal distribution to compute the p-values,
   * P values are adjusted for multiple testing using the procedure of Benjamini and Hochberg.
+
+
+```{r extract coef of a gene}
+# coef(dds)['ENSG00000173535',]
+```
+
+
 
 ```{r pvalue, eval=TRUE, message=FALSE, warning=FALSE}
     # P-value distribution
@@ -234,9 +270,9 @@ This is done through the following steps:
     res.df <- res %>% data.frame()
     print(ggplot(res.df) +
         geom_histogram(aes(res.df$pvalue, fill = "a"), colour = "grey20", alpha = 0.5, stat = "bin") +
-        geom_histogram(aes(res.df$padj, fill = "b"), colour = "grey20", alpha = 0.5, stat = "bin") +
-        scale_fill_manual(name = "group", values = c("a" = "steelblue", "b" = "grey20"),
-                    labels = c("a" = "p-value", "b" = "padj")) +
+        xlab("p-value") +
+        # geom_histogram(aes(res.df$padj, fill = "b"), colour = "grey20", alpha = 0.5, stat = "bin") +
+        scale_fill_manual(name = "group", values = c("a" = "steelblue"), labels = "p-value") +
         geom_vline(xintercept = 0.05, colour = "red")
     )
 ```
