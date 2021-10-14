@@ -175,7 +175,7 @@ knitr::include_graphics(c("../images/case3.png"))
 Design:
 
     ~1 + celltype + condition + celltype:condition
-    = beta0 + beta1 * BM + beta2 * DMSO + beta3 * TG + beta4 * BM.DMSO
+    = beta0 + beta1 * BM + beta2 * DMSO + beta3 * TG + beta4 * BM.DMSO + beta4 * BM.TG
 
       beta0 = Intercept
       beta1 = celltype_BM_vs_JJ
@@ -189,8 +189,8 @@ Null hypothesis:
     BM vs JJ (AMIL)
     beta1 = 0
 
-    cond2 vs cond1 (treat2)
-    beta1 + beta3 = 0
+    BM vs JJ (DMSO)
+    beta1 + beta4 = 0
 
     treat2 vs treat1 (cond1):
     beta2 = 0
