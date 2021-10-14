@@ -1,9 +1,7 @@
 ---
-title: |
-<center> "DESeq2 Analysis with R: Part 02"
-
+title: "DESeq2 Analysis with R: Part 02"
 author: "Mirela Balan"
-date: "`r date() `"
+#date: "`r date() `"
 output:
   html_document:
     code_folding: hide
@@ -52,10 +50,11 @@ setwd("/data/processing3/balan/Rdeseq2/rmd")
 
 #loading data and metadata (sample sheet)
 data <- read.table("/data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv", header=TRUE, check.names = TRUE, row.names = 1)
-metadata <- read.table("/data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F, row.names = 1)
+metadata <- read.table("/data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F)
 
 metadata$celltype <- as.factor(metadata$celltype)    # observe the change from 'character' to 'factor'
 metadata$condition <- as.factor(metadata$condition)
+rownames(metadata) <- metadata$sample
 
 #preview your data and metadata
 head(data)
@@ -129,7 +128,7 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
 \
 \
 
-## 2. Quick recap and (semi-)deep dive into concepts - 30 min
+## 2. Brief overview and (semi-)deep dive into concepts - 30 min
 
 \
 
@@ -143,7 +142,7 @@ dds <- DESeqDataSetFromMatrix(countData = matrix_with_count_data,
                               colData = dataframe_with_sample_information,
                               design = what_variables_interest_you)
 
-# explore data & QC: transform data, plot (PCA, heatmap)
+# explore data & QC: transform data, plot (filtering, PCA, heatmap)
 
 # perform statistical analysis
 dds <- DESeq(dds)
@@ -196,7 +195,7 @@ Things are a bit more complicated in reality - an interative process.
   - rows of the metadata should be named with sample names (important for downstream steps)
   - **column names of the data should be identical and in the same order with the row names of the metadata!**: `all(colnames(data)==rownames(metadata))` should output 'TRUE'
 
-##### Understanding factors
+##### **Understanding factors**
   - used to represent categorical data 
   - stored as integers that have associated labels: R sorts the labels alphabetically
 
@@ -246,7 +245,9 @@ dds$condition <- factor(dds$condition, levels = c ('DMSO', 'TG', 'AMIL'))
 
 \
 
-> **Task 3:** Please reorder factors with 'DMSO' as baseline - 2 min
+> **Task 1.a):** Please reorder factors with 'DMSO' as baseline - 2 min
+
+\
 
 This is the order of the factors before and after re-arrangement:
 ```{r rearrange_factors}
@@ -258,6 +259,7 @@ dds$condition <- relevel(dds$condition, ref='DMSO')
 
 dds$condition
 ```
+> **Task 1.b):** Please reorder factors with 'AMIL' as baseline - 2 min
 
 \ 
 
@@ -287,36 +289,11 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=my_design
   - sample info (metadata) - call it with `colData(dds)`
   - intermediate estimated quantities - during statistical analysis
   - more additional features that you can add manually to the metadata columns of a newly constructed object: `mcols(dds) <- DataFrame(mcols(dds), my_dataframe)`
+  - every time you change anything about the 'data', 'metadata' or 'design', you have to re-create the dds object!
   
-\
-\
-\
-
-## Break - 10 min
-
-\
-\
-\
-
-## 3.  Data exploration, visualization and QC  - 30 min
-
-To explore your data further to learn more about it, to check if your expectations are met. Also, the downstream analyses rely on a couple of assumptions and we need to see to what degree our data match those assumptions, and to correct it if possible. Also, to create informative, easy to interpret visualizations, the data needs to be transformed before plotting. We need to talk about:
-
-- filtering
-- distributions for data modeling: mean, stdvar, variance, dispersion, overdispersion
-- transformations: log, rlog (vst)
-
-\
-
-### 3.1. Data pre-filtering - 10 min
-Let's look at our data using the 'summary()' function:
-```{r summary_data}
-summary(counts(dds))[,1:3]  #shows the summary only for the first 3 samples - for brevity
-```
-
-> **Poll 2**: Notice the output - what does the 'mean' tell you, practically?
-
-\
+  
+  
+### 3.2. Data pre-filtering - 10 min
 
 - several types of filtering, some manual others automatic
 - the pre-filtering is helpful but not necessary to remove rows/genes that have very low counts (very unlikely to have biological meaning)
@@ -335,8 +312,26 @@ cat('genes before filter: ', nrow(fdds), '\n')    # prints the number of rows yo
 ```
 
 Notice how many rows you have dropped. In this case you are left only with **`r round(nrow(fdds) * 100 / nrow(dds), digits=2)` %** of the initial number of rows!
+\
+\
+\
 
-\ 
+## Break - 10 min
+
+\
+\
+\
+
+## 3.  Data exploration, visualization and QC  - 30 min
+
+To explore your data further to learn more about it, to check if your expectations are met. Also, the downstream analyses rely on a couple of assumptions and we need to see to what degree our data match those assumptions, and to correct it if possible. Also, to create informative, easy to interpret visualizations, the data needs to be transformed before plotting. We need to talk about:
+
+- distributions for data modeling: mean, stdvar, variance, dispersion, overdispersion
+- transformations: log, rlog (vst)
+
+\
+\
+
 
 ### 3.2. Data transformation
 
@@ -360,8 +355,6 @@ rld <- rlog(fdds, blind = FALSE)
 head(assay(rld),3)
 ```
 
-For high counts, the results are similar to the logarithmic transformation. But for low counts, the values are shrunken towards a middle value. 
-
 
 ```{r diff_log_vst_rlog, out.width = '80%', fig.align="center"}
 df1 <- data.frame(rlg_base2=log2(counts(fdds)[, 1]+1))
@@ -369,18 +362,11 @@ df2 <- data.frame(rlg=assay(rld)[, 1])
 
 df <- merge(df1, df2, by=0) # merge the 2 dataframes by rownames
 
-
-#colnames(df)[1:2] <- c("log(n+1)", "rlog")
-
-#df$transformation <- factor(df$transformation, levels=lvls)
-
 ggplot(df, aes(x=rlg_base2, y=rlg)) +
       geom_point(size=1, shape=3) +
       ggtitle("Comparing 'log2(n+1)' and 'rlog' data transformation") +
       xlab("log2(n+1) transformation") + ylab("rlog transformation") +
       theme(plot.title = element_text(hjust=0.5))
-  
-
 ```
 
 
@@ -438,18 +424,6 @@ There are several steps to generating the DE results, and they are wrapped toget
 
 \ 
 
-<br>
-
-<center>
-
-![](../images/DE_testing.png){width=80%}
-
-**What do we mean when we talk about finding the DE genes? The red and blue dots stand for the gene count in each sample of the conditions we are testing for. Ref: https://hbctraining.github.io/DGE_workshop/lessons/04_DGE_DESeq2_analysis.html**  
-
-*** 
-</center>
-
-<br>
 
 
 ### 4.1. Modeling count data
@@ -465,7 +439,7 @@ There are several steps to generating the DE results, and they are wrapped toget
   - mean of the group: the average value of a sample
   - variance: the expectation of the squared deviation (stdev^2) of a variable from its population mean. It is a measure of dispersion (of how far a set of numbers is spread out from their average value)
 
-> **Poll 3**: What properties can you attribute to RNA-seq data?
+> **Poll 2**: What properties can you attribute to RNA-seq data?
 
 \
 \
@@ -475,7 +449,18 @@ There are several steps to generating the DE results, and they are wrapped toget
 cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small \n   - variance is higher than mean')
 ```
 
-> **Poll 4**: what kind of distribution would you use for count data?
+<br>
+
+<center>
+
+![](../images/expression_model.png){width=80%}
+
+</center>
+
+<br>
+
+
+> **Poll 3**: what kind of distribution would you use for count data?
 
 \
 \
@@ -485,6 +470,12 @@ cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs a
 #overdispersion
 mean_counts <- apply(counts(fdds)[,6:8], 1, mean)        # '1' means that the function 'apply' is applied to rows. Use '2' if applied to columns 
 variance_counts <- apply(counts(fdds)[,6:8], 1, var)
+
+#simpler
+#smoothScatter(log10(mean_counts), log10(variance_counts))
+#abline(0,1, col="red")
+
+
 df <- data.frame(mean_counts, variance_counts)
 
 ggplot(df) +
@@ -500,10 +491,8 @@ ggplot(df) +
 ```{r negative_binomial_distribution, out.width = '60%', fig.align="center"}
 x <- 0:30
 
-plot(x, dpois(x, lambda = mean(x)),  type = "l", col='green')     # Poisson: mean = variance = lambda
-#lines(x, dnbinom(x, size=0.5, mu=10), type = "l", col='red')
-#lines(x, dnbinom(x, size=1, mu=10), type = "l", col='orange')
-lines(x, dnbinom(x, size=10, mu=mean(x)), type = "l", col='blue') # NB:mean < variance; size =  dispersion parameter (shape)
+plot(x, dpois(x, lambda = mean(x)),  type = "p", col='green')     # Poisson: mean = variance = lambda
+lines(x, dnbinom(x, size=10, mu=mean(x)), type = "p", col='blue') # NB:mean < variance; size =  dispersion parameter (shape)
 
 
 title ("Poisson vs Negative binomial distribution", cex=0.8)
@@ -542,7 +531,7 @@ Now, see the changes in the values of the library sizes:
 colSums(counts(fdds, normalized=T))
 ```
 
-> **Poll 5**: Can the size factors be used as quality control? At what value of the size factors should you go back and look at your data?
+> **Discuss**: Can the size factors be used as quality control? At what value of the size factors should you go back and look at your data?
 
 \
 \
@@ -562,7 +551,7 @@ $$
 
 <=> it means that dispersion $\alpha$ is inversely proportional to the mean $\mu$, and directly proportional to the variance $var$
 
-> **Poll 6**: for small count means, dispersion $\alpha$ is ....? For large mean counts, dispersion $\alpha$ is ....?
+> **Poll 4**: for small count means, dispersion $\alpha$ is ....? For large mean counts, dispersion $\alpha$ is ....?
 
 \
 \
@@ -580,6 +569,10 @@ DESeq2 has a function that allows to visualize the dispersion in your analysis
 plotDispEsts(fdds)
 ```
 
+Bad examples of dispersion plots:
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics(c("../images/disp_badPlot_1.png", "../images/disp_badPlot_2.png"))
+```
 
 ### 4.4. Wald test
 - gene-wise dispersion by fitting a negative binomial general linear model (GLM) to the data and then returning the results using Wald statistics (**nbinomWaldTest**) > tomorrow
@@ -612,3 +605,41 @@ fdds_res <- results(fdds)
 fdds_res
 ```
 
+
+
+- baseMean: mean of normalized counts for all samples
+- log2FoldChange: log2 fold change
+- lfcSE: standard error
+- stat: Wald statistic
+- pvalue: Wald test p-value
+- padj: BH adjusted p-values
+
+
+## 6. Exporting results and further analyses - 10 min
+
+- why export data?
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics(c("../images/analysis_tools.png"))
+```
+
+- you can save your results in a 'tsv' file:
+
+```{r export_results}
+write.table(fdds_res, file="../misc/results.tsv", col.names=T, row.names = T, sep = "\t", quote=F)
+```
+
+
+- use the exported data for downstream analysis: 
+  - shiny apps on  MPI-IE website: http://deep5.ie-freiburg.mpg.de:3838/bioinfo_official_apps/landing_page/
+
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics("../images/shiny_apps.png")
+```
+
+  - ClusterProfiler:
+
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics("../images/gene2functions.png")
+```
+ 
+  - Ingenuity Pathway Analysis (IPA): tool to help interprete and analyze omics data (e.g. functional enrichment of DEGs)
