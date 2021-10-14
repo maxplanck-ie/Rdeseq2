@@ -6,18 +6,13 @@
    c) There is a mixup in the samples. We need to talk with the sequencing facility so that they change the samples and sequence again
    d) The PCA shows that there is a problem with our samples. We delete the data from our dataset
    
-2. What properties can you attribute to RNA-seq data?
-   a) Large number of discrete observations; high probability of finding a particular transcript; variance lower than mean
-   b) Continuous distribution because of the very large number of observations; low probability of finding a particular transcript; variance higher than mean
-   c) Large number of discrete observations; low probability of finding a particular transcript; variance lower than mean
-   
-3. What kind of distribution would you use for count data?
+2. What kind of distribution would you use for count data?
    a) Poisson distribution
    b) Binomial distribution
    c) Negative binomial distribution
    d) Normal distribution 
 
-4. For small count means, dispersion is ....? For large count means, dispersion is ....?
+3. For small count means, dispersion is ....? For large count means, dispersion is ....?
    a) higher, lower
    b) they don't correlate
    c) lower, higher
