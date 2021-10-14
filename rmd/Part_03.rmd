@@ -419,9 +419,6 @@ sig_lrt_genes <- sig_res_lrt %>%
 
 length(sig_lrt_genes)
 
-# Compare to numbers we had from Wald test
-# ???
-
 ```
 
 
@@ -468,6 +465,13 @@ Remember our coefficients:
 resultsNames(dds)
 ```
 
+Remember:
+contrasts can be specified in a number of ways.
+
+1. Character vector with three elements: c(factor1, level1, level2) ! Mind the base of factor2!  
+2. A list with 2 coefficients (remember resultsNames(dds)) list(coef1, coef2)  
+3. A numeric vector with a value for each coefficient: c(0,0,0,1,0,1)
+
 Extract TG vs AMIL:
 
 ```{r extract TG vs AMIL, message=FALSE, warning=FALSE}
@@ -494,15 +498,38 @@ ashr-method is a bit more versatile.
 print(sampleInfo$celltype)
 ```
 
-We have two options now. Or we re-run deseq with releveled factors, or we dive a bit in the contrast setting of results. Please note if you insist on using apeglm or normal method for shrinking, you have no other choice then to relevel !
 
-For cellType JJ, the difference between condition TG and AMIL is:
-The effect of AMIL-TG + interaction TG-JJ:
+For celltype JJ, things are a bit more tricky. We cannot use the c(factor1, level1, level2) contrast (since BM is our baseline!), and the coefficient we are interested in is actually not in resultsNames (it's actually a combination of AMIL-TG + the interaction term TG-JJ). We thus have to specify the numerical vector. You can build these manually (which is error prone), but (as always) there is a trick to make our life easier. This is based on the model matrix:
+
+```{r modelMat, message=FALSE, warning=FALSE}
+pheatmap(model.matrix(design(dds), colData(dds)),
+         cluster_cols = FALSE,
+         cluster_rows = FALSE)
+```
+
+The workflow is as follows:
+
+1. Get the model matrix.
+2. Get the colMeans of a subset of the matrix for each group of interest.
+3. Subtract the group vectors from each other.
+4. Publish in nature.
+
+The convenient part about this method is that rather than thinking about the coefficients, you think about factor levels.
+A more elaborate tutorial can be found [here]( https://github.com/tavareshugo/tutorial_DESeq2_contrasts/blob/main/DESeq2_contrasts.Rmd)
+
+> ! Note that we also could rerun DESeq with the appropriate factor re-leveled.
+
+We'd like to see the difference between condition TG and AMIL in cellType JJ.
+(Note that based on our factor levels, this is essentially coefficient conditionTG + interactionJJ:TG)
 
 ```{r message=FALSE, warning=FALSE}
-TGvAMIL_JJ <- lfcShrink(dds, contrast = c(0,0,0,1,0,1), type="ashr")
-# Recall the contrasts:
-resultsNames(dds)
+mod_mat <- model.matrix(design(dds), colData(dds))
+# we'd like to condition TG in cellType JJ
+JJ_TG <- colMeans(mod_mat[dds$celltype == 'JJ' & dds$condition == "TG",])
+JJ_AMIL <- colMeans(mod_mat[dds$celltype == 'JJ' & dds$condition == "AMIL",])
+print(JJ_TG - JJ_AMIL)
+
+TGvAMIL_JJ <- lfcShrink(dds, contrast = JJ_TG - JJ_AMIL, type="ashr")
 ```
 
 ## Clean & Annotate
@@ -560,7 +587,7 @@ pheatmap(
                                                                              "BM_TG_2",
                                                                              "BM_TG_3")],
   scale = 'row',
-  main='TG v AMIL - JJ',
+  main='TG v AMIL - BM',
   labels_row = paste0(head(TGvAMIL_BM_cleaned$gene_symbol, n=20), ' ', head(rownames(TGvAMIL_BM_cleaned), n=20 ))
   )
 ```
@@ -689,18 +716,3 @@ pheatmap(
 )
 
 ```
-
-
-
-# Systematic Construction of Contrast
-Ref: https://github.com/tavareshugo/tutorial_DESeq2_contrasts/blob/main/DESeq2_contrasts.Rmd
-
-```{r syst_contrast}
-mod_mat = model.matrix( design(dds), colData(dds))
-AMIL_BM <- which(dds$condition=="AMIL" & dds$celltype=="BM")
-TG_JJ   <- which(dds$condition=="TG"   & dds$celltype=="JJ")
-( cont=colMeans(mod_mat[AMIL_BM,]) - colMeans(mod_mat[TG_JJ,]) )
-
-
-```
-
