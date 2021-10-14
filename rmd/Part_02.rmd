@@ -443,9 +443,15 @@ There are several steps to generating the DE results, and they are wrapped toget
 
 ### 4.1. Modeling count data
 
-**Why is modeling needed?** If we had a large amount of samples for each category we are interested in, we could simply extract the information we need. However, due to various reasons (e.g. availability, cost, time), sequencing is done on a few samples/ individuals, and this means we have a large variation in the data. To extract any meaningful information, we need to use mathematical models that can account for the variability and use sparse data to extrapolate the information
+**Why is modeling needed?** 
 
-<!-- Each organisms reacts to an intervention to a certain degree. In order to conclude from the data if one gene in DE or not using a handful of samples, we need to have a mathematical model that tells us what happens to the gene with a certain degree of confidence. -->
+```{r negative_binomial_distribution, out.width = '60%', fig.align="center"}
+x <- 0:100
+
+plot(x,  dnorm(x, mean = mean(x)-10, sd=10),  type = "p", col='green')     # Poisson: mean = variance = lambda
+lines(x, dnorm(x, mean = mean(x), sd=10), type = "p", col='blue') # NB:mean < variance; size =  dispersion parameter (shape)
+
+```
 
 
 - data can be modeled with various distributions depending on its properties.
@@ -499,18 +505,7 @@ ggplot(df) +
 - for genes with high mean expression, the variance across replicates tends to be greater that the mean => use a **negative binomial** distribution
 - for genes with low mean expression, there is a large scatter = hetero-scedasti-city = for a given expression level in the low range, we obs a lot of variability in the variance values.
 
-```{r negative_binomial_distribution, out.width = '60%', fig.align="center"}
-x <- 0:30
 
-plot(x, dpois(x, lambda = mean(x)),  type = "p", col='green')     # Poisson: mean = variance = lambda
-lines(x, dnbinom(x, size=10, mu=mean(x)), type = "p", col='blue') # NB:mean < variance; size =  dispersion parameter (shape)
-
-
-title ("Poisson vs Negative binomial distribution", cex=0.8)
-text(25, 0.08, labels="Poisson", col = 'green')
-text(24, 0.07, labels="NB", col = 'blue')
-
-```
 
 \
 \
