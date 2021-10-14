@@ -50,10 +50,11 @@ setwd("/data/processing3/balan/Rdeseq2/rmd")
 
 #loading data and metadata (sample sheet)
 data <- read.table("/data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv", header=TRUE, check.names = TRUE, row.names = 1)
-metadata <- read.table("/data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F, row.names = 1)
+metadata <- read.table("/data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F)
 
 metadata$celltype <- as.factor(metadata$celltype)    # observe the change from 'character' to 'factor'
 metadata$condition <- as.factor(metadata$condition)
+rownames(metadata) <- metadata$sample
 
 #preview your data and metadata
 head(data)
@@ -361,18 +362,11 @@ df2 <- data.frame(rlg=assay(rld)[, 1])
 
 df <- merge(df1, df2, by=0) # merge the 2 dataframes by rownames
 
-
-#colnames(df)[1:2] <- c("log(n+1)", "rlog")
-
-#df$transformation <- factor(df$transformation, levels=lvls)
-
 ggplot(df, aes(x=rlg_base2, y=rlg)) +
       geom_point(size=1, shape=3) +
       ggtitle("Comparing 'log2(n+1)' and 'rlog' data transformation") +
       xlab("log2(n+1) transformation") + ylab("rlog transformation") +
       theme(plot.title = element_text(hjust=0.5))
-  
-
 ```
 
 
@@ -431,28 +425,6 @@ There are several steps to generating the DE results, and they are wrapped toget
 \ 
 
 
-```{r mean_of_group}
-
-# df <- data.frame(counts(fdds)[,c(1,2)])
-# # df2 <- rlog(counts(fdds)[,c(1,2)])
-# boxplot(counts(fdds)[,c(1,2)])  # c(1,2,11,13,15)
-# # #boxplot(rlog(counts(fdds)[,c(1,2)]))  # c(1,2,11,13,15)
-# means <- colMeans(counts(fdds)[,c(1,2)])
-# abline(h=means, col='red')
-# # boxplot(df)
-# # boxplot(df2)
-# 
-# 
-# 
-# gene = df %>% 
-#   select(BM_CTRL_2, BM_CTRL_3) %>%      # pick the 2 samples = select the columns
-#   gather(sample, count) %>%             # reshape for ggplot (1 sample per row!)
-#   mutate(condition=metadata$condition)  # add condition. Careful: order needs to agree 
-# 
-# ggplot(gene, aes(x=condition, y=count, col=condition)) + 
-#   geom_point(size=3)  #plot against condition
-```
-
 
 ### 4.1. Modeling count data
 
@@ -476,6 +448,17 @@ There are several steps to generating the DE results, and they are wrapped toget
 ```{r print_out, echo=FALSE, comment=''}
 cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small \n   - variance is higher than mean')
 ```
+
+<br>
+
+<center>
+
+![](../images/expression_model.png){width=80%}
+
+</center>
+
+<br>
+
 
 > **Poll 3**: what kind of distribution would you use for count data?
 
@@ -587,7 +570,7 @@ plotDispEsts(fdds)
 ```
 
 Bad examples of dispersion plots:
-```{r, echo=FALSE, out.width = '50%', fig.align="center"}
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
 knitr::include_graphics(c("../images/disp_badPlot_1.png", "../images/disp_badPlot_2.png"))
 ```
 
@@ -622,3 +605,41 @@ fdds_res <- results(fdds)
 fdds_res
 ```
 
+
+
+- baseMean: mean of normalized counts for all samples
+- log2FoldChange: log2 fold change
+- lfcSE: standard error
+- stat: Wald statistic
+- pvalue: Wald test p-value
+- padj: BH adjusted p-values
+
+
+## 6. Exporting results and further analyses - 10 min
+
+- why export data?
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics(c("../images/analysis_tools.png"))
+```
+
+- you can save your results in a 'tsv' file:
+
+```{r export_results}
+write.table(fdds_res, file="../misc/results.tsv", col.names=T, row.names = T, sep = "\t", quote=F)
+```
+
+
+- use the exported data for downstream analysis: 
+  - shiny apps on  MPI-IE website: http://deep5.ie-freiburg.mpg.de:3838/bioinfo_official_apps/landing_page/
+
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics("../images/shiny_apps.png")
+```
+
+  - ClusterProfiler:
+
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics("../images/gene2functions.png")
+```
+ 
+  - Ingenuity Pathway Analysis (IPA): tool to help interprete and analyze omics data (e.g. functional enrichment of DEGs)
