@@ -197,15 +197,24 @@ pheatmap(
 print(resultsNames(dds))
 
 # Get our pair-wise comparisons. Note we immediately clean up our results.
+# Remember our matrix Trick!
+mod_mat <- model.matrix(design(dds), colData(dds))
+
+HSC_young <- colMeans(mod_mat[dds$celltype == 'HSC' & dds$condition == "Young",])
+HSC_old <- colMeans(mod_mat[dds$celltype == 'HSC' & dds$condition == "Aged",])
+MPP1_young <- colMeans(mod_mat[dds$celltype == 'MPP1' & dds$condition == "Young",])
+MPP1_old <- colMeans(mod_mat[dds$celltype == 'MPP1' & dds$condition == "Aged",])
+MPP2_young <- colMeans(mod_mat[dds$celltype == 'MPP2' & dds$condition == "Young",])
+MPP2_old <- colMeans(mod_mat[dds$celltype == 'MPP2' & dds$condition == "Aged",])
 
 # The easiest to fetch is the age effect in HSC cells.
-ageEffect_HSC <- cleanDF( lfcShrink(dds, contrast = c('condition', 'Aged', 'Young'), type="ashr") )
+ageEffect_HSC <- cleanDF( lfcShrink(dds, contrast = HSC_old-HSC_young , type="ashr") )
 
 # Now let's get the age effect in MPP1 cells. (Which is the condition effect + our interaction term).
-ageEffect_MPP1 <- cleanDF( lfcShrink(dds, contrast = c(0,0,0,1,1,0), type='ashr') )
+ageEffect_MPP1 <- cleanDF( lfcShrink(dds, contrast = MPP1_old-MPP1_young, type='ashr') )
 
 # Lastly, let's get the age effect in MPP1 cells.
-ageEffect_MPP2 <- cleanDF( lfcShrink(dds, contrast = c(0,0,0,1,0,1), type='ashr') )
+ageEffect_MPP2 <- cleanDF( lfcShrink(dds, contrast = MPP2_old-MPP2_young, type='ashr') )
 
 ```
 
