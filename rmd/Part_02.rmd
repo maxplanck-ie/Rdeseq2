@@ -84,11 +84,11 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_desig
 
 
 
-### 1.1. Feature filtering - 10 min
+### 1.1. Sample filtering - 10 min
 
 Previously you noticed that the PCA shows a problem with our data. 
 
-```{r old_PCA, echo=FALSE, out.width = '80%', fig.align="center"}
+```{r old_PCA, echo=FALSE, out.width = '60%', fig.align="center"}
 #plotPCA is the DESeq2 function to plot automatically your samples on a PCA. However, the images don't look to nice. So we use it to extract the values needed for plotting and then using them with ggplot to get a better PCA.
 rld_PCA <- plotPCA(rlog(dds, blind = TRUE), intgroup=c("condition", "celltype"), returnData=TRUE)
 percentVar <- round(100 * attr(rld_PCA, "percentVar"), 1)   # rounded values for each axis of PC variance
@@ -112,7 +112,7 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
 
 Let's fix the data by removing the problematic samples and visualize the resulting PCA:
 
-```{r fix_data_metadata, out.width = '80%', fig.align="center"}
+```{r fix_data_metadata, out.width = '60%', fig.align="center"}
 #remove the samples from data and metadata:
 dds <- dds[, -c(1,7)]
 metadata <- metadata[-c(1,7),]
@@ -133,7 +133,7 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
 \
 \
 
-### 1.2. Count filtering
+### 1.2. Feature filtering
 
 - filtering: manual or automatic
 - helpful but not necessary to remove rows/genes that have very low counts (very unlikely to have biological meaning)
@@ -176,6 +176,8 @@ dds <- DESeqDataSetFromMatrix(countData = matrix_with_count_data,
                               design = what_variables_interest_you)
 
 # explore data & QC: transform data, plot (filtering, PCA, heatmap)
+
+***********************************************************************
 
 # perform statistical analysis
 dds <- DESeq(dds)
@@ -342,39 +344,56 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=my_design
 
 ## 3.  Data exploration, visualization and QC  - 30 min
 
-To explore your data further to learn more about it, to check if your expectations are met. Also, the downstream analyses rely on a couple of assumptions and we need to see to what degree our data match those assumptions, and to correct it if possible. Also, to create informative, easy to interpret visualizations, the data needs to be transformed before plotting. We need to talk about:
-
-- distributions for data modeling: mean, stdvar, variance, dispersion, overdispersion
-- transformations: log, rlog (vst)
+To explore your data further and to create informative, easy to interpret visualizations, the data needs to be transformed before plotting. 
 
 \
-\
 
-
-### 3.2. Data transformation
+### Data transformation: log and rlog
 
 DESeq2 needs as input **raw counts** for statistical testing, but for some stages of visualization or downstream analysis, you need **transformed data**. 
 
-a) **logarithmic data** - mostly in visualization because of the large dynamic range of the data (usually log2(count+1)). Not used in statistical analysis because it makes the genes with the very lowest counts (which also have a very poor noise-to-signal ratio) contribute the greatest amount the noise (log of small numbers inflates their variance) => **the low counts genes will overly contribute to sample-sample distances**.
+a) **logarithmic data** - mostly in visualization because it reduces the large dynamic range of the data (usually log2(count+1)).
 
-```{r log}
+> **Task 2.a):** Please do a logarithmic transformation of the first 4 samples (columns) 
+
+```{r log, echo = FALSE, results = 'hide', message=FALSE}
 print('dataset with counts before transformation (raw counts):' )  
-head(counts(dds),3)    
+head(counts(dds)[,1:4],3)    
 
 print('dataset with counts after logarithmic transformation:' )  
-head(log(counts(dds), 2) ,3) 
+head(log(counts(dds)[,1:4], 2) ,3) 
 ```
 
-b) We need to stabilize the variance across the mean, for which we can use a **regularized logarithm (RLOG)** transformation. It is slower because it requires fitting a shrinkage term for each sample and each gene. Works well for small datasets (n < 30) and when there is a wide range of sequencing depth across samples (an order of magnitude difference).
+\
+\
 
-```{r rlog}
+b) **Regularized logarithm (RLOG)** transform takes in consideration prior information about all the samples in the experiment. It is slower.
+
+> **Task 2.b):** Please do a rlog transformation of the first 4 samples (columns) 
+
+```{r rlog, echo = FALSE, results = 'hide', message=FALSE}
 print('dataset with counts after RLOG transformation:' )  
 rld <- rlog(dds, blind = FALSE)
-head(assay(rld),3)
+head(assay(rld)[,1:4],3)
 ```
 
+\
+\
+\
 
-```{r diff_log_vst_rlog, out.width = '80%', fig.align="center"}
+```{r logs_plot, echo=FALSE, fig.show="hold", out.width = '50%'}
+#op <- par(mfrow=c(1,2))
+plot(counts(dds)[,c(3,10)])
+plot(assay(rld)[,c(3,10)])
+#par(op)
+```
+
+\
+\
+\
+
+Where can we see the difference between the log and rlog transform?
+```{r diff_log_vst_rlog, out.width = '60%', fig.align="center"}
 df1 <- data.frame(rlg_base2=log2(counts(dds)[, 1]+1))
 df2 <- data.frame(rlg=assay(rld)[, 1])
 
@@ -387,11 +406,13 @@ ggplot(df, aes(x=rlg_base2, y=rlg)) +
       theme(plot.title = element_text(hjust=0.5))
 ```
 
-
+\
+\
+\
 
 Does it make a difference to the visualizations?
 
-```{r ploc, out.width = '80%', fig.align="center"}
+```{r ploc, fig.show="hold", out.width = '50%'}
 th <- data.frame(round(log(counts(dds)+1)))
 
 th.pca <- prcomp(t(th))
@@ -425,7 +446,6 @@ ggplot(rld_new3, aes(PC1, PC2, color=celltype)) +
 
 ## 4. Differential expression analysis - 30 min
 
-The results can be returned using the standard function:
 
 ```
 dds <- DESeq(dds)
@@ -438,21 +458,25 @@ There are several steps to generating the DE results, and they are wrapped toget
 - general linear model fit for each gene and testing - *nbinomWaldTest()*
 
 \ 
-
-
+\
 
 ### 4.1. Modeling count data
 
 **Why is modeling needed?** 
 
-```{r negative_binomial_distribution, out.width = '60%', fig.align="center"}
-x <- 0:100
+<br>
 
-plot(x,  dnorm(x, mean = mean(x)-10, sd=10),  type = "p", col='green')     # Poisson: mean = variance = lambda
-lines(x, dnorm(x, mean = mean(x), sd=10), type = "p", col='blue') # NB:mean < variance; size =  dispersion parameter (shape)
+<center>
 
-```
+![](../images/expression_model.png){width=80%}
 
+</center>
+
+<br>
+
+\
+\
+\
 
 - data can be modeled with various distributions depending on its properties.
 
@@ -466,16 +490,8 @@ What properties can you attribute to RNA-seq data?
 cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small \n   - variance is higher than mean')
 ```
 
-<br>
-
-<center>
-
-![](../images/expression_model.png){width=80%}
-
-</center>
-
-<br>
-
+\
+\
 
 > **Poll 2**: what kind of distribution would you use for count data?
 
@@ -483,24 +499,40 @@ cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs a
 \
 \
 
-```{r mean_vs_variation2, warning=FALSE, out.width = '60%', fig.align="center"}
-#overdispersion
-mean_counts <- apply(counts(dds)[,6:8], 1, mean)        # '1' means that the function 'apply' is applied to rows. Use '2' if applied to columns 
+> **Task 3:** Please plot the mean vs the variance of the genes. Use the following code as guide 
+
+```
+#1) calculate the mean and the variance for each gene (the code for the mean is given bellow)
+mean_counts <- apply(counts(dds)[,6:8], 1, mean) 
+
+#2) plot using plot() and smoothScatter()
+```
+
+\ 
+<br>
+
+<center>
+
+```{r mean_vs_variation2, warning=FALSE, out.width = '40%', fig.show='hold'}
+op <- par( mar=c(2.3, 0, 0.3, 0), pty="s", fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0))
+
+mean_counts <- apply(counts(dds)[,6:8], 1, mean)        # '1' means that the function 'apply' is applied to rows.
 variance_counts <- apply(counts(dds)[,6:8], 1, var)
 
-#simpler
-#smoothScatter(log10(mean_counts), log10(variance_counts))
-#abline(0,1, col="red")
+plot(log10(mean_counts), log10(variance_counts), xlim=c(-1, 10), ylim=c(-1, 10))
+abline(0,1, col="red")
 
+smoothScatter(log10(mean_counts), log10(variance_counts), xlim=c(-1, 10), ylim=c(-1, 10))
+abline(0,1, col="red")
 
-df <- data.frame(mean_counts, variance_counts)
+#plot(mean_counts, variance_counts, xlim=c(-0.5, 150000), ylim=c(-0.5, 1000000000))
 
-ggplot(df) +
-        geom_point(aes(x=mean_counts, y=variance_counts)) + 
-        scale_y_log10(limits = c(1,1e9)) +
-        scale_x_log10(limits = c(1,1e9)) +
-        geom_abline(intercept = 0, slope = 1, color="red")
+par(op)
 ```
+
+</center>
+
+<br>
 
 - for genes with high mean expression, the variance across replicates tends to be greater that the mean => use a **negative binomial** distribution
 - for genes with low mean expression, there is a large scatter = hetero-scedasti-city = for a given expression level in the low range, we obs a lot of variability in the variance values.
@@ -515,25 +547,48 @@ ggplot(df) +
 
 ### 4.2. Size factors
 
-The libraries have different sizes, so when using data for statistical analysis, you must have comparable libraries for the downstream estimations = normalization. The size factors are meant to account for the different sequencing depths.
+- sequencing depth - the ratio between the total nr of bases and the size of the genome; the avg nr of times each base is measured in the genome
 
-```{r size_libraries}
+\
+ 
+```{r, echo=FALSE, out.width = '60%', fig.align="center"}
+knitr::include_graphics("../images/coverage_depth.png")
+```
+ 
+\
+ 
+- composition bias - e.g. if there are just a few highly expressed genes dominating in some of your samples
+- normalization 
+
+\
+ 
+```{r, echo=FALSE, out.width = '60%', fig.align="center", fig.cap="\\label{fig:figs}(ref: Kumar, 2018, BMC Genomics)"}
+knitr::include_graphics("../images/comp_bias.png")
+```
+ 
+\
+
+> **Task 4.a):** Please print out the sizes of each sample (hint: library size is the sum of all counts)
+
+\
+
+```{r size_libraries, echo=FALSE, results = 'hide'}
 colSums(counts(dds))
 ```
 
-'DESeq()' function estimates size factors automatically. But if you run `estimateSizeFactors()` or another function to estimate factors before the `DESeq()` functions, those initial values would be used instead. Why can you do this in 2 different ways? `estimateSizeFactors()` uses the 'median of ratios method', which compensated for the size of the libraries. But the factors can be calculated through different methods to compensate for other sources of bias: differing dependence on GC content, gene length, etc.
+'DESeq()' function estimates size factors automatically. But if you run `estimateSizeFactors()` or another function to estimate factors before `DESeq()`, those calculated values would be used instead. 
+
+Why can you do this in 2 different ways? So you can integrate various methods to compensate for sources of bias within the DESeq2 workflow.
 
 ```{r size_factors}
 dds <- estimateSizeFactors(dds)
 sizeFactors(dds)
 ```
 
-- the larger size factors correspond to the samples with higher sequencing depth. 
-- to generate the normalized counts, you divide the counts by the size factors. 
 
-Now, see the changes in the values of the library sizes:
+> **Task 4.b):** Please print out the sizes of each sample after normalization
 
-```{r normalized}
+```{r normalized, echo=FALSE, results = 'hide'}
 colSums(counts(dds, normalized=T))
 ```
 
@@ -571,12 +626,12 @@ dds <- estimateDispersions(dds)
 
 DESeq2 has a function that allows to visualize the dispersion in your analysis
 
-```{r Visualise dispersions, out.width = '80%', fig.align="center", message=FALSE, warning=FALSE}
+```{r Visualise dispersions, out.width = '60%', fig.align="center", message=FALSE, warning=FALSE}
 plotDispEsts(dds)
 ```
 
 Bad examples of dispersion plots:
-```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+```{r, echo=FALSE, out.width = '60%', fig.align="center"}
 knitr::include_graphics(c("../images/disp_badPlot_1.png", "../images/disp_badPlot_2.png"))
 ```
 
@@ -623,20 +678,26 @@ dds_res
 
 ## 6. Exporting results and further analyses - 10 min
 
+\
+
+
 - why export data?
-```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+```{r, echo=FALSE, out.width = '70%', fig.align="center"}
 knitr::include_graphics(c("../images/analysis_tools.png"))
 ```
 
 - you can save your results in a 'tsv' file:
 
 ```{r export_results}
-write.table(dds_res, file="../misc/results.tsv", col.names=T, row.names = T, sep = "\t", quote=F)
+wfile="../misc/results.tsv"      # location of data file
+#write.table(dds_res, file=wfile, col.names=T, row.names = T, sep = "\t", quote=F)  #tab-sep
+write.csv(dds_res, file=wfile, row.names=TRUE)                                      #comma-sep
 ```
 
+\
 
 - use the exported data for downstream analysis: 
-  - shiny apps on  MPI-IE website: http://deep5.ie-freiburg.mpg.de:3838/bioinfo_official_apps/landing_page/
+  - shiny apps on  MPI-IE website:
 
 ```{r, echo=FALSE, out.width = '80%', fig.align="center"}
 knitr::include_graphics("../images/shiny_apps.png")

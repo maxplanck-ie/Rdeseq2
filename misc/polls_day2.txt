@@ -12,7 +12,3 @@
    c) Negative binomial distribution
    d) Normal distribution 
 
-3. For small count means, dispersion is ....? For large count means, dispersion is ....?
-   a) higher, lower
-   b) they don't correlate
-   c) lower, higher

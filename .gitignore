@@ -7,3 +7,4 @@ data/*gz
 rmd/.rstudio/
 .Ruserdata
 
+misc/results.tsv
