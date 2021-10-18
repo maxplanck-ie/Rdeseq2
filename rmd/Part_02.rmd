@@ -67,6 +67,35 @@ head(metadata)
 dim(metadata)
 ```
 
+
+
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxx
+```{r trials}
+data <- as.matrix(data)
+# zero_index <- sample(length(as.matrix(data)), round(0.9*length(as.matrix(data))), replace=F)
+# data[zero_index] <- 1
+
+#keep2 <- rowSums(data) > 1
+# modif_data <- data[keep,]
+# plot(density(log2(data$BM_CTRL_2)))
+# hist(log2(data$BM_CTRL_2))
+#rug(log2(data$BM_CTRL_2), col="red")
+
+#data <- matrix(rpois(data[,i], mean(data[,i])))
+# data <- matrix(rpois(data[,i], mean(data[,i])))
+# 
+# plot(density(data))
+# hist(data)
+
+# a <- rnorm(data, mean(data), sd=150)
+# plot(density(a))
+# hist(a)
+# 
+# a <- rnbinom(data, size=10, mu=mean(data))
+# plot(density(a))
+# hist(a)
+```
+KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
 \
 
 c) Make design and create the DDS object
@@ -576,9 +605,8 @@ knitr::include_graphics("../images/comp_bias.png")
 colSums(counts(dds))
 ```
 
-'DESeq()' function estimates size factors automatically. But if you run `estimateSizeFactors()` or another function to estimate factors before `DESeq()`, those calculated values would be used instead. 
-
-Why can you do this in 2 different ways? So you can integrate various methods to compensate for sources of bias within the DESeq2 workflow.
+\
+\
 
 ```{r size_factors}
 dds <- estimateSizeFactors(dds)
@@ -598,7 +626,13 @@ colSums(counts(dds, normalized=T))
 \
 \
 
+NOTE: 'DESeq()' function estimates size factors automatically. But if you *run `estimateSizeFactors()`* or another function to estimate factors *before `DESeq()`*, those calculated values would be used instead. 
 
+Why can you do this in 2 different ways? So you can integrate various methods to compensate for sources of bias within the DESeq2 workflow.
+
+```{r, echo=FALSE, out.width = '60%', fig.align="center"}
+knitr::include_graphics(c("../images/expl_size_factors.png"))
+```
 
 \ 
 
