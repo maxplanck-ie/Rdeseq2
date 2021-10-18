@@ -23,6 +23,7 @@ output:
 ```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
 # add libraries
 .libPaths("/data/processing3/RdeseqCourse/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library")
+suppressPackageStartupMessages({
 library("DESeq2")
 library("dplyr")
 library("tibble")
@@ -33,6 +34,7 @@ library("EnsDb.Hsapiens.v75")
 library("UpSetR")
 library("tidyr")
 library("ashr")
+})
 ```
 
 ```{r Get the data directroy, message=FALSE, warning=FALSE}
@@ -63,6 +65,8 @@ Multi-factor design with increasing complexity are nicely explained in these [sl
  * one factor with two levels
  
 ```{r Only used to make the figure}
+# The intercept is log2 of the mean normalized counts for the group that is the reference level for all factor variables.
+
 # sampleInfo$celltype <- factor(sampleInfo$celltype, levels = c ('JJ', 'BM'))
 ```
 
@@ -208,7 +212,7 @@ dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInf
 ```
 
 
-# Estimate size factors
+## Estimate size factors
 DESeq2 automatically estimates the size factors when performing the differential expression analysis. However, if `estimateSizeFactors()` is called, then DESeq2 will use these values.
 To normalize the count data, DESeq2 calculates size factors for each sample using the "median of ratios" method.
 
@@ -231,7 +235,7 @@ dds <- estimateSizeFactors(dds)
 ```
 
 
-# Estimate dispersion
+## Estimate dispersion
 DESeq2 uses a measure of variation called dispersion, which accounts for a gene’s variance and mean expression level. Dispersion is calculated by `Var = μ + α*μ^2`, where `α` = dispersion, `Var` = variance, and `μ` = mean
 ```{r estimate dispersions, message=FALSE, warning=FALSE}
 dds <- estimateDispersions(dds)
@@ -242,11 +246,13 @@ dds <- estimateDispersions(dds)
 # plotDispEsts(dds)
 ```
 
-# Run deseq analysis
+## Run deseq analysis
 ```{r deseq analysis, message=FALSE, warning=FALSE}
 dds <- DESeq(dds)
 ```
-# Steps required to generate a results table for pairwise comparisons (Wald test)
+# Steps to generate pairwise comparisons 
+
+## Wald test
 By default DESeq2 uses the Wald test to identify genes that are differentially expressed between two groups of samples. Results can be extracted for a number of different comparisons.
 This is done through the following steps:
   
@@ -255,6 +261,10 @@ This is done through the following steps:
   * The shrunken estimate of LFC is divided by its standard error, resulting in a z-statistic,
   * z-statistic is compared to a standard normal distribution to compute the p-values,
   * P values are adjusted for multiple testing using the procedure of Benjamini and Hochberg.
+  
+```{r}
+# The Wald test allows testing of individual coefficients, or contrasts of coefficients, without the need to fit a reduced model as with the likelihood ratio test
+```
 
 
 ```{r extract coef of a gene}
@@ -277,7 +287,7 @@ This is done through the following steps:
     )
 ```
 
-# Make a pairwise comparison (using contrast)
+## Make a pairwise comparison (using contrast)
 Contrasts can be given as a list of 2 character vectors:
 the names of the fold changes for the level of ineterest, and the names of the fold changes for the base level.
 ```{r contrast, message=FALSE, warning=FALSE}
@@ -285,14 +295,15 @@ resultsNames(dds) # to see what names to use
 contrast <- c("celltype", "JJ", "BM")
 #contrast <- list(resultsNames(dds)[1], resultsNames(dds)[2])
 ```
+
 If there is only two factor levels, There is no need to  specify contrasts, DESeq2 will choose the base factor level based on the alphabetical order of the levels.
 
+## Results
 ```{r result, message=FALSE, warning=FALSE}
 # which contrast are we interested in?
 res <- results(dds, contrast = contrast, alpha = 0.05)
 ```
 
-# Results
 ```{r view res, message=FALSE, warning=FALSE}
 # What type of object is the results?
 class(res)
@@ -316,7 +327,7 @@ Columns of results dataframe:
 The padj column represents the p-value adjusted for multiple testing, and is the most important column of the results! The default method for multiple test correction in DESeq2 is an implementation of the Benjamini-Hochberg false discovery rate (FDR).
 If a gene contains a sample with an extreme count outlier then the p-value and adjusted p-value will be set to NA.
 
-# Plot of the mean normalized counts vs log10(p values)
+### Plot of the mean normalized counts vs log10(p values)
 ```{r plot norm_count vs p values}
 plot(res$baseMean+1, -log10(res$pvalue),
      log="x", xlab="mean of normalized counts",
@@ -326,11 +337,19 @@ plot(res$baseMean+1, -log10(res$pvalue),
 
 ```
 
-# Shrinkage method
+## Shrinkage method
+
+```{r}
+# shrinkage: It looks at the largest fold changes that are not due to low counts and uses these to inform a prior distribution. So the large fold changes from genes with lots of statistical information are not shrunk, while the imprecise fold changes are shrunk. This allows you to compare all estimated LFC across experiments, for example, which is not really feasible without the use of a prior.
+```
+
 To generate more accurate log2 foldchange (LFC) estimates, DESeq2 allows for the shrinkage of the LFC estimates toward zero when the information for a gene is low, which could include:
+
 - Low counts
 - High dispersion values
+
 LFC shrinkage uses information from all genes to generate more accurate estimates. Specifically, the distribution of LFC estimates for all genes is used (as a prior) to shrink the LFC estimates of genes with little information or high dispersion toward more likely (lower) LFC estimates.
+
 ```{r shrink, message=FALSE, warning=FALSE}
 # which coef to use?
 resultsNames(dds)
@@ -338,14 +357,14 @@ res_shrink <- lfcShrink(dds, coef="celltype_JJ_vs_BM", type="apeglm")
 ```
 To get the coef name check resultsNames(dds)
 
-text
-# MA plot
+
 ```{r MA plot, message=FALSE, warning=FALSE}
+# MA plot
 plotMA(res, ylim=c(-2,2))
 plotMA(res_shrink, ylim=c(-2,2))
 ```
-text
-# summary
+
+### summary
 ```{r summary, message=FALSE, warning=FALSE}
 summary(res_shrink, alpha = 0.05)
 cutoff <- 0.05
@@ -353,7 +372,8 @@ res_sig <- subset(res_shrink, padj<cutoff)
 res_sig_sorted = res_sig[order(res_sig$padj), ]
 head(res_sig_sorted)
 ```
-# Visualisation
+
+## Visualisation
 ```{r visualisation, message=FALSE, warning=FALSE}
 # plot a single gene
 plotCounts(dds, gene = "ENSG00000164062", intgroup = "celltype")
@@ -368,29 +388,45 @@ ggplot(d, aes(x = celltype, y = count, color = celltype)) +
     ggtitle("ENSG00000164062") +
     theme(plot.title = element_text(hjust = 0.5))
 ```
+
 Extract the normalized values of all the significant genes and plot a heatmap of their expression using `pheatmap()`.
 
 ```{r heatmap, message=FALSE, warning=FALSE}
-normalized_counts <- counts(dds, normalized=T)[,c(10:12,4:6)]
+# [,c(10:12,4:6)]
+normalized_counts <- counts(dds, normalized=T)
 norm_sig <- subset(normalized_counts, row.names(normalized_counts) %in% row.names(res_sig_sorted))
-head(norm_sig[,1:6])
-# pheatmap(norm_sig[,1:6],
-#     cluster_rows = T,
-#     show_rownames = F,
-#     annotation = meta,
-#     border_color = NA,
-#     fontsize = 10,
-#     scale = "row",
-#     fontsize_row = 10,
-#     height = 20)
+head(norm_sig)
+pheatmap(norm_sig[1:20,],
+    cluster_rows = T,
+    show_rownames = F,
+    border_color = NA,
+    fontsize = 10,
+    scale = "row",
+    fontsize_row = 10,
+    height = 20)
 
 ```
 A commonly used plot to have a global view of the expression is volcano plot; in which the log transformed adjusted p-values plotted on the y-axis and log2 fold change values on the x-axis.
 ```{r volcano plot, message=FALSE, warning=FALSE}
-
+    volcano_xlim <- max(abs(quantile(na.omit(res_shrink$log2FoldChange),p= c(0.01, 0.99)) ) )
+    volcano_ylim <- quantile(-log(na.omit(res_shrink$padj) ), p = 0.99)
+    sig_data <- res_shrink[which(res_shrink$padj < 0.01),]
+    print(ggplot(res_shrink%>% data.frame(), aes(log2FoldChange, -log10(padj))) +
+          geom_point(alpha = 0.4, size = 1, colour = "grey50") +
+          scale_x_continuous(limits = c(-volcano_xlim, volcano_xlim)) +
+          scale_y_continuous(limits = c(0, volcano_ylim) ) +
+          geom_vline(xintercept = 0, col = "navy") +
+          geom_point(data = sig_data%>% data.frame(), aes(log2FoldChange, -log10(padj)), alpha = 0.6, size = 1, colour = "red" ) +
+          theme_bw(base_size = 14) +
+          labs(x = "log2-fold change",
+               y = "-log10 (padj)",
+               title = sprintf("Volcano plot"))
+    )
+```
 
 ```
-#Likelihood ratio test
+
+## Likelihood ratio test
 DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one class compared to another, it identifies genes which are changing in expression in any direction across the different factor levels. Therefore, there is no need for contrasts since we are not making a pair-wise comparison.
 The LRT is comparing the 'full' model to the 'reduced' model to identify significant genes. The p-values are determined solely by the difference in deviance between the ‘full’ and the ‘reduced’ model formula (not the log2 fold changes). Essentially the LRT test is testing whether the term(s) removed in the ‘reduced’ model explains a significant amount of variation in the data
 ```{r lrt, message=FALSE, warning=FALSE}
