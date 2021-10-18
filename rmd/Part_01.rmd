@@ -511,16 +511,14 @@ hist(log(M[,3]),100, col=myblue, add=TRUE)
 Compare the genome-wide correlations before and after transformation
 ```{r explore_corr}
 Mt <- log2(M + 1)      # simple log-transform; (why + 1 ?)
-
-# skip
-#pheatmap(Mt %>% head(15), annotation=ann, annotation_colors = my_colors, main="Transformed data (log2)")
-
 pheatmap(cor(Mt), annotation = ann, annotation_colors = my_colors)
 ```
 
 
 **Discussion**: Notice the overall high correlations? How would you explore this further
 
+
+<br><br><br><br>
 ```{r smoothScatter}
 # correlation coeff. is only a single number
 smoothScatter(Mt[,1], Mt[,5])
@@ -535,13 +533,21 @@ smoothScatter(Mt[,1], Mt[,5])
 PCA aims to project samples from a high-dimensional space (M=20k+ genes) to a lower dimension (D=2).
 Similar to correlation analysis, the main purpose is to identify distinct and similar samples.
 ```{r PCA_manual}
-nt <- 500                                              # set number of most variable genes
-top <- order(rowVars(Mt), decreasing = TRUE)[1:nt]     # calculate variance for each row and sort
+#Mt is the transformed count matrix: log, rlog, vst, ...
 
+nt <- 500     # set number of most variable genes
 
-pca <- prcomp(t(Mt[top,]), scale=TRUE)                 # perform PCA
-#eigs <- pca$sdev^2                                     # extract eigenvalue
-#vars <- round(100*eigs / sum(eigs), 2)                 # calculate % of explained variance
+# get top variable genes (rows)
+top <- order(rowVars(Mt), decreasing = TRUE)[1:nt]  # calculate variance for each row and sort
+
+pca <- prcomp(t(Mt[top,]), scale=TRUE)      # perform PCA
+
+# pca-object contains transformed coordinates for each sample 
+# pca$x:  number of genes --> 2
+
+# calculate explained variance from pca object
+#eigs <- pca$sdev^2                       # extract eigenvalue
+#vars <- round(100*eigs / sum(eigs), 2)   # calculate % of explained variance
 
 # prepare data frame for plotting
 rld_PCA <- as.data.frame(pca$x[,1:2])                     # only take PC1 and PC2 (column 1 + 2)

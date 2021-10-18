@@ -7,15 +7,15 @@ output: html_document
 
 # Goals: 
 
-<!-- ![Typical examples from R.](../images/DESeq2_workflow.png) -->
+<!-- ![DESeq workflow](../images/workflow_DESeq2.png) -->
 
 After the course you will be able to
 
-* understand bioinformatics workflows: data input $\to$ output
-* perform and understand quality controls
-* visualize data and results
+* perform a full bioinformatics workflow (DESeq2): data input $\to$ output
+* perform exploratory analysis: quality controls, filters
+* visualize data and results with modern tools
 * apply complex experimental designs
-* obtain differential genes
+* use packages: to obtain differential genes
 * share workflows with notebook
 
 ***
@@ -28,6 +28,9 @@ After the course you will be able to
 ***
 
 # Credits
+
+ * !!! Leily, Mirela, Ward !!!
+ 
 There is lots of useful material out there. This course is heavily influenced by those tutorials
 
  * https://hbctraining.github.io/DGE_workshop_salmon_online/
@@ -41,7 +44,6 @@ There is lots of useful material out there. This course is heavily influenced by
 
 * Warmup & R-epetition
 * Data, Metadata & Design
-* Experimental Design
 * Data Exploration
 * Quality Control
 
@@ -59,7 +61,6 @@ There is lots of useful material out there. This course is heavily influenced by
 * Multifactorial Designs & Complex Contrasts
 * Hypothesis tests: Wald test & LRT
 * Inspection & Visualization
-* Assessing Overlaps
 * Gene Annotations
 * Exporting results
 
