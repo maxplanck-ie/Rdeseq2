@@ -67,7 +67,7 @@ head(metadata)
 dim(metadata)
 ```
 
-\
+
 
 c) Make design and create the DDS object
 
@@ -576,9 +576,8 @@ knitr::include_graphics("../images/comp_bias.png")
 colSums(counts(dds))
 ```
 
-'DESeq()' function estimates size factors automatically. But if you run `estimateSizeFactors()` or another function to estimate factors before `DESeq()`, those calculated values would be used instead. 
-
-Why can you do this in 2 different ways? So you can integrate various methods to compensate for sources of bias within the DESeq2 workflow.
+\
+\
 
 ```{r size_factors}
 dds <- estimateSizeFactors(dds)
@@ -598,40 +597,41 @@ colSums(counts(dds, normalized=T))
 \
 \
 
+NOTE: 'DESeq()' function estimates size factors automatically. But if you *run `estimateSizeFactors()`* or another function to estimate factors *before `DESeq()`*, those calculated values would be used instead. 
 
+Why can you do this in 2 different ways? So you can integrate various methods to compensate for sources of bias within the DESeq2 workflow (e.g. *cqn*, *EDASeq*, etc)
+
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics(c("../images/expl_size_factors.png"))
+```
 
 \ 
 
 ### 4.3. Dispersions
 
 DESeq2 measures variation using the term 'dispersion', that actually connects a gene’s variance and mean expression level. Dispersion is calculated by `Var = μ + α*μ^2`, where `α` = dispersion, `Var` = variance, and `μ` = mean
-=> 
-$$
-\alpha = \frac{(var - \mu)} {\mu^2} = \frac{var} {\mu^2} - \frac{1} {\mu} \\ \\
-$$
-
-<=> it means that dispersion $\alpha$ is inversely proportional to the mean $\mu$, and directly proportional to the variance $var$
-
-> **Poll 3**: for small count means, dispersion $\alpha$ is ....? For large mean counts, dispersion $\alpha$ is ....?
 
 \
 \
 \
 
-For genes with same mean $/mu$, the dispersion $\alpha$ will differ only based on their variance $var$. So the dispersion estimates will differ much more between the genes with small means.
+> **Task 5:** Please visualize the dispersion in your analysis using the following functions: ```dds <- estimateDispersions(dds)``` and ```plotDispEsts(dds)```
 
-```{r estimate dispersions, message=FALSE, warning=FALSE}
-dds <- estimateDispersions(dds)
+\
+\
+\
+
+```{r, echo=FALSE, out.width = '60%', fig.align="center"}
+knitr::include_graphics(c("../images/explain_dispersion.png"))
 ```
+- count data for each gene separately => get preliminary gene-wise dispersion estimates using maximum-likelihood estimation (black dots)
+- fit the dispersion trend (red line)
+- combine the likelihood with the trended prior to get a maximum *a posteriori* (MAP) values = final dispersion estimates (blue dots)
 
-DESeq2 has a function that allows to visualize the dispersion in your analysis
-
-```{r Visualise dispersions, out.width = '60%', fig.align="center", message=FALSE, warning=FALSE}
-plotDispEsts(dds)
-```
+\
 
 Bad examples of dispersion plots:
-```{r, echo=FALSE, out.width = '60%', fig.align="center"}
+```{r, echo=FALSE, out.width = '60%', fig.align="center", fig.show='hold'}
 knitr::include_graphics(c("../images/disp_badPlot_1.png", "../images/disp_badPlot_2.png"))
 ```
 
