@@ -87,7 +87,7 @@ Design:
 
 This results in the coefficient for the intercept and coefficient for the effect of “BM” (i.e. differences between BM vs. JJ). 
 
-Every coefficient shows a difference (LFC).
+Each coefficient shows a difference (LFC).
 
     [1] "Intercept" (beta0)             "celltype_BM_vs_JJ" (beta1)
 
@@ -256,13 +256,14 @@ dds <- estimateDispersions(dds)
 
 ## Run deseq analysis (recap)
 ```{r deseq analysis, message=FALSE, warning=FALSE}
+# If you already have the dds object just replace the design by:
+    #  dds <- DESeq(dds, design = design)
 dds <- DESeq(dds)
 ```
 # 2. Steps to generate pairwise comparisons 
 
 ## Wald test
-By default DESeq2 uses the Wald test to identify genes that are differentially expressed between two groups of samples. Results can be extracted for a number of different comparisons.
-This is done through the following steps:
+By default DESeq2 uses the Wald test to identify genes that are differentially expressed between two groups of samples. This is done through the following steps:
   
   * A regression model fits to each gene (glm.nb),
   * Each gene model coefficient (LFC) is estimated using maximum likelihood,
@@ -333,6 +334,7 @@ Columns of results dataframe:
   * padj: BH adjusted p-values
 
 The padj column represents the p-value adjusted for multiple testing, and is the most important column of the results! The default method for multiple test correction in DESeq2 is an implementation of the Benjamini-Hochberg false discovery rate (FDR).
+
 If a gene contains a sample with an extreme count outlier then the p-value and adjusted p-value will be set to NA.
 
 ### Plot of the mean normalized counts vs log10(p values)
@@ -356,14 +358,14 @@ To generate more accurate log2 foldchange (LFC) estimates, DESeq2 allows for the
 - Low counts
 - High dispersion values
 
-LFC shrinkage uses information from all genes to generate more accurate estimates. Specifically, the distribution of LFC estimates for all genes is used (as a prior) to shrink the LFC estimates of genes with little information or high dispersion toward more likely (lower) LFC estimates.
+LFC shrinkage generates a more accurate estimate.  It looks at the largest fold changes that are not due to low counts and uses these to inform a prior distribution. The genes with little information or high dispersion are then more likely to be assigned to a lower shrunk LFC.
 
 ```{r shrink, message=FALSE, warning=FALSE}
 # which coef to use?
 resultsNames(dds)
 res_shrink <- lfcShrink(dds, coef="celltype_JJ_vs_BM", type="apeglm")
 ```
-To get the coef name check resultsNames(dds)
+To get the coef. names check resultsNames(dds)
 
 
 ```{r MA plot, message=FALSE, warning=FALSE}
@@ -373,6 +375,10 @@ plotMA(res_shrink, ylim=c(-2,2))
 ```
 
 ### summary
+
+    1. Check the shrunk result with padj values being < 0.05 (use summary)
+    2. Filter the shrunk result for this cut off
+    3. Sort the output based on the padj values
 ```{r summary, message=FALSE, warning=FALSE}
 summary(res_shrink, alpha = 0.05)
 cutoff <- 0.05
@@ -382,6 +388,12 @@ head(res_sig_sorted)
 ```
 
 ## Visualisation
+  Several ways to visualise the DESeq2 outputs:
+  
+  * Plot a single gene
+
+    I. Try to plot "ENSG00000164062"
+      
 ```{r visualisation, message=FALSE, warning=FALSE}
 # plot a single gene
 plotCounts(dds, gene = "ENSG00000164062", intgroup = "celltype")
@@ -397,46 +409,55 @@ ggplot(d, aes(x = celltype, y = count, color = celltype)) +
     theme(plot.title = element_text(hjust = 0.5))
 ```
 
-Extract the normalized values of all the significant genes and plot a heatmap of their expression using `pheatmap()`.
+  * Make a heatmap of several (or all) significant genes
+    
+    I. Extract the normalized values of the top 20 significant genes (based on padj) and plot a heatmap of their expression using `pheatmap()`.
+      
+      (Hint: You can use 'subset' to extract the top genes from the filtered and sorted significant genes which you generated before.)
 
 ```{r heatmap, message=FALSE, warning=FALSE}
-# [,c(10:12,4:6)]
 normalized_counts <- counts(dds, normalized=T)
 norm_sig <- subset(normalized_counts, row.names(normalized_counts) %in% row.names(res_sig_sorted))
-head(norm_sig)
 pheatmap(norm_sig[1:20,],
-    cluster_rows = T,
-    show_rownames = F,
-    border_color = NA,
-    fontsize = 10,
-    scale = "row",
-    fontsize_row = 10,
-    height = 20)
+         cluster_rows = T,
+         show_rownames = F,
+         border_color = NA,
+         fontsize = 10,
+         scale = "row",
+         fontsize_row = 10,
+         height = 20)
 
 ```
-A commonly used plot to have a global view of the expression is volcano plot; in which the log transformed adjusted p-values plotted on the y-axis and log2 fold change values on the x-axis.
+  * Volcano plot
+
+  A commonly used plot to have a global view of the expression is volcano plot; in which the log transformed adjusted p-values plotted on the y-axis and log2 fold change values on the x-axis.
+    
+  I. Generate a volcano plot of your result and color the siginificant genes differently
+    
 ```{r volcano plot, message=FALSE, warning=FALSE}
-    volcano_xlim <- max(abs(quantile(na.omit(res_shrink$log2FoldChange),p= c(0.01, 0.99)) ) )
-    volcano_ylim <- quantile(-log(na.omit(res_shrink$padj) ), p = 0.99)
-    sig_data <- res_shrink[which(res_shrink$padj < 0.01),]
-    print(ggplot(res_shrink%>% data.frame(), aes(log2FoldChange, -log10(padj))) +
-          geom_point(alpha = 0.4, size = 1, colour = "grey50") +
-          scale_x_continuous(limits = c(-volcano_xlim, volcano_xlim)) +
-          scale_y_continuous(limits = c(0, volcano_ylim) ) +
-          geom_vline(xintercept = 0, col = "navy") +
-          geom_point(data = sig_data%>% data.frame(), aes(log2FoldChange, -log10(padj)), alpha = 0.6, size = 1, colour = "red" ) +
-          theme_bw(base_size = 14) +
-          labs(x = "log2-fold change",
-               y = "-log10 (padj)",
-               title = sprintf("Volcano plot"))
+volcano_xlim <- max(abs(quantile(na.omit(res_shrink$log2FoldChange),p= c(0.01, 0.99)) ) )
+volcano_ylim <- quantile(-log(na.omit(res_shrink$padj) ), p = 0.7)
+sig_data <- res_shrink[which(res_shrink$padj < 0.05),]
+print(ggplot(res_shrink%>% data.frame(), aes(log2FoldChange, -log(padj))) +
+            geom_point(alpha = 0.4, size = 1, colour = "grey50") +
+            scale_x_continuous(limits = c(-volcano_xlim, volcano_xlim)) +
+            scale_y_continuous(limits = c(0, volcano_ylim) ) +
+            geom_vline(xintercept = 0, col = "navy") +
+            geom_point(data = sig_data%>% data.frame(), aes(log2FoldChange, -log(padj)), alpha = 0.6, size = 1, colour = "red" ) +
+            theme_bw(base_size = 14) +
+            labs(x = "log2-fold change",
+                 y = "-log (padj)",
+                 title = sprintf("Volcano plot"))
     )
 ```
 
-```
 
 ## Likelihood ratio test
-DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one class compared to another, it identifies genes which are changing in expression in any direction across the different factor levels. Therefore, there is no need for contrasts since we are not making a pair-wise comparison.
+
+DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative to wilde test when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one class compared to another, it identifies genes which are changing in expression in any direction across the different factor levels. Therefore, there is no need for contrasts since we are not making a pair-wise comparison.
+
 The LRT is comparing the 'full' model to the 'reduced' model to identify significant genes. The p-values are determined solely by the difference in deviance between the ‘full’ and the ‘reduced’ model formula (not the log2 fold changes). Essentially the LRT test is testing whether the term(s) removed in the ‘reduced’ model explains a significant amount of variation in the data
+
 ```{r lrt, message=FALSE, warning=FALSE}
 # which model are we interested in as reduced?
 dds_lrt <- DESeq(dds, test="LRT", reduced = ~celltype + condition)
@@ -444,11 +465,14 @@ res_lrt <- results(dds_lrt)
 head(res_lrt)
 
 ```
+
 Columns relevant to the LRT test:
+
 * baseMean: mean of normalized counts for all samples
 * stat: the difference in deviance between the reduced model and the full model
 * pvalue: the stat value is compared to a chi-squared distribution to generate a pvalue
 * padj: BH adjusted p-values
+
 ```{r detect lrt sig genes, message=FALSE, warning=FALSE}
 # padj < 0.05
 sig_res_lrt <- res_lrt %>%
@@ -463,6 +487,19 @@ sig_lrt_genes <- sig_res_lrt %>%
 
 length(sig_lrt_genes)
 
+```
+```{r heatmap of sig_lrt_genes}
+normalized_counts <- counts(dds, normalized=T)
+norm_lrt_sig <- subset(normalized_counts, row.names(normalized_counts) %in% sig_lrt_genes)
+pheatmap(norm_lrt_sig,
+         cluster_rows = T,
+         kmeans_k = 3,
+         show_rownames = F,
+         border_color = NA,
+         fontsize = 10,
+         scale = "row",
+         fontsize_row = 10,
+         height = 20)
 ```
 
 
