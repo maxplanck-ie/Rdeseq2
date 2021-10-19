@@ -196,14 +196,14 @@ Null hypothesis:
     BM vs JJ (DMSO)
     beta1 + beta4 = 0
 
-    treat2 vs treat1 (cond1):
+    DMSO vs AMIL (BM):
     beta2 = 0
 
-    treat2 vs treat1 (cond2):
+    TG vs DMSO (BM):
     beta2 + beta3 = 0
 
     Interaction:
-    beta3 = 0
+    beta5 = 0
 
 ```{r build the matrix, message=FALSE, warning=FALSE}
 design <- as.formula(~celltype + condition + celltype:condition)

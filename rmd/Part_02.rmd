@@ -28,7 +28,7 @@ output:
 \
 
 
-## 1. Filtering data - 30 min
+## 1. Filtering data - 25 min
 
 
 **Load data, metadata, check samples**
@@ -84,7 +84,10 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_desig
 
 
 
-### 1.1. Sample filtering - 10 min
+
+
+
+### 1.1. Sample filtering - 15 min
 
 Previously you noticed that the PCA shows a problem with our data. 
 
@@ -133,7 +136,7 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
 \
 \
 
-### 1.2. Feature filtering
+### 1.2. Feature filtering - 10 min
 
 - filtering: manual or automatic
 - helpful but not necessary to remove rows/genes that have very low counts (very unlikely to have biological meaning)
@@ -161,7 +164,7 @@ dds<-fdds
 
 \
 
-## 2. Brief overview and (semi-)deep dive into concepts - 30 min
+## 2. Brief overview and (semi-)deep dive into concepts - 25 min
 
 \
 
@@ -342,7 +345,7 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=my_design
 \
 \
 
-## 3.  Data exploration, visualization and QC  - 30 min
+## 3.  Data exploration, visualization and QC  - 20 min
 
 To explore your data further and to create informative, easy to interpret visualizations, the data needs to be transformed before plotting. 
 
@@ -460,7 +463,7 @@ There are several steps to generating the DE results, and they are wrapped toget
 \ 
 \
 
-### 4.1. Modeling count data
+### 4.1. Modeling count data - 15 min
 
 **Why is modeling needed?** 
 
@@ -545,7 +548,7 @@ par(op)
 
 
 
-### 4.2. Size factors
+### 4.2. Size factors - 20 min
 
 - sequencing depth - the ratio between the total nr of bases and the size of the genome; the avg nr of times each base is measured in the genome
 
@@ -579,6 +582,9 @@ colSums(counts(dds))
 \
 \
 
+How to calculate size factors in DESeq2?
+
+
 ```{r size_factors}
 dds <- estimateSizeFactors(dds)
 sizeFactors(dds)
@@ -607,9 +613,14 @@ knitr::include_graphics(c("../images/expl_size_factors.png"))
 
 \ 
 
-### 4.3. Dispersions
+### 4.3. Dispersions - 15 min
 
-DESeq2 measures variation using the term 'dispersion', that actually connects a gene’s variance and mean expression level. Dispersion is calculated by `Var = μ + α*μ^2`, where `α` = dispersion, `Var` = variance, and `μ` = mean
+Within group variability (e.g. between replicates) is modeled by parameter `α`, which describes variance of counts with: `Var = μ + α*μ^2`, where `α` = dispersion, `Var` = variance, and `μ` = mean. 
+Accurate estimation of `α` is critical:
+
+- not a problem for large studies with many samples and replicates 
+
+- but usually we only have 2-3 replicates => highly variable `α` estimates for each gene.
 
 \
 \
@@ -617,26 +628,49 @@ DESeq2 measures variation using the term 'dispersion', that actually connects a 
 
 > **Task 5:** Please visualize the dispersion in your analysis using the following functions: ```dds <- estimateDispersions(dds)``` and ```plotDispEsts(dds)```
 
+```{r, echo=FALSE, results = 'hide', message=FALSE}
+dds <- estimateDispersions(dds)
+plotDispEsts(dds)
+```
+
 \
 \
 \
 
-```{r, echo=FALSE, out.width = '60%', fig.align="center"}
+```{r, echo=FALSE, out.width = '50%', fig.align="center"}
 knitr::include_graphics(c("../images/explain_dispersion.png"))
 ```
+
+\
+
 - count data for each gene separately => get preliminary gene-wise dispersion estimates using maximum-likelihood estimation (black dots)
+
 - fit the dispersion trend (red line)
+
 - combine the likelihood with the trended prior to get a maximum *a posteriori* (MAP) values = final dispersion estimates (blue dots)
 
 \
 
 Bad examples of dispersion plots:
-```{r, echo=FALSE, out.width = '60%', fig.align="center", fig.show='hold'}
-knitr::include_graphics(c("../images/disp_badPlot_1.png", "../images/disp_badPlot_2.png"))
+
+<br>
+
+<center>
+```{r, echo=FALSE, out.width = '60%', fig.align='center'}
+knitr::include_graphics("../images/initial_dispersion.png")
 ```
+
+</center>
+
+<br>
+
+\
+\
+
 
 ### 4.4. Wald test
 - gene-wise dispersion by fitting a negative binomial general linear model (GLM) to the data and then returning the results using Wald statistics (**nbinomWaldTest**) > tomorrow
+- default parameters: obtain DE genes for the last variable in the design formula ('TG/DMSO')
 
 ```{r run_DE, message=FALSE}
 dds <- DESeq(dds)
@@ -647,6 +681,8 @@ dds <- DESeq(dds)
 \
 
 ## 5. Extracting results - 10 min
+
+\
 
 To extract the results, use: 
 
@@ -669,14 +705,21 @@ dds_res
 
 
 - baseMean: mean of normalized counts for all samples
-- log2FoldChange: log2 fold change
+- **log2FoldChange: log2 fold change**
 - lfcSE: standard error
 - stat: Wald statistic
 - pvalue: Wald test p-value
-- padj: BH adjusted p-values
+- **padj: BH adjusted p-values**
+
+\
+
+> **Discussion:** What are the NA values in the 'padj' column?
+
+\
+\
 
 
-## 6. Exporting results and further analyses - 10 min
+## 6. Exporting results and further analyses - 15 min
 
 \
 
@@ -689,6 +732,7 @@ knitr::include_graphics(c("../images/analysis_tools.png"))
 - you can save your results in a 'tsv' file:
 
 ```{r export_results}
+# change the location of the saved file!!
 wfile="../misc/results.tsv"      # location of data file
 #write.table(dds_res, file=wfile, col.names=T, row.names = T, sep = "\t", quote=F)  #tab-sep
 write.csv(dds_res, file=wfile, row.names=TRUE)                                      #comma-sep
@@ -710,3 +754,7 @@ knitr::include_graphics("../images/gene2functions.png")
 ```
  
   - Ingenuity Pathway Analysis (IPA): tool to help interprete and analyze omics data (e.g. functional enrichment of DEGs)
+  
+```{r, echo=FALSE, out.width = '60%', fig.align="center"}
+knitr::include_graphics("../images/ipa_example.jpg")
+```
