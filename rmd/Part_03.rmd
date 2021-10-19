@@ -256,6 +256,8 @@ dds <- estimateDispersions(dds)
 
 ## Run deseq analysis (recap)
 ```{r deseq analysis, message=FALSE, warning=FALSE}
+# If you already have the dds object just replace the design by:
+    #  dds <- DESeq(dds, design = design)
 dds <- DESeq(dds)
 ```
 # 2. Steps to generate pairwise comparisons 
@@ -491,7 +493,7 @@ normalized_counts <- counts(dds, normalized=T)
 norm_lrt_sig <- subset(normalized_counts, row.names(normalized_counts) %in% sig_lrt_genes)
 pheatmap(norm_lrt_sig,
          cluster_rows = T,
-         kmeans_k = 8,
+         kmeans_k = 3,
          show_rownames = F,
          border_color = NA,
          fontsize = 10,
