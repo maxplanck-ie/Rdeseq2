@@ -57,9 +57,11 @@ sampleInfo$condition <- as.factor(sampleInfo$condition)
 print(sampleInfo)
 ```
 
-# Building a deseq data set with a multi-factor design:
+# 1. Building a deseq data set with a multi-factor design:
 ## factors and designs:
-Multi-factor design with increasing complexity are nicely explained in these [slides](https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing)
+A design formula takes all sources of variation to control for. The first factor is considered as "the factor of interest" to test for during the differential expression testing.
+
+DESeq2 uses the design as a model for each gene, and fits a normalized count based on that. 
 
 ### The simplest case:
  * one factor with two levels
@@ -83,7 +85,9 @@ Design:
       ~1+celltype (or ~celltype)
       = beta0 + beta1 * BM
 
-This results in the coefficient for the intercept and coefficient for the effect of “BM” (i.e. differences between BM vs. JJ).
+This results in the coefficient for the intercept and coefficient for the effect of “BM” (i.e. differences between BM vs. JJ). 
+
+Every coefficient shows a difference (LFC).
 
     [1] "Intercept" (beta0)             "celltype_BM_vs_JJ" (beta1)
 
@@ -204,6 +208,10 @@ Null hypothesis:
 
     Interaction:
     beta5 = 0
+    
+
+* Multi-factor design with increasing complexity are nicely explained in these [slides](https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing)
+
 
 ```{r build the matrix, message=FALSE, warning=FALSE}
 design <- as.formula(~celltype + condition + celltype:condition)
@@ -212,7 +220,7 @@ dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInf
 ```
 
 
-## Estimate size factors
+## Estimate size factors (recap)
 DESeq2 automatically estimates the size factors when performing the differential expression analysis. However, if `estimateSizeFactors()` is called, then DESeq2 will use these values.
 To normalize the count data, DESeq2 calculates size factors for each sample using the "median of ratios" method.
 
@@ -235,7 +243,7 @@ dds <- estimateSizeFactors(dds)
 ```
 
 
-## Estimate dispersion
+## Estimate dispersion (recap)
 DESeq2 uses a measure of variation called dispersion, which accounts for a gene’s variance and mean expression level. Dispersion is calculated by `Var = μ + α*μ^2`, where `α` = dispersion, `Var` = variance, and `μ` = mean
 ```{r estimate dispersions, message=FALSE, warning=FALSE}
 dds <- estimateDispersions(dds)
@@ -246,11 +254,11 @@ dds <- estimateDispersions(dds)
 # plotDispEsts(dds)
 ```
 
-## Run deseq analysis
+## Run deseq analysis (recap)
 ```{r deseq analysis, message=FALSE, warning=FALSE}
 dds <- DESeq(dds)
 ```
-# Steps to generate pairwise comparisons 
+# 2. Steps to generate pairwise comparisons 
 
 ## Wald test
 By default DESeq2 uses the Wald test to identify genes that are differentially expressed between two groups of samples. Results can be extracted for a number of different comparisons.
@@ -458,7 +466,7 @@ length(sig_lrt_genes)
 ```
 
 
-# Biological interpretation
+# 3. Biological interpretation
 ## Introduction
 
 We now have an idea on how we can extract pair-wise comparisons from a multi-factor DESeq2 analysis,
