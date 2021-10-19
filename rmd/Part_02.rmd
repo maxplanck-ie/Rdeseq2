@@ -84,6 +84,9 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_desig
 
 
 
+
+
+
 ### 1.1. Sample filtering - 15 min
 
 Previously you noticed that the PCA shows a problem with our data. 
@@ -625,6 +628,11 @@ Accurate estimation of `α` is critical:
 
 > **Task 5:** Please visualize the dispersion in your analysis using the following functions: ```dds <- estimateDispersions(dds)``` and ```plotDispEsts(dds)```
 
+```{r, echo=FALSE, results = 'hide', message=FALSE}
+dds <- estimateDispersions(dds)
+plotDispEsts(dds)
+```
+
 \
 \
 \
@@ -648,8 +656,8 @@ Bad examples of dispersion plots:
 <br>
 
 <center>
-```{r, echo=FALSE, out.width = '60%', fig.show='hold'}
-knitr::include_graphics(c("../images/disp_badPlot_1.png", "../images/disp_badPlot_2.png"))
+```{r, echo=FALSE, out.width = '60%', fig.align='center'}
+knitr::include_graphics("../images/initial_dispersion.png")
 ```
 
 </center>
@@ -662,6 +670,7 @@ knitr::include_graphics(c("../images/disp_badPlot_1.png", "../images/disp_badPlo
 
 ### 4.4. Wald test
 - gene-wise dispersion by fitting a negative binomial general linear model (GLM) to the data and then returning the results using Wald statistics (**nbinomWaldTest**) > tomorrow
+- default parameters: obtain DE genes for the last variable in the design formula ('TG/DMSO')
 
 ```{r run_DE, message=FALSE}
 dds <- DESeq(dds)
@@ -703,6 +712,9 @@ dds_res
 - **padj: BH adjusted p-values**
 
 \
+
+> **Discussion:** What are the NA values in the 'padj' column?
+
 \
 \
 
@@ -720,6 +732,7 @@ knitr::include_graphics(c("../images/analysis_tools.png"))
 - you can save your results in a 'tsv' file:
 
 ```{r export_results}
+# change the location of the saved file!!
 wfile="../misc/results.tsv"      # location of data file
 #write.table(dds_res, file=wfile, col.names=T, row.names = T, sep = "\t", quote=F)  #tab-sep
 write.csv(dds_res, file=wfile, row.names=TRUE)                                      #comma-sep
