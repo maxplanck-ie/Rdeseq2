@@ -460,10 +460,10 @@ The LRT is comparing the 'full' model to the 'reduced' model to identify signifi
 
 ```{r lrt, message=FALSE, warning=FALSE}
 # which model are we interested in as reduced?
+
 dds_lrt <- DESeq(dds, test="LRT", reduced = ~celltype + condition)
 res_lrt <- results(dds_lrt)
 head(res_lrt)
-
 ```
 
 Columns relevant to the LRT test:
@@ -510,10 +510,14 @@ We now have an idea on how we can extract pair-wise comparisons from a multi-fac
 and we got a primer on comparisons beyond pair-wise comparisons. What now ?
 Let's try to extract something biologically meaningful from the data.
 
-Remember our design was specified as follows:
+Remember our variables and objects (Recall these are named a bit different from previous days!):
+
+ - countmatrix = countdata
+ - metadata = sampleInfo
+ - dds = our DESeq object:
 
 ```{r designPrinter, message=FALSE, warning=FALSE}
-print(design)
+attributes(dds)
 ```
 
 and our factors:
@@ -546,10 +550,10 @@ Remember our coefficients:
 resultsNames(dds)
 ```
 
-Remember:
+Note:
 contrasts can be specified in a number of ways.
 
-1. Character vector with three elements: c(factor1, level1, level2) ! Mind the base of factor2!  
+1. Character vector with three elements: c(factor1, level1, level2) ! Mind the base of factor2, factor3, ... , factor N!  
 2. A list with 2 coefficients (remember resultsNames(dds)) list(coef1, coef2)  
 3. A numeric vector with a value for each coefficient: c(0,0,0,1,0,1)
 
@@ -559,7 +563,8 @@ Extract TG vs AMIL:
 TGvAMIL <- lfcShrink(dds, contrast = c('condition', 'TG', 'AMIL'), type="ashr")
 head( data.frame(TGvAMIL) )
 
-#or
+
+# or
 
 TGvAMIL <- lfcShrink(dds, contrast = c(0,0,0,1,0,0), type="ashr")
 head( data.frame(TGvAMIL) )
@@ -578,7 +583,6 @@ ashr-method is a bit more versatile.
 ```{r return celltype, message=FALSE, warning=FALSE}
 print(sampleInfo$celltype)
 ```
-
 
 For celltype JJ, things are a bit more tricky. We cannot use the c(factor1, level1, level2) contrast (since BM is our baseline!), and the coefficient we are interested in is actually not in resultsNames (it's actually a combination of AMIL-TG + the interaction term TG-JJ). We thus have to specify the numerical vector. You can build these manually (which is error prone), but (as always) there is a trick to make our life easier. This is based on the model matrix:
 
@@ -601,17 +605,35 @@ A more elaborate tutorial can be found [here]( https://github.com/tavareshugo/tu
 > ! Note that we also could rerun DESeq with the appropriate factor re-leveled.
 
 We'd like to see the difference between condition TG and AMIL in cellType JJ.
-(Note that based on our factor levels, this is essentially coefficient conditionTG + interactionJJ:TG)
+(Note that based on our factor levels, this is essentially coefficient TG + interactionJJ:TG)
 
 ```{r message=FALSE, warning=FALSE}
 mod_mat <- model.matrix(design(dds), colData(dds))
+
 # we'd like to condition TG in cellType JJ
 JJ_TG <- colMeans(mod_mat[dds$celltype == 'JJ' & dds$condition == "TG",])
 JJ_AMIL <- colMeans(mod_mat[dds$celltype == 'JJ' & dds$condition == "AMIL",])
+
 print(JJ_TG - JJ_AMIL)
 
 TGvAMIL_JJ <- lfcShrink(dds, contrast = JJ_TG - JJ_AMIL, type="ashr")
 ```
+
+```{r a more complex comparison, message=FALSE, warning=FALSE}
+
+# we'd like to condition TG in cellType JJ
+compl1 <- colMeans(mod_mat[dds$celltype == 'BM' & dds$condition == "DMSO",])
+compl2 <- colMeans(mod_mat[dds$celltype == 'JJ' & dds$condition == "TG",])
+
+print(compl1 - compl2)
+
+# Something even more obscure:
+compl1 <- colMeans(mod_mat[dds$celltype == 'BM' & dds$condition == "DMSO",])
+compl2 <- colMeans(mod_mat[dds$condition == "TG",])
+
+print(compl1 - compl2)
+```
+
 
 ## Clean & Annotate
 
@@ -624,13 +646,14 @@ In our case we can use:
 
 Cave! Some function between ensembldb (part of EnsDb.Hsapiens.v79) and dplyr overlap. Explicitely state the library when calling them to avoid errors.
 
+Remember. With our contrast juggling we have 2 results objects ('Large DESeqResults').
+
+TGvAMIL (for BM cells).
+TGvAMIL_JJ (for JJ cells).
+
+
 > **Task**:
-> Treat both result objects as such that we have:
-> A dataframe
-> genes with baseMean 0 are filtered out.
-> rows with 'NA' are filtered out.
-> Optional: create an additional column in the dataframe with the gene symbols
-> Optional: Wrap the operations in a function
+> Treat both result objects as such that we have we get (1) a dataframe that (2) has genes with baseMean 0 removed and, (3) rows with 'NA' filtered out and (4) sorted (ascending) by adjusted p-value. If you are feeling brave, make sure this dataframe has an additional column ("gene_symbol") that contains the gene name. A true R-superhero will wrap these operations in a single function.
 
 
 ```{r parseResults, message=FALSE, warning=FALSE}
@@ -673,7 +696,7 @@ pheatmap(
   )
 ```
 
-To look at the similarity:
+To look at the overlaps:
 
 ```{r UpsetPlot, message = FALSE, warning = FALSE}
 upsetList <- list(
@@ -693,7 +716,7 @@ Finally, look at two specific geneSets.
  - genes involved in apoptosis
 
 ```{r Pathways, message = FALSE, warning = FALSE}
-data_dir <- "/data/manke/processing/RdeseqData/genesets/"
+data_dir <- "/data/processing3/RdeseqCourse/Data/genesets/"
 kegg_apoptosis <-  read.table(paste0(data_dir, "KEGG_apoptosis.txt", sep=''),
                           header=FALSE, stringsAsFactor = F)
 kegg_apoptosis <- kegg_apoptosis$V1
@@ -705,6 +728,7 @@ kegg_spliceosome <- kegg_spliceosome$V1
 retIDsfromSymbolList <- function(df, symbols){
   return(rownames(df[(df$gene_symbol %in% symbols) & (df$padj < 0.05),]) )
 }
+
 # spliceosome
 
 pheatmap(
@@ -718,7 +742,7 @@ pheatmap(
                                                                          "BM_TG_2",
                                                                          "BM_TG_3")],
   scale = 'row',
-  main='TG v AMIL - JJ : spliceosome',
+  main='TG v AMIL - BM : spliceosome',
   fontsize=5,
   labels_row = TGvAMIL_BM_cleaned[(TGvAMIL_BM_cleaned$gene_symbol %in% kegg_spliceosome) & (TGvAMIL_BM_cleaned$padj < 0.05),]$gene_symbol
 )
@@ -736,11 +760,12 @@ pheatmap(
                                                                          "BM_TG_2",
                                                                          "BM_TG_3")],
   scale = 'row',
-  main='TG v AMIL - JJ : apoptosis',
+  main='TG v AMIL - BM : apoptosis',
   fontsize=5,
   labels_row = TGvAMIL_BM_cleaned[(TGvAMIL_BM_cleaned$gene_symbol %in% kegg_apoptosis) & (TGvAMIL_BM_cleaned$padj < 0.05),]$gene_symbol
 )
 ```
+
 
 ## LRT
 
@@ -772,7 +797,8 @@ pheatmap(
                                                                          "BM_AMIL_3",
                                                                          "BM_TG_1",
                                                                          "BM_TG_2",
-                                                                         "BM_TG_3")],
+                                                                         "BM_TG_3"
+                                                                         )],
   scale = 'row',
   main='LRT : spliceosome',
   fontsize=5,
