@@ -1,5 +1,5 @@
 ---
-title: "DESeq2 Outline"
+title: "DESeq2 Template"
 author: "MPI-IE Bioinfo-Core"
 #date: "`r date() `"
 output:
@@ -29,23 +29,37 @@ library(DESeq2)
 library(pheatmap)
 library(tidyverse)
 library(ashr)
+
+### define own convenience functions ###
+my_volcano = function(res){
+  # a low-key alternative to
+  # EnhancedVolcano(res, lab = rownames(res), x = 'log2FoldChange', y = 'pvalue')
+  res %>% 
+    data.frame() %>%                                     # convert to data frame
+    arrange(padj) %>%                                    # sort by padj 
+    mutate(significant=padj < 0.05) %>%                  # define significant genes 
+    mutate(rank=row_number()) %>%         # define rank as rownumber (after sorting)
+    add_rownames("gene_name") %>%         # add rownames
+    ggplot(aes(x=log2FoldChange, y=-log10(padj), color=significant)) + 
+    geom_point() + 
+    # label first 5 genes
+    geom_text(aes(label=ifelse(rank<5,gene_name,'')), size = 3, hjust=0,vjust=-0.15) 
+}
 ```
 
 
 # Data, Metadata and Design
 ```{r import}
-dfile <- "/data/manke/processing/RdeseqData/mpp/mpp_counts.tsv"     
+dfile <- "/data/processing3/RdeseqCourse/Data/mpp/mpp_counts.tsv"     
 data <- read_tsv(dfile)
-#data <- data %>% column_to_rownames("gene_id") 
-data <- data %>% 
-  filter( !str_detect(gene_id,"^[1|2]-Mar") ) %>%
-  column_to_rownames("gene_id") 
+data <- data %>% column_to_rownames("gene_id") 
 
-mfile <- "/data/manke/processing/RdeseqData/mpp/mpp_meta.tsv"      
+mfile <- "/data/processing3/RdeseqCourse/Data/mpp/mpp_meta.tsv"      
 metadata <- read_tsv(mfile)
+metadata <- metadata %>% column_to_rownames("sample") 
 metadata$condition <- as.factor(metadata$condition)
 metadata$celltype  <- as.factor(metadata$celltype)
-metadata <- metadata %>% column_to_rownames("sample") 
+
 
 my_design <- ~ celltype + condition + celltype:condition
 
@@ -53,78 +67,80 @@ all(rownames(metadata) == colnames(data))  # sanity check
 
 dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_design)
 ```
+
 # Data Exploration and Filters
 ```{r filtering}
 # data exploration and QC: not shown
+# ...
 
 # remove genes
 keep_genes <- rowSums(counts(dds)) > 1
 dds <- dds[keep_genes,]
 
-# process samples as required
+# process/filter samples as required
 # ...
 
 # rerun Data Exploration and QC
-# ...
+rld <- rlog(dds)
+plotPCA(rld, intgroup=c("condition", "celltype"))
+
+# keep transformed matrix A for later visualization
+# scale rows (genes) for heatmap = transpose; (column) scale; transpose
+A = assay(rld, normalized=TRUE) %>% t %>% scale %>% t 
 ```
 
 # Run DESeq
 ```{r DEseq2}
 dds <- DESeq(dds)                          
-# mcols(dds)       # for the curious: check results of modeling (for each gene)
-
-# Normalization for Visualization
-rld <- rlog(dds)  # alternatively: vst(dds)
-
-# Scale rows (for heatmap) = transpose; (column) scale; transpose
-A = assay(rld, normalized=TRUE) %>% t %>% scale %>% t 
 
 #Inspection
-#colData(dds)                                # sizefactors
-#plotDispEsts(dds, main="Dispersion plot")   # dispersion
-plotPCA(rld, intgroup=c("condition", "celltype"))
+colData(dds)                                # sizefactors were added to metadata
+plotDispEsts(dds, main="Dispersion plot")   # dispersion
+# mcols(dds)                                # for the really curious: results of modeling
 ```
 
-# Differential Genes
+# Contrasts
+Verify (base) levels and available coefficient (resultsNames).  
+Define model matrix and contrasts systematically
 
-## Define Contrasts
-Verify (base) levels and available coefficient (resultsNames).   
-Define model matrix.
-
-```{r levels}
-levels(colData(dds)$condition)
-levels(colData(dds)$celltype)
+```{r contrasts}
+colData(dds)$condition
+colData(dds)$celltype
 resultsNames(dds)
 mod_mat <- model.matrix(my_design, metadata)
-```
-
-## Extract Results
-```{r testing}
-fn="YvA_MPP2.tsv"    # filename for output
 
 # define contrast systematically
 Aged_MPP2 <-  which(dds$condition=="Aged"  & dds$celltype=="MPP2")
 Young_MPP2 <- which(dds$condition=="Young" & dds$celltype=="MPP2")
 YvA_MPP2=colMeans(mod_mat[Young_MPP2,]) - colMeans(mod_mat[Aged_MPP2,]) 
-# YvA_MPP2 = c(0,0,0,1,0,1)  # same free-hand: switch on condition=Young and interaction=MPP2:Young
 
-res <- lfcShrink(dds, contrast=YvA_MPP2, type = "ashr")                       # alternative results(dds, ...)
+YvA_MPP2
+```
 
+# Results
+```{r results}
+res <- lfcShrink(dds, contrast=YvA_MPP2, type = "ashr") 
+
+# inspect results
 res %>% head(5)                                        # first few results
 summary(res)	                                         # summary for all genes
 plotMA(res, ylim=c(-3,3))                              # MA-plot from DESeq2
+
 plot(res$log2FoldChange, -log10(res$padj), cex=0.3)    # very simple volcano
+#my_volcano(res)                                        # better?
 
-plotCounts(dds, gene=which.min(res$padj), intgroup=c("condition","celltype"))  # plot top-gene
+# plot top-gene
+plotCounts(dds, gene=which.min(res$padj), intgroup=c("condition","celltype"))  
 
-# prepare heatmap for top genes
+# plot heatmap for top 15 genes
 ntop <- 15
 sorted_res <- res %>% data.frame() %>% arrange(padj)   # sort results by padj
 top_genes <- sorted_res %>% head(ntop) %>% row.names() # top gene names
-col_sel=c(Young_MPP2,Aged_MPP2)                        # select only samples in contrast
+col_sel=c(Young_MPP2, Aged_MPP2)                       # select only samples in contrast
 pheatmap(A[top_genes,col_sel], main="Top DE Genes (rlog)", annotation=metadata)
 
 # write sorted results to file (add rowname as column)
+fn="results.tsv"                        # might need a more informative filename
 write_tsv(sorted_res %>% rownames_to_column("Gene"), file=fn, quote=FALSE)            
 ```
 
@@ -135,21 +151,5 @@ sessionInfo()
 
 
 
-```{r my_volcano}
-# low-key alternative to
-# EnhancedVolcano(res, lab = rownames(res), x = 'log2FoldChange', y = 'pvalue')
 
-# the above needs lots of dependencies
-
-my_volcano = function(sorted_res){
-  sorted_res %>% 
-  mutate(significant=padj<padj.cutoff) %>% 
-  mutate(rank=row_number()) %>% 
-  add_rownames("gene_name") %>% 
-  ggplot(aes(x=log2FoldChange, y=-log10(padj), color=significant)) + 
-  geom_point() + 
-  geom_text(aes(label=ifelse(rank<5,gene_name,'')), size = 3,
-            hjust=0,vjust=-0.15) 
-}
-```
 
