@@ -87,7 +87,7 @@ Design:
 
 This results in the coefficient for the intercept and coefficient for the effect of “BM” (i.e. differences between BM vs. JJ). 
 
-Every coefficient shows a difference (LFC).
+Each coefficient shows a difference (LFC).
 
     [1] "Intercept" (beta0)             "celltype_BM_vs_JJ" (beta1)
 
@@ -261,8 +261,7 @@ dds <- DESeq(dds)
 # 2. Steps to generate pairwise comparisons 
 
 ## Wald test
-By default DESeq2 uses the Wald test to identify genes that are differentially expressed between two groups of samples. Results can be extracted for a number of different comparisons.
-This is done through the following steps:
+By default DESeq2 uses the Wald test to identify genes that are differentially expressed between two groups of samples. This is done through the following steps:
   
   * A regression model fits to each gene (glm.nb),
   * Each gene model coefficient (LFC) is estimated using maximum likelihood,
@@ -333,6 +332,7 @@ Columns of results dataframe:
   * padj: BH adjusted p-values
 
 The padj column represents the p-value adjusted for multiple testing, and is the most important column of the results! The default method for multiple test correction in DESeq2 is an implementation of the Benjamini-Hochberg false discovery rate (FDR).
+
 If a gene contains a sample with an extreme count outlier then the p-value and adjusted p-value will be set to NA.
 
 ### Plot of the mean normalized counts vs log10(p values)
@@ -416,7 +416,6 @@ ggplot(d, aes(x = celltype, y = count, color = celltype)) +
 ```{r heatmap, message=FALSE, warning=FALSE}
 normalized_counts <- counts(dds, normalized=T)
 norm_sig <- subset(normalized_counts, row.names(normalized_counts) %in% row.names(res_sig_sorted))
-head(norm_sig)
 pheatmap(norm_sig[1:20,],
          cluster_rows = T,
          show_rownames = F,
@@ -453,7 +452,7 @@ print(ggplot(res_shrink%>% data.frame(), aes(log2FoldChange, -log(padj))) +
 
 ## Likelihood ratio test
 
-DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one class compared to another, it identifies genes which are changing in expression in any direction across the different factor levels. Therefore, there is no need for contrasts since we are not making a pair-wise comparison.
+DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative to wilde test when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one class compared to another, it identifies genes which are changing in expression in any direction across the different factor levels. Therefore, there is no need for contrasts since we are not making a pair-wise comparison.
 The LRT is comparing the 'full' model to the 'reduced' model to identify significant genes. The p-values are determined solely by the difference in deviance between the ‘full’ and the ‘reduced’ model formula (not the log2 fold changes). Essentially the LRT test is testing whether the term(s) removed in the ‘reduced’ model explains a significant amount of variation in the data
 
 ```{r lrt, message=FALSE, warning=FALSE}
@@ -482,8 +481,21 @@ head(sig_res_lrt)
 sig_lrt_genes <- sig_res_lrt %>%
                 pull(gene)
 
-length(sig_lrt_genes)
+print(length(sig_lrt_genes))
 
+```
+```{r heatmap of sig_lrt_genes}
+normalized_counts <- counts(dds, normalized=T)
+norm_lrt_sig <- subset(normalized_counts, row.names(normalized_counts) %in% sig_lrt_genes)
+pheatmap(norm_lrt_sig,
+         cluster_rows = T,
+         kmeans_k = 8,
+         show_rownames = F,
+         border_color = NA,
+         fontsize = 10,
+         scale = "row",
+         fontsize_row = 10,
+         height = 20)
 ```
 
 
