@@ -653,12 +653,7 @@ TGvAMIL_JJ (for JJ cells).
 
 
 > **Task**:
-> Treat both result objects as such that we have:
-> A dataframe
-> genes with baseMean 0 are filtered out.
-> rows with 'NA' are filtered out.
-> Optional: create an additional column in the dataframe with the gene symbols
-> Optional: Wrap the operations in a function
+> Treat both result objects as such that we have we get (1) a dataframe that (2) has genes with baseMean 0 removed and, (3) rows with 'NA' filtered out and (4) sorted (ascending) by adjusted p-value. If you are feeling brave, make sure this dataframe has an additional column ("gene_symbol") that contains the gene name. A true R-superhero will wrap these operations in a single function.
 
 
 ```{r parseResults, message=FALSE, warning=FALSE}
@@ -701,7 +696,7 @@ pheatmap(
   )
 ```
 
-To look at the similarity:
+To look at the overlaps:
 
 ```{r UpsetPlot, message = FALSE, warning = FALSE}
 upsetList <- list(
