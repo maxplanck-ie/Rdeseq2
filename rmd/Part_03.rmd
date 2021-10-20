@@ -25,36 +25,36 @@ output:
 .libPaths("/data/processing3/RdeseqCourse/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library")
 suppressPackageStartupMessages({
 library("DESeq2")
-library("dplyr")
-library("tibble")
-library("ggplot2")
+library("tidyverse")
 library("ggrepel")
 library("pheatmap")
 library("EnsDb.Hsapiens.v75")
 library("UpSetR")
-library("tidyr")
 library("ashr")
 })
 ```
 
-```{r Get the data directroy, message=FALSE, warning=FALSE}
+```{r read_data, message=FALSE, warning=FALSE}
 # Get the data directory
 data_dir <- "/data/processing3/RdeseqCourse/Data/myeloma/"
 
 # Read count matrix
-countdata <- read.table(paste0(data_dir, "corrected_counts.tsv", sep=''),
-                        header=TRUE, check.names = TRUE)
-tmp.df <- countdata[,-1]
-rownames(tmp.df) <- countdata[,1]
-countdata <- tmp.df
-head(countdata)
+dfile <- paste0(data_dir, "myeloma_counts.tsv")
+data <- read_tsv(file=dfile)    
+data <- data %>% column_to_rownames("gene_id") 
 
 # Read samplesheet , detects conditions, generate the formula
-sampleInfo <- read.table(paste0(data_dir, "corrected_meta.tsv", sep=''),
-                          header=TRUE, check.names = TRUE, stringsAsFactor = F)
-sampleInfo$celltype <- as.factor(sampleInfo$celltype)
-sampleInfo$condition <- as.factor(sampleInfo$condition)
-print(sampleInfo)
+mfile <- paste0(data_dir, "myeloma_meta.tsv")
+metadata <- read_tsv(file=mfile)  
+metadata <- metadata %>% column_to_rownames("sample") 
+
+metadata$condition <- as.factor(metadata$condition)
+metadata$celltype  <- as.factor(metadata$celltype)
+
+metadata
+
+# sanity check
+all(rownames(metadata) == colnames(data))
 ```
 
 # 1. Building a deseq data set with a multi-factor design:
@@ -69,7 +69,7 @@ DESeq2 uses the design as a model for each gene, and fits a normalized count bas
 ```{r Only used to make the figure}
 # The intercept is log2 of the mean normalized counts for the group that is the reference level for all factor variables.
 
-# sampleInfo$celltype <- factor(sampleInfo$celltype, levels = c ('JJ', 'BM'))
+# metadata$celltype <- factor(metadata$celltype, levels = c ('JJ', 'BM'))
 ```
 
 
@@ -214,8 +214,17 @@ Null hypothesis:
 
 
 ```{r build the matrix, message=FALSE, warning=FALSE}
-design <- as.formula(~celltype + condition + celltype:condition)
-dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInfo, design = design)
+my_design <- as.formula(~celltype + condition + celltype:condition)
+# my_design <- ~celltype*condition   # identical alternative
+
+dds <- DESeq2::DESeqDataSetFromMatrix(countData = data, colData = metadata, design = my_design)
+
+
+# filtering as in day 1 and 2
+dds <- dds[, -c(1,7)]                   # sample filtering
+dds <- dds[rowSums(counts(dds)) > 1, ]  # gene filtering
+
+dim(dds)
 ```
 
 
@@ -229,10 +238,12 @@ dds <- estimateSizeFactors(dds)
 ```
 
 > **Poll 3.1**:
-> What is the relation between the size factors and the values of the columns?
+> What is the relation between the size factors and the sequencing depth of a sample?
 
-```{r colsums, message=FALSE, warning=FALSE}
-#colSums(counts(dds))
+```{r colsums, message=FALSE, warning=FALSE, eval=FALSE}
+seq_depth <- colSums(counts(dds))
+plot( sizeFactors(dds),  seq_depth)
+
 # Larger size factors correspond to the samples with higher sequencing depth. To generate the normalized counts we need to divide the counts by the size factors. This accounts for the differences in sequencing depth between samples.
 ```
 
@@ -504,27 +515,26 @@ We now have an idea on how we can extract pair-wise comparisons from a multi-fac
 and we got a primer on comparisons beyond pair-wise comparisons. What now ?
 Let's try to extract something biologically meaningful from the data.
 
-Remember our variables and objects (Recall these are named a bit different from previous days!):
-
- - countmatrix = countdata
- - metadata = sampleInfo
- - dds = our DESeq object:
+Remember that all the data + metadata + design are now available in the DESeq object (dds):
 
 ```{r designPrinter, message=FALSE, warning=FALSE}
 attributes(dds)
 ```
 
-and our factors:
+... our factors:
 
 ```{r design, message=FALSE, warning=FALSE}
-print(sampleInfo$celltype)
-print(sampleInfo$condition)
+colData(dds)$celltype
+colData(dds)$condition
 ```
 
+... our design
+```{r retrieve_design}
+design(dds)
+```
 
-> **Poll 3.2**:
-> Is there a difference between specifying ~celltype*condition and ~celltype + condition + celltype:condition ?
-
+<!-- > **Poll 3.2**: -->
+<!-- > Is there a difference between specifying ~celltype*condition and ~celltype + condition + celltype:condition ? -->
 
 To move on, remember that this is in essence a drug repurposing study.
 
@@ -575,7 +585,7 @@ ashr-method is a bit more versatile.
 > Given our contrast c('condition', 'TG', 'AMIL'), what would a (significant) positive foldchange correspond to ?
 
 ```{r return celltype, message=FALSE, warning=FALSE}
-print(sampleInfo$celltype)
+colData(dds)$celltype
 ```
 
 For celltype JJ, things are a bit more tricky. We cannot use the c(factor1, level1, level2) contrast (since BM is our baseline!), and the coefficient we are interested in is actually not in resultsNames (it's actually a combination of AMIL-TG + the interaction term TG-JJ). We thus have to specify the numerical vector. You can build these manually (which is error prone), but (as always) there is a trick to make our life easier. This is based on the model matrix:
