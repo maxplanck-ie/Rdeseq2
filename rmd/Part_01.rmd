@@ -117,23 +117,21 @@ In principle, you can download the published data for our tutorial from GEO
 For this course, we have already prepared the data in a convenient format here: 
 
 - github: https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_counts.tsv
-- local: /data/manke/processing/Rdeseq2/data/myeloma/myeloma_counts.tsv
+- local: /data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv
 
 **Notice**: It is good style to put data into a separate directory (e.g. data/)
 
 ### Import Data 
 Data can come in various formats. Here we have prepared the data as tab-separated file with header information.
 
-> **Task**: Read the data e.g. using read.csv()
+> **Task**: Read the data e.g. using read_tsv()
 
 ```{r import_data}
-dfile="/data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv"      # location of data file
-data <- read.csv(file=dfile, header=TRUE, sep="\t")
-
-#data <- read_tsv(file=dfile)    # diagnostic: problemes(data)
+dfile <- "/data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv"      # location of data file
+data <- read_tsv(file=dfile)    # diagnostic: problemes(data)
 ```
 
-**Discussion** Inspect the data structure. What are the variables? What are observations? How many samples are in the data ?
+**Discussion** Inspect the data structure. What are the variables? How many samples are in the data ?
 
 ```{r head_data}
 data %>% head()
@@ -142,7 +140,6 @@ data %>% head()
 > **Poll 1.3**: What is the median expression count in sample "BM_CTRL_3"? 
 ```{r poll3, eval=FALSE}
 data %>% summary
-data[,"BM_CTRL_3"] %>% median()
 data %>% pull("BM_CTRL_3") %>% median()
 ```
 
@@ -151,13 +148,13 @@ data %>% pull("BM_CTRL_3") %>% median()
 > **Task**: Ensure that the rownames of the count data are gene names.
 
 ```{r add_rownames}
+# dplyr
+data <- data %>% column_to_rownames("gene_id")  # gene_id -> rownames and removes gene_id
+
 # base-R
 # rownames(data)    # check: may already be defined during read
-# rownames(data) = data$geneID
-# data[,"geneID"] <- NULL
-
-# dplyr
-#data <- data %>% column_to_rownames("geneID")  # geneID -> rownames
+# rownames(data) <- data$gene_id
+# data$gene_id   <- NULL
 ```
 
 ### Import Metadata
@@ -168,7 +165,7 @@ Often these are categorical data such as cell type, experimental condition or ot
 Often the metadata is hidden in the paper (or in the filename). This is bad practise - make sure to have a proper sample sheet. Metadata is just as important as data. Here is the prepared file for this introduction:
 
 - github: https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_meta.tsv
-- local: /data/manke/processing/Rdeseq2/data/myeloma/myeloma_meta.tsv
+- local: /data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv
 
 > **Task**: Read the metadata into an R-object "metadata". Inspect the data frame - which data types are included?
 Make sure that the rownames of the metadata are valid sample names.
@@ -243,12 +240,8 @@ $$
 - combination of variables: e.g. condition and celltype
 
 
-
-
-
-
 ```{r gene_plot_factors}
-gene = data %>% 
+gene <- data %>% 
   slice(42) %>%                         # pick gene #42
   gather(sample, count) %>%             # reshape for ggplot (1 sample per row!)
   mutate(condition=metadata$condition)  # add condition. Careful: order needs to agree 
@@ -297,7 +290,7 @@ $$
 **Upshot**: A factorial design can be translated into a (binary) *model matrix*
 
 ```{r model_matrix}
-MM=model.matrix(my_design, data=metadata)
+MM <- model.matrix(my_design, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
 
@@ -306,7 +299,7 @@ pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 - Include an additional factor (+ celltype) and observe the design matrix 
 - Bonus: include an interaction term (+ condition:celltype) and discuss its interpretation
 ```{r model_matrix_interaction, eval=FALSE, echo=FALSE}
-MM=model.matrix(~ condition*celltype, data=metadata)
+MM <- model.matrix(~ condition*celltype, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
 
@@ -397,8 +390,8 @@ sampleTable <- read.csv(fm, header=FALSE)
 colnames(sampleTable)=c("name","filename", "condition","celltype")   # specifications for DESeqDataSetFromHTSeqCount
 
 # categorical variables --> "factors"
-sampleTable$condition = as.factor(sampleTable$condition)
-sampleTable$celltype  = as.factor(sampleTable$celltype)
+sampleTable$condition <- as.factor(sampleTable$condition)
+sampleTable$celltype  <- as.factor(sampleTable$celltype)
 dds <- DESeqDataSetFromHTSeqCount(sampleTable, directory = ".", design = my_design)
 
 # Alternative 2: txi object
@@ -447,14 +440,14 @@ M <- counts(dds)            # get gene-sample matrix
 pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, main="First glimpse")
 
 # create annotation data frame (metadata) and add as color to pheatmap
-ann = data.frame(colData(dds))                     
+ann <- data.frame(colData(dds))                     
 pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, annotation=ann, main="Data + Metadata")
 ```
 
 > **Task**: understand the object "ann" and suggest how to add sequence depth as additional annotation column
 
 ```{r adding_annotations}
-ann$seq_depth=colSums(counts(dds))/1e6    # sequencing depth in millions 
+ann$seq_depth <- colSums(counts(dds))/1e6    # sequencing depth in millions 
 ```
 
 ## genome-wide correlations
@@ -473,14 +466,14 @@ Use > library(RColorBrewer) for systematic and educated choices.
 
 **Goal**: Define list of colours to be used for metadata? 
 ```{r colour, echo=TRUE}
-ct_col = c("white", "black")                   # celltype colours
-names(ct_col) = levels(ann$celltype)
+ct_col <- c("white", "black")                   # celltype colours
+names(ct_col) <- levels(ann$celltype)
 
 #cn_col <- brewer.pal(n=3, "Dark2")            # avoid RColorBrewer dependence for this course
 cn_col <- c("#1B9E77", "#D95F02", "#7570B3")   # condition colours
-names(cn_col) = levels(ann$condition)
+names(cn_col) <- levels(ann$condition)
 
-my_colors = list( celltype= ct_col, condition = cn_col )
+my_colors <- list( celltype= ct_col, condition = cn_col )
 pheatmap(C, annotation = ann, annotation_colors = my_colors)
 
 # adjust also heatmap
@@ -501,8 +494,8 @@ boxplot(M[,1:3])  # M %>% data.frame() %>%  select(1:3) %>% boxplot()
 
 
 ```{r log_norm}
-myred=rgb(1,0,0,0.5)
-myblue=rgb(0,0,1,0.5)
+myred <- rgb(1,0,0,0.5)
+myblue <- rgb(0,0,1,0.5)
 hist(log(M[,1]),100, col=myred)
 hist(log(M[,3]),100, col=myblue, add=TRUE)
 ```
@@ -518,16 +511,14 @@ hist(log(M[,3]),100, col=myblue, add=TRUE)
 Compare the genome-wide correlations before and after transformation
 ```{r explore_corr}
 Mt <- log2(M + 1)      # simple log-transform; (why + 1 ?)
-
-# skip
-#pheatmap(Mt %>% head(15), annotation=ann, annotation_colors = my_colors, main="Transformed data (log2)")
-
 pheatmap(cor(Mt), annotation = ann, annotation_colors = my_colors)
 ```
 
 
 **Discussion**: Notice the overall high correlations? How would you explore this further
 
+
+<br><br><br><br>
 ```{r smoothScatter}
 # correlation coeff. is only a single number
 smoothScatter(Mt[,1], Mt[,5])
@@ -542,13 +533,21 @@ smoothScatter(Mt[,1], Mt[,5])
 PCA aims to project samples from a high-dimensional space (M=20k+ genes) to a lower dimension (D=2).
 Similar to correlation analysis, the main purpose is to identify distinct and similar samples.
 ```{r PCA_manual}
-nt <- 500                                              # set number of most variable genes
-top <- order(rowVars(Mt), decreasing = TRUE)[1:nt]     # calculate variance for each row and sort
+#Mt is the transformed count matrix: log, rlog, vst, ...
 
+nt <- 500     # set number of most variable genes
 
-pca <- prcomp(t(Mt[top,]), scale=TRUE)                 # perform PCA
-#eigs <- pca$sdev^2                                     # extract eigenvalue
-#vars <- round(100*eigs / sum(eigs), 2)                 # calculate % of explained variance
+# get top variable genes (rows)
+top <- order(rowVars(Mt), decreasing = TRUE)[1:nt]  # calculate variance for each row and sort
+
+pca <- prcomp(t(Mt[top,]), scale=TRUE)      # perform PCA
+
+# pca-object contains transformed coordinates for each sample 
+# pca$x:  number of genes --> 2
+
+# calculate explained variance from pca object
+#eigs <- pca$sdev^2                       # extract eigenvalue
+#vars <- round(100*eigs / sum(eigs), 2)   # calculate % of explained variance
 
 # prepare data frame for plotting
 rld_PCA <- as.data.frame(pca$x[,1:2])                     # only take PC1 and PC2 (column 1 + 2)

@@ -113,12 +113,22 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
 
 \ 
 
-Let's fix the data by removing the problematic samples and visualize the resulting PCA:
+> **Task 1:** Let's fix the data by removing the problematic samples and visualize the resulting PCA:
+
+```
+# select the wrong samples from the dds object (columns: 1 and 7), then drop it:
+dds <- dds[, -c(column_number_sample1, column_number_sample2)]
+
+# plot the PCA using the the new dds object (can use yesterday's code)
+ # first get the counts out of the dds object (): counts(dds) 
+ # use log2() on the counts  -  or use rlog() on the dds object!
+ # plot the PCA
+```
 
 ```{r fix_data_metadata, out.width = '60%', fig.align="center"}
 #remove the samples from data and metadata:
 dds <- dds[, -c(1,7)]
-metadata <- metadata[-c(1,7),]
+#metadata <- metadata[-c(1,7),]
 
 rld_PCA <- plotPCA(rlog(dds, blind = TRUE), intgroup=c("condition", "celltype"), returnData=TRUE)
 
@@ -142,6 +152,30 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
 - helpful but not necessary to remove rows/genes that have very low counts (very unlikely to have biological meaning)
   - arbitrary threshold: < 1, < 10
   - reduces the memory size that the 'dds' object occupies => increases the speed of transformations and calculations
+  
+\
+
+> **Task 2:** Filter out the genes that have a total amount of only zero or 1 counts:
+
+\
+
+
+```
+# find which rows in the counts of the dds object have only zero or 1 counts overall (= sum of rows is zero or 1)
+  # on the counts from dds object, find out the sum of rows; keep them if > 1 
+    keep <- rowSums() > 1
+
+# filter out the unnecessary rows
+dds <- dds[keep, ]
+```
+ 
+\
+ 
+ 
+> **Discussion:** What type of object is 'keep'?:
+
+\
+
 
 ```{r DESeq2_filtering, fig.align="center"}
 #decide on the threshold you want to use  (= the minimum number of counts you want to keep)
@@ -207,6 +241,8 @@ Things are a bit more complicated in reality - an interative process.
 - Have a **working log** where you keep track of all the information regarding the experimental design, the output from the sequencing, the purpose of the analyses, the analysis steps, the observations and all the decissions that you took during the analyses 
 
   - e.g. does the experimental design and the number of biological repeats allow you to apply certain statistical analyses? What did the QC report of the sequencing say? Do you see the expected sample separation on PCA? Did you find a problem that forced you to make decissions such as dropping samples? Using a certain unusual threshold? 
+  
+  - can use R notebooks as working logs - it is a place to experiment. But pay attention to not getting mixed up in the data!!
 
 \
 
@@ -283,7 +319,7 @@ dds$condition <- factor(dds$condition, levels = c ('DMSO', 'TG', 'AMIL'))
 
 \
 
-> **Task 1.a):** Please reorder factors with 'DMSO' as baseline - 2 min
+> **Task 3:** Please reorder factors with 'DMSO' as baseline - 2 min
 
 \
 
@@ -297,11 +333,7 @@ dds$condition <- relevel(dds$condition, ref='DMSO')
 
 dds$condition
 ```
-> **Task 1.b):** Please reorder factors with 'AMIL' as baseline - 2 min
 
-```{r rearr_back, echo = FALSE}
-dds$condition <- relevel(dds$condition, ref='AMIL')
-```
 
 \ 
 
@@ -357,9 +389,15 @@ DESeq2 needs as input **raw counts** for statistical testing, but for some stage
 
 a) **logarithmic data** - mostly in visualization because it reduces the large dynamic range of the data (usually log2(count+1)).
 
-> **Task 2.a):** Please do a logarithmic transformation of the first 4 samples (columns) 
+> **Task 4.a):** Do a logarithmic transformation of the first 4 samples (columns) and look only at the output before and after, only for the first 4 samples
 
-```{r log, echo = FALSE, results = 'hide', message=FALSE}
+```
+# look at the first rows of the counts of the first 4 samples from the dds object
+# transform the *dds counts* using a log() function
+# look at the first rows of first 4 samples from the transformed data
+```
+
+```{r log, message=FALSE}
 print('dataset with counts before transformation (raw counts):' )  
 head(counts(dds)[,1:4],3)    
 
@@ -372,11 +410,16 @@ head(log(counts(dds)[,1:4], 2) ,3)
 
 b) **Regularized logarithm (RLOG)** transform takes in consideration prior information about all the samples in the experiment. It is slower.
 
-> **Task 2.b):** Please do a rlog transformation of the first 4 samples (columns) 
+> **Task 4.b):** Do a rlog transformation of the first 4 samples (columns) of the dds object and look at the output 
 
-```{r rlog, echo = FALSE, results = 'hide', message=FALSE}
+```
+# transform the *dds object* using the rlog() function
+# look at the first rows of first 4 samples from the transformed data
+```
+
+```{r rlog, echo = FALSE, message=FALSE}
 print('dataset with counts after RLOG transformation:' )  
-rld <- rlog(dds, blind = FALSE)
+rld <- rlog(dds, blind = TRUE)
 head(assay(rld)[,1:4],3)
 ```
 
@@ -385,10 +428,9 @@ head(assay(rld)[,1:4],3)
 \
 
 ```{r logs_plot, fig.show="hold", out.width = '50%'}
-#op <- par(mfrow=c(1,2))
 plot(counts(dds)[,c(3,10)])
-plot(assay(rld)[,c(3,10)])
-#par(op)
+plot(log2(counts(dds)[,c(3,10)]))
+plot(assay(rld)[,c(3,10)])               # 'assay()' allows you to extract the counts from the 'rld' object
 ```
 
 \
@@ -421,7 +463,7 @@ th <- data.frame(round(log(counts(dds)+1)))
 th.pca <- prcomp(t(th))
 pca_data_perc=round(100*th.pca$sdev^2/sum(th.pca$sdev^2),1)
 
-df_pca_data=data.frame(PC1 = th.pca$x[,1], PC2 = th.pca$x[,2], sample = metadata$celltype, condition=metadata$celltype)  #! change condition accordingly!
+df_pca_data=data.frame(PC1 = th.pca$x[,1], PC2 = th.pca$x[,2], sample = colData(dds)$celltype, condition=colData(dds)$celltype)  #! !Extract the needed info from dds with colData instead of using the 'metadata' ('metadata' needs to be corrected too if you drop samples!)
 
 ggplot(df_pca_data, aes(PC1, PC2, color=sample)) +
   geom_point(size=3) +
@@ -448,7 +490,6 @@ ggplot(rld_new3, aes(PC1, PC2, color=celltype)) +
 \
 
 ## 4. Differential expression analysis - 30 min
-
 
 ```
 dds <- DESeq(dds)
@@ -502,19 +543,16 @@ cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs a
 \
 \
 
-> **Task 3:** Please plot the mean vs the variance of the genes. Use the following code as guide 
+> **Task 5:** Please plot the mean vs the variance of the genes. Use the following code as guide 
 
 ```
-#1) calculate the mean and the variance for each gene (the code for the mean is given bellow)
+#calculate the mean and the variance for each gene (the code for the mean is given bellow)
 mean_counts <- apply(counts(dds)[,6:8], 1, mean) 
 
-#2) plot using plot() and smoothScatter()
+# plot mean vs variance using plot() and smoothScatter()
 ```
 
 \ 
-<br>
-
-<center>
 
 ```{r mean_vs_variation2, warning=FALSE, out.width = '40%', fig.show='hold'}
 op <- par( mar=c(2.3, 0, 0.3, 0), pty="s", fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0))
@@ -528,14 +566,9 @@ abline(0,1, col="red")
 smoothScatter(log10(mean_counts), log10(variance_counts), xlim=c(-1, 10), ylim=c(-1, 10))
 abline(0,1, col="red")
 
-#plot(mean_counts, variance_counts, xlim=c(-0.5, 150000), ylim=c(-0.5, 1000000000))
-
 par(op)
 ```
 
-</center>
-
-<br>
 
 - for genes with high mean expression, the variance across replicates tends to be greater that the mean => use a **negative binomial** distribution
 - for genes with low mean expression, there is a large scatter = hetero-scedasti-city = for a given expression level in the low range, we obs a lot of variability in the variance values.
@@ -571,7 +604,7 @@ knitr::include_graphics("../images/comp_bias.png")
  
 \
 
-> **Task 4.a):** Please print out the sizes of each sample (hint: library size is the sum of all counts)
+> **Task 6.a):** Please print out the sizes of each sample (hint: library size is the sum of all counts)
 
 \
 
@@ -591,7 +624,7 @@ sizeFactors(dds)
 ```
 
 
-> **Task 4.b):** Please print out the sizes of each sample after normalization
+> **Task 6.b):** Please print out the sizes of each sample after normalization
 
 ```{r normalized, echo=FALSE, results = 'hide'}
 colSums(counts(dds, normalized=T))
@@ -626,11 +659,11 @@ Accurate estimation of `α` is critical:
 \
 \
 
-> **Task 5:** Please visualize the dispersion in your analysis using the following functions: ```dds <- estimateDispersions(dds)``` and ```plotDispEsts(dds)```
+> **Task 7:** Visualize the dispersion in your analysis using the following functions: ```dds <- estimateDispersions(dds)``` and ```plotDispEsts(dds)```
 
 ```{r, echo=FALSE, results = 'hide', message=FALSE}
 dds <- estimateDispersions(dds)
-plotDispEsts(dds)
+#plotDispEsts(dds)
 ```
 
 \
@@ -672,6 +705,9 @@ knitr::include_graphics("../images/initial_dispersion.png")
 - gene-wise dispersion by fitting a negative binomial general linear model (GLM) to the data and then returning the results using Wald statistics (**nbinomWaldTest**) > tomorrow
 - default parameters: obtain DE genes for the last variable in the design formula ('TG/DMSO')
 
+
+> **Task 8:** Please run the DESeq() function on the dds object to do the DE analysis:
+
 ```{r run_DE, message=FALSE}
 dds <- DESeq(dds)
 ```
@@ -690,12 +726,15 @@ To extract the results, use:
 # default use gives results only for the last variable in the design formula (in this case 'TG/DMSO')
 dds_res <- results(dds)
 
-# complex use to extract the specified contrast:
+# complex use to extract the specified contrast: (DO NOT RUN THIS!)
 resultsName(dds)
 dds_res <- results(dds, contrast)
 ```
 
 it gives you the **log2 fold changes** and the **adjusted p-values** for the specified contrasts (the estimates are of the logarithmic fold change log2(treated/untreated). In our case it will AMIL/DMSO and TG/DMSO.
+
+
+> **Task 9:** Please run the results() function on the dds object:
 
 ```{r results_DE}
 dds_res <- results(dds)
@@ -719,6 +758,24 @@ dds_res
 \
 
 
+- how many genes do we get with padj < 0.05?
+
+```{r}
+table(dds_res$padj < 0.05)
+```
+
+- sort the list to have at the top the genes with the lowest padj values:
+
+```{r}
+dds_res.1 <- subset(dds_res, padj < 0.1)                 # find all rows that have a padj < 0.1; helps to remove the NAs and insignificant values
+dds_res_ordered <- dds_res.1[order(dds_res.1$padj),]     # sort the subset
+```
+
+\
+\
+\
+
+
 ## 6. Exporting results and further analyses - 15 min
 
 \
@@ -731,11 +788,13 @@ knitr::include_graphics(c("../images/analysis_tools.png"))
 
 - you can save your results in a 'tsv' file:
 
+> **Task 9:** Please find the write.csv function and use it to export your data:
+
 ```{r export_results}
 # change the location of the saved file!!
 wfile="../misc/results.tsv"      # location of data file
-#write.table(dds_res, file=wfile, col.names=T, row.names = T, sep = "\t", quote=F)  #tab-sep
-write.csv(dds_res, file=wfile, row.names=TRUE)                                      #comma-sep
+#write.table(dds_res_ordered, file=wfile, col.names=T, row.names = T, sep = "\t", quote=F)  #tab-sep
+write.csv(dds_res_ordered, file=wfile, row.names=TRUE)                                      #comma-sep
 ```
 
 \
@@ -757,4 +816,12 @@ knitr::include_graphics("../images/gene2functions.png")
   
 ```{r, echo=FALSE, out.width = '60%', fig.align="center"}
 knitr::include_graphics("../images/ipa_example.jpg")
+```
+
+
+
+> **Task 10:** Please reorder factors with 'AMIL' as baseline, for next day's analysis - 2 min
+
+```{r rearr_back, echo = FALSE}
+dds$condition <- relevel(dds$condition, ref='AMIL')
 ```
