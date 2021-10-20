@@ -215,7 +215,6 @@ Null hypothesis:
 
 ```{r build the matrix, message=FALSE, warning=FALSE}
 design <- as.formula(~celltype + condition + celltype:condition)
-# design <- as.formula(~condition)
 dds <- DESeq2::DESeqDataSetFromMatrix(countData = countdata, colData = sampleInfo, design = design)
 ```
 
@@ -256,8 +255,6 @@ dds <- estimateDispersions(dds)
 
 ## Run deseq analysis (recap)
 ```{r deseq analysis, message=FALSE, warning=FALSE}
-# If you already have the dds object just replace the design by:
-    #  dds <- DESeq(dds, design = design)
 dds <- DESeq(dds)
 ```
 # 2. Steps to generate pairwise comparisons 
@@ -309,7 +306,6 @@ If there is only two factor levels, There is no need to  specify contrasts, DESe
 
 ## Results
 ```{r result, message=FALSE, warning=FALSE}
-# which contrast are we interested in?
 res <- results(dds, contrast = contrast, alpha = 0.05)
 ```
 
@@ -454,12 +450,11 @@ print(ggplot(res_shrink%>% data.frame(), aes(log2FoldChange, -log(padj))) +
 
 ## Likelihood ratio test
 
-DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative to wilde test when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one class compared to another, it identifies genes which are changing in expression in any direction across the different factor levels. Therefore, there is no need for contrasts since we are not making a pair-wise comparison.
+DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative to Wald test when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one class compared to another, it identifies genes which are changing in expression in any direction across the different factor levels. Therefore, there is no need for contrasts since we are not making a pair-wise comparison.
 
 The LRT is comparing the 'full' model to the 'reduced' model to identify significant genes. The p-values are determined solely by the difference in deviance between the ‘full’ and the ‘reduced’ model formula (not the log2 fold changes). Essentially the LRT test is testing whether the term(s) removed in the ‘reduced’ model explains a significant amount of variation in the data
 
 ```{r lrt, message=FALSE, warning=FALSE}
-# which model are we interested in as reduced?
 dds_lrt <- DESeq(dds, test="LRT", reduced = ~celltype + condition)
 res_lrt <- results(dds_lrt)
 head(res_lrt)
