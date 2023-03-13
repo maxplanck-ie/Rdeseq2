@@ -1,7 +1,7 @@
 ---
 title: "DESeq2 Analysis with R: Part 00"
 author: "Bioinfo-Core @ MPI-IE"
-#date: "`r date() `"
+date: "`r date() `"
 output:
   html_document:
     code_folding: hide
@@ -13,23 +13,24 @@ output:
 
 # Goals
 
-<!-- ![DESeq workflow](../images/workflow_DESeq2.png) -->
+<!-- ![DESeq workflow](../images/part00_workflowdeseq2.png) -->
 
 After the course you will be able to
 
-* perform a full bioinformatics workflow (DESeq2): data input $\to$ output  
-* perform exploratory analysis: quality controls, filters  
-* visualize data and results with modern tools  
-* apply complex experimental designs  
-* obtain and visualise differential genes from simple or complex comparison setups  
-* share workflows with notebook  
+* Perform a full bioinformatics workflow (DESeq2): data input $\to$ output  
+* Understand the theory behind RNA-seq data generation and analysis
+* Perform exploratory analysis: quality controls, filters  
+* Visualize data and results with modern tools  
+* Apply complex (multifactorial) experimental designs  
+* Obtain and visualise differential genes from simple or complex comparison setups  
+* Share workflows with your colleagues.
 
 ***
 
 # Prerequistites
 
 * R introduction: data formats, functions, help, plotting, work with packages
-* (linux) account for https://workbench.ie-freiburg.mpg.de or your own local R/Rstudio installation.
+* Account for https://workbench.ie-freiburg.mpg.de or your own local R/Rstudio installation.
 * Patience
 
 Note that this course will be based on R version 4.1.3, Bioconductor version 3.14.
@@ -43,13 +44,13 @@ There is lots of useful material out there. This course is heavily influenced by
  * https://hbctraining.github.io/DGE_workshop_salmon_online/
  * http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html
  
-We will also be using publically available data, which has been altered for educational purposes (and should thus be treated as such).
+We will also be using publicly available data, which has been altered for educational purposes (and should thus be treated as such).
 
 ***
 
 # Overview
 
-## 1. Part I: Getting and understanding the data
+## 1. Day I: Getting and understanding the data
 
 * Warmup & R-epetition
 * Data, Metadata & Design
@@ -57,7 +58,7 @@ We will also be using publically available data, which has been altered for educ
 * Quality Control
 
 
-## 2. Part II: Data Transformations and Model
+## 2. Day II: Data Transformations and Model
 
 * Quality Controls & Filtering
 * Data Transformations and Normalization
@@ -65,7 +66,7 @@ We will also be using publically available data, which has been altered for educ
 * Modeling Count Data: NB and Over-dispersion
 * Running DESeq2
 
-## 3. Part III: Differentially Expressed Genes
+## 3. Day III: Differentially Expressed Genes
 
 * Multifactorial Designs & Complex Contrasts
 * Hypothesis tests: Wald test & LRT
@@ -73,15 +74,15 @@ We will also be using publically available data, which has been altered for educ
 * Gene Annotations
 * Exporting results
 
-## 4. Part IV: On your own 
-* Run a full multifactorial DESeq2 Analysis. We'll be around to help.
+## 4. Day IV: On your own 
+* Run a multifactorial DESeq2 Analysis. We'll be around to help.
 
 ***
 
 # Libraries
 
 During the course we'll use a (limited) number of libraries. These are listed below and are considered installed in the rest of the course.
-We make use of the custom 'my_load_namespaces' function (Thanks Adrian!) to make sure our libraries are installed and available.
+We make use of the custom 'my_load_namespaces' function (thanks Adrian!) to make sure our libraries are installed and available.
 
 
 ```{r}
@@ -104,7 +105,12 @@ my_load_namespaces <- function(packagesToLoad=c(), coreLibraries=c()) {
 
 
 ```{r Libraries, echo=FALSE,warning=FALSE,message=FALSE }
-my_load_namespaces(c("DESeq2", "tidyverse"), c())
+BiocPackages <- c("DESeq2", "tidyverse", "pheatmap")
+my_load_namespaces(
+  BiocPackages,
+  c()
+)
+BiocManager::valid()
 ```
 
 ***

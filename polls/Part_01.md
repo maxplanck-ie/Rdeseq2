@@ -4,7 +4,9 @@
    b) sessionInfo()*
    c) getwd()
 
-1.2. Who has successfully installed the packages
+1.2. Did you manage to load DESeq2, tidyverse & pheatmap ?
+   a) yes. *
+   b) no.
 
 1.3. What is the median expression count in sample "BM_CTRL_3"?
    a) 520.3338
@@ -13,7 +15,7 @@
 
 1.4. What is a factor in R?
    a) A numerical variable to be multiplied with another (e.g. scale factor)
-   b) A categorical variable that can only assume specific values (e.g. treatment)
+   b) A categorical variable that can only assume specific values (e.g. treatment)*
    c) A nuisance variable that is of no specific interest (e.g. batch)
 
 1.5. What is n from y_i = f(x_i) in our example ?

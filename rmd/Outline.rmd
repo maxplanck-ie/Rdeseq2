@@ -1,12 +1,12 @@
 ---
-title: "DESeq2 Template"
-author: "MPI-IE Bioinfo-Core"
-#date: "`r date() `"
+title: "DESeq2 Analysis with R: outline"
+author: "Bioinfo-Core @ MPI-IE"
+date: "`r date() `"
 output:
   html_document:
     code_folding: hide
     toc: true
-    toc_depth: 2
+    toc_depth: 1
     toc_float: true
     df_print: paged
 ---

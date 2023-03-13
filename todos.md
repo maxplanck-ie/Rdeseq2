@@ -1,19 +1,19 @@
 # Todos
 
-## general checklist
+## checklist per day
 
- - [ ] Description.rmd
-   - [ ] knit
-   - [ ] tidy
- - [ ] Part_00
-   - [ ] knit
-   - [ ] tidy
- - [ ] Part_01
-   - [ ] knit
-   - [ ] tidy
+ - [x] Description.rmd
+   - [x] knit
+   - [x] course goals
+ - [x] Part_00
+   - [x] knit
+   - [] libraries
+ - [x] Part_01
+   - [x] knit
+   - [] tidy everything
+   - [x] images
+   - [x] polls
  - [ ] Part_02
-   - [ ] knit
-   - [ ] tidy
  - [ ] Part_03
    - [ ] knit
    - [ ] tidy
@@ -29,6 +29,7 @@
 
 ## General
  - [ ] Polling system solution
- - [ ] data sharing / input data solutions
+ - [ ] data sharing / input data solutions?
+ - [ ] rename images per part.
 
 
