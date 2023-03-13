@@ -1,40 +1,40 @@
 ---
 title: "DESeq2 Analysis with R: Description"
-author: "Bioinfo-Core @ MPI-IE Freiburg"
-#date: "`r date() `"
-output: html_document
+author: "Bioinfo-Core @ MPI-IE"
+date: "`r date() `"
+output:
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_depth: 1
+    toc_float: true
+    df_print: paged
 ---
+
+# Course language: English
 
 # Goals: 
 The analysis of differential gene expression is a very common task, for which many 
 advanced software packages have been developed. 
 Using the DESeq2 package as example, we will introduce common analysis strategies to conduct gene expression analysis using R. The following topics will be covered:
 
-- Obtaining and Loading Expression Data
-- Understanding Data, Metadata and Design
-- Data Exploration and Quality Controls
-- Data Filtering and Normalizations
-- DESeq2 Workflow
-- Defining Contrasts and Calling Differential Genes
-- Data Visualization 
-- Documenting Analyses with Notebooks
+- obtaining and loading Expression Data
+- Understanding data, metadata and designs
+- Data exploration and quality controls
+- Data filtering and normalizations
+- DESeq2 workflow
+- Defining contrasts, understanding coefficients and calling Differential Genes
+- Data visualization 
+- Documenting your reproducible analysis using notebooks.
 
 
 # Requirements:
 
 * **basic R understanding**: Introductory material has been covered by a previous course: https://github.com/maxplanck-ie/Rintro
 
-* an **account for rstudio.ie-freiburg.mpg.de**: We will use the Rstudio server at the MPI-IE. If you do not have an account yet, you will need to request an account from core-IT. Please do so well before the course starts.
-
-* **install** the following packages: tidyverse, pheatmap, DESeq2
+* an **account for https://workbench.ie-freiburg.mpg.de**: We will use the Rstudio server at the MPI-IE. If you do not have an account yet, you will need to request an account from core-IT. Please do so well before the course starts.
 
 * **Know your keyboard!** Special characters will be needed throughout the course, e.g. $ , | , [, ], {, }, >, <, #, ~, &, ^, %, !, ?
-
-
-# Course language: English
-
-# Maximal Number of Participants: 15
-
 
 ***
 
