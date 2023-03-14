@@ -65,16 +65,6 @@ my_load_namespaces(c("DESeq2", "tidyverse", "pheatmap"), c())
 b) Load data and metadata
 
 ```{r load_data, message=FALSE, echo = TRUE, results = 'hide'}
-
-#loading data and metadata (sample sheet) in baseR
-data <- read.table("/data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv", header=TRUE, check.names = TRUE, row.names = 1)
-metadata <- read.table("/data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv", header=TRUE, check.names = TRUE, stringsAsFactor = F)
-
-metadata$celltype <- as.factor(metadata$celltype)    # observe the change from 'character' to 'factor'
-metadata$condition <- as.factor(metadata$condition)
-rownames(metadata) <- metadata$sample
-##############################
-
 loc_wd <- "/data/manke/group/balan/courses/2023_Rcourse_DESeq2/Rdeseq2"
 loc_code <- paste0(loc_wd, "/rmd")
 setwd(loc_code)
@@ -89,11 +79,6 @@ metadata <- readr::read_tsv(paste0(loc_wd, "/data/myeloma/myeloma_meta.tsv"), co
 # metadata %>% mutate(celltype = factor(celltype))
 # metadata %>% mutate(condition = factor(condition))
 
-# sapply(metadata, class)
-
-### SHOULD I KEEP THE 1st COLUMN as 'SAMPLES' OR IS IT OK WITHOUT IT?
-# set row names (from tibble to df)
-#data <- column_to_rownames(data, var="gene_id") %>% as_tibble()
 data <- column_to_rownames(data, var="gene_id")
 metadata <- column_to_rownames(metadata, var="sample")
 
@@ -147,18 +132,6 @@ rld_PCA %>% ggplot(aes(PC1, PC2, color=condition, shape=celltype)) +
   geom_text(x = 0, y = -1, label="what does the sample mixing mean?", color="black", size=5) +
   geom_segment(aes(x = -25, y = -3, xend = -60, yend = -8), arrow = arrow(length = unit(0.5, "cm")), color="black", show.legend = FALSE) +   #arrow1
   geom_segment(aes(x = 25, y = -3, xend = 60, yend = -8), arrow = arrow(length = unit(0.5, "cm")), color="black", show.legend = FALSE)      #arrow2
-  
-#ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
-  # geom_point(size=3) +
-  # scale_shape_manual(values=c(3, 1))+    # change shapes of symbols
-  # scale_size_manual(values=c(2, 2))+     # change sizes of symbols
-  # xlab(paste0("PC1: ",percentVar[1])) +
-  # ylab(paste0("PC2: ",percentVar[2])) +
-  # geom_point(aes(x = rld_PCA[1, 1], y = rld_PCA[1, 2]), shape=3, size=3, color="black") +
-  # geom_point(aes(x = rld_PCA[7, 1], y = rld_PCA[7, 2]), shape=1, size=3, color="black")+
-  # geom_text(x = 0, y = -1, label="what does the sample mixing mean?", color="black", size=5) +
-  # geom_segment(aes(x = -25, y = -3, xend = -60, yend = -8), arrow = arrow(length = unit(0.5, "cm")), color="black", show.legend = FALSE) +   #arrow1
-  # geom_segment(aes(x = 25, y = -3, xend = 60, yend = -8), arrow = arrow(length = unit(0.5, "cm")), color="black", show.legend = FALSE)      #arrow2
 ```
 
 > **Poll 1:** What do you think about this PCA plot? Does it need to be fixed? How would you do it? - 5 min
@@ -180,25 +153,13 @@ dds_clean <- dds[, -c(column_number_sample1, column_number_sample2)]
 ```{r fix_data_metadata, out.width = '60%', fig.align="center"}
 #remove the samples from data and metadata:
 dds_clean <- dds[, -c(1,7)]
+#or
 #dds_clean2 <- dds[, -which(colnames(dds) %in% c("JJ_CTRL_1", "BM_CTRL_1"))]
 
-#metadata_clean <- metadata[-c(1,7),]
-#metadata_clean2 <- metadata %>% filter(!row.names(metadata) %in% c("JJ_CTRL_1", "BM_CTRL_1"))
-
-
-
-#rld_PCA_clean <- plotPCA(rlog(dds_clean, blind = TRUE), intgroup=c("condition", "celltype"), returnData=TRUE)
 rld_PCA_clean <- rlog(dds_clean, blind = TRUE) %>% plotPCA(intgroup=c("condition", "celltype"), returnData=TRUE)
 
 # cosmetic changes:
 percentVar_clean <- round(100 * attr(rld_PCA_clean, "percentVar"), 1)   # rounded values for each axis of PC variance
-
-# ggplot(rld_PCA_clean, aes(PC1, PC2, color=condition, shape=celltype)) +
-#   geom_point(size=3) +
-#   scale_shape_manual(values=c(3, 1))+    # change shapes of symbols
-#   scale_size_manual(values=c(2, 2))+     # change sizes of symbols
-#   xlab(paste0("PC1: ",percentVar[1])) +
-#   ylab(paste0("PC2: ",percentVar[2])) 
 
 rld_PCA_clean %>% ggplot(aes(PC1, PC2, color=condition, shape=celltype)) +
   geom_point(size=3) +
@@ -625,16 +586,10 @@ mean_counts <- apply(counts(dds)[,6:8], 1, mean)
 op <- par( mar=c(2.3, 0, 0.3, 0), pty="s", fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0))
 
 mean_counts <- apply(counts(dds_clean)[,3:5], 1, mean)        # '1' means that the function 'apply' is applied to rows.
-# would work only for tibbles:
-#mean_counts3 <- counts(dds_clean)[,3:5] %>% as_tibble() %>% mutate(rowMeans(.))  
 
-
-  
 variance_counts <- apply(counts(dds_clean)[,3:5], 1, var)
 
-
 plot(log10(mean_counts), log10(variance_counts), xlim=c(-1, 10), ylim=c(-1, 10))
-#plot(unlist(log10(mean_counts3[,ncol(mean_counts3)]) ), log10(variance_counts), xlim=c(-1, 10), ylim=c(-1, 10))
 abline(0,1, col="red")
 
 smoothScatter(log10(mean_counts), log10(variance_counts), xlim=c(-1, 10), ylim=c(-1, 10))
@@ -736,8 +691,8 @@ Accurate estimation of `α` is critical:
 > **Task 7:** Visualize the dispersion in your analysis using the following functions: ```dds <- estimateDispersions(dds)``` and ```plotDispEsts(dds)```
 
 ```{r, echo=FALSE, results = 'hide', message=FALSE}
-dds <- estimateDispersions(dds_clean)
-#plotDispEsts(dds)
+dds_clean <- estimateDispersions(dds_clean)
+#plotDispEsts(dds_clean)
 ```
 
 \
