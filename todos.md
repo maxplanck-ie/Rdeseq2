@@ -28,8 +28,12 @@
    - [ ] tidy
 
 ## General
- - [ ] Polling system solution
+ - [ ] set up polls
  - [ ] data sharing / input data solutions?
  - [ ] rename images per part.
+ - [ ] actions
+    - [ ] conda env
+    - [ ] builds
+
 
 
