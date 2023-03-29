@@ -33,7 +33,7 @@
  - [ ] rename images per part.
  - [ ] actions
     - [ ] conda env
-    - [ ] builds
+    - [ ] builds/site
 
 
 
