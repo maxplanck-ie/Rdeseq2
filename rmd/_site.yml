@@ -12,8 +12,8 @@ navbar:
       icon: fa-check
       href: outline.html
     - text: "Day 1"
-      icon: battery-empty
-      href: 'day1.html'
+      icon: fa-battery-empty
+      href: 'day01.html'
 
 output:
   html_document:

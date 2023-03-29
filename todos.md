@@ -7,7 +7,14 @@
     - [x] build pdf separate
   - [ ] outline
     - [ ] recap on R/GUI
-    - [ ] libraries
+  - [ ] day1
+    - [ ] data download / fetch in intro (?)
+    - [ ] set libraries to day 1
+
+## Tasks/homework
+ - [x] day1
+ - [ ] day2
+ - [ ] day3
 
 ## General
  - [ ] set up polls

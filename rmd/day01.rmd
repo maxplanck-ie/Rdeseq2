@@ -94,7 +94,7 @@ It contains the number of reads that have been mapped to each gene and for each 
 
 <br><br>
 
-![**Count matrix**. Image from github.com/hbctraining ](../images/part01_countmatrix.png)
+![**Count matrix**. Image from github.com/hbctraining ](images/day1_countmatrix.png)
 
 ***
 
@@ -115,7 +115,7 @@ Data can come in various formats. Here we have prepared the data as tab-separate
 > **Task**: Read the data e.g. using read_tsv()
 
 ```{r import_data, message=FALSE}
-dfile <- "/data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv"      # location of data file
+dfile <- "../data/myeloma/myeloma_counts.tsv"      # location of data file
 data <- read_tsv(file=dfile)    # diagnostic: problemes(data)
 ```
 
@@ -162,7 +162,7 @@ Often the metadata is hidden in the paper (or in the filename). This is bad prac
 Make sure that the rownames of the metadata are valid sample names.
 
 ```{r import_meta}
-mfile <- "/data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv"               # location of metadata file
+mfile <- "../data/myeloma/myeloma_meta.tsv"               # location of metadata file
 #metadata <- read.csv(file=mfile, header=TRUE, sep="\t")
 metadata <- read_tsv(file=mfile)
 metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
@@ -297,7 +297,7 @@ https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/ex
 
 
 
-![**A typical experiment** ](../images/part01_expdesign.jpg)
+![**A typical experiment** ](images/day1_expdesign.jpg)
 
 <br><br><br>
 
@@ -315,7 +315,7 @@ Usually there are other factors in addition to a simple treatment:
 > **Poll 1.6** You are planning an experiment with 3 treatment levels $(X_1, X_2, X_3)$ and aim for 3 replicates each. Unfortunately, you can process at most 3 samples per day. So you'll need three days $(Z_1, Z_2, Z_3)$. How should you assign your samples to different treatments?
 
 
-![**Experimental Design - Poll** ](../images/part01_dexpdesign_poll.jpg)
+![**Experimental Design - Poll** ](images/day1_expdesign_poll.jpg)
 
 ### Sources of Variability
 
@@ -343,7 +343,7 @@ my_alt_design <- ~ celltype + condition
 
 **Repeat**: The choice of factors rests with the researcher.
 
-![**Factor Choices**.](../images/part01_myeloma_factors.jpg)
+![**Factor Choices**.](images/day1_myelomafactors.jpg)
 
 
 ***
