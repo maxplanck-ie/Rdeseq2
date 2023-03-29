@@ -1,0 +1,29 @@
+name: deploy
+
+on:
+  push:
+    branches: wd_2023
+
+defaults:
+  run:
+      shell: bash -l {0}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: configs/conda.yml
+          cache-downloads: true
+          environment-name: Rdeseq2
+      - name: activate_env
+        run: |
+          micromamba activate Rdeseq2
+      - name: render description
+        run: |
+          Rscript -e "rmarkdown::render('rmd/index.rmd', output_dir='.', output_format='pdf_document', output_file='description.pdf')"
+      - name: render site
+        run: |
+          Rscript -e "rmarkdown::render('rmd/')"
