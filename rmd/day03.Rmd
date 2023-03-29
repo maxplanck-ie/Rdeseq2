@@ -719,7 +719,7 @@ Finally, look at two specific geneSets.
  - genes involved in apoptosis
 
 ```{r Pathways, message = FALSE, warning = FALSE}
-data_dir <- "/data/processing3/RdeseqCourse/Data/genesets/"
+data_dir <- "../data/genesets/"
 kegg_apoptosis <-  read.table(paste0(data_dir, "KEGG_apoptosis.txt", sep=''),
                           header=FALSE, stringsAsFactor = F)
 kegg_apoptosis <- kegg_apoptosis$V1
@@ -788,7 +788,7 @@ res_lrt_clean <- cleanDF(res_lrt)
 res_lrt_clean
 # Write out results in a tsv file.
 
-write.table(res_lrt_clean, file="~/lrtResults.tsv", quote = FALSE, sep = "\t")
+write.table(res_lrt_clean, file="lrtResults.tsv", quote = FALSE, sep = "\t")
 
 # spliceosome
 pheatmap(
