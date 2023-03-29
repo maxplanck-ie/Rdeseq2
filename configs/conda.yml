@@ -1,0 +1,9 @@
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - r-base=4.1.3
+  - r-essentials
+  - bioconductor-deseq2
+  - r-tidyverse
+  - r-pheatmap
