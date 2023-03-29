@@ -1,0 +1,21 @@
+name: Rdeseq2
+output_dir: site
+include: ["images"]
+
+navbar:
+  title: "Rdeseq2 - RNA-seq analysis"
+  left:
+    - text: ""
+      icon: fa-home
+      href: index.html
+    - text: "outline"
+      icon: fa-check
+      href: outline.html
+    - text: "Day 1"
+      icon: battery-empty
+      href: 'day1.html'
+
+output:
+  html_document:
+    theme: cosmo
+    highlight: textmate

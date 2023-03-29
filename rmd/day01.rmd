@@ -4,6 +4,8 @@ author: "Thomas Manke @ MPI-IE"
 date: "`r date() `"
 output:
   html_document:
+    theme: cosmo
+    highlight: textmate
     code_folding: hide
     toc: true
     toc_depth: 1

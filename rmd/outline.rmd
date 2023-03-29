@@ -1,9 +1,11 @@
 ---
-title: "DESeq2 Analysis with R: Part 00"
+title: "DESeq2 Analysis with R: outline"
 author: "Bioinfo-Core @ MPI-IE"
 date: "`r date() `"
 output:
   html_document:
+    theme: cosmo
+    highlight: textmate
     code_folding: hide
     toc: true
     toc_depth: 1
@@ -12,8 +14,6 @@ output:
 ---
 
 # Goals
-
-<!-- ![DESeq workflow](../images/part00_workflowdeseq2.png) -->
 
 After the course you will be able to
 
@@ -30,7 +30,7 @@ After the course you will be able to
 # Prerequistites
 
 * R introduction: data formats, functions, help, plotting, work with packages
-* Account for https://workbench.ie-freiburg.mpg.de or your own local R/Rstudio installation.
+* Account for  [workbench](https://workbench.ie-freiburg.mpg.de) or your own local R/Rstudio installation.
 * Patience
 
 Note that this course will be based on R version 4.1.3, Bioconductor version 3.14.
@@ -77,42 +77,6 @@ We will also be using publicly available data, which has been altered for educat
 ## 4. Day IV: On your own 
 * Run a multifactorial DESeq2 Analysis. We'll be around to help.
 
+# Recap - R and libraries.
+explain GUI - difference console - env - script - rmds.
 ***
-
-# Libraries
-
-During the course we'll use a (limited) number of libraries. These are listed below and are considered installed in the rest of the course.
-We make use of the custom 'my_load_namespaces' function (thanks Adrian!) to make sure our libraries are installed and available.
-
-
-```{r}
-my_load_namespaces <- function(packagesToLoad=c(), coreLibraries=c()) {
-  # coreLibraries = not explicitly loaded, but required anyway (e.g. dependencies)
-  installed_pkgs <- installed.packages()
-  
-  if (! "BiocManager" %in% installed_pkgs) install.packages("BiocManager")
-  
-  lapply(c(coreLibraries, packagesToLoad),
-         function(x) if (! x %in% installed_pkgs) BiocManager::install(x, ask = FALSE))
-  
-  lapply(packagesToLoad, function(pkg) {
-    suppressPackageStartupMessages(require(pkg, character.only = TRUE))
-  })
-  
-  TRUE
-}
-```
-
-
-```{r Libraries, echo=FALSE,warning=FALSE,message=FALSE }
-BiocPackages <- c("DESeq2", "tidyverse", "pheatmap")
-my_load_namespaces(
-  BiocPackages,
-  c()
-)
-BiocManager::valid()
-```
-
-***
-
-
