@@ -22,7 +22,6 @@ output:
 
 ```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
 # add libraries
-.libPaths("/data/processing3/RdeseqCourse/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library")
 suppressPackageStartupMessages({
 library("DESeq2")
 library("tidyverse")
@@ -36,7 +35,7 @@ library("ashr")
 
 ```{r read_data, message=FALSE, warning=FALSE}
 # Get the data directory
-data_dir <- "/data/processing3/RdeseqCourse/Data/myeloma/"
+data_dir <- "../data/myeloma/"
 
 # Read count matrix
 dfile <- paste0(data_dir, "myeloma_counts.tsv")
@@ -93,7 +92,7 @@ Each coefficient shows a difference (LFC).
 
 
 ```{r, echo=FALSE, out.width = '50%', fig.align="center"}
-knitr::include_graphics(c("../images/case1.png"))
+knitr::include_graphics(c("images/day3_case1.png"))
 ```
 
 This can be shown by dummy variables:
@@ -131,7 +130,7 @@ Coefficients:
       [1] "Intercept"              "condition_DMSO_vs_AMIL" "condition_TG_vs_AMIL"
 
 ```{r, echo=FALSE, out.width = '80%', fig.align="center"}
-knitr::include_graphics(c("../images/case2.png"))
+knitr::include_graphics(c("images/day3_case3.png"))
 ```
 
 Model matrix:
@@ -177,7 +176,7 @@ Null hypothesis:
 The formula for the model includes all sources of variation in the data. Thus, it should contain the celltype, condition and the difference as the effect of celltype on the condition (celltype:condtion)
 
 ```{r, echo=FALSE, out.width = '80%', fig.align="center"}
-knitr::include_graphics(c("../images/case3.png"))
+knitr::include_graphics(c("images/day3_case3.png"))
 ```
 
 Design:

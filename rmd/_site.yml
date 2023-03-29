@@ -12,8 +12,20 @@ navbar:
       icon: fa-check
       href: outline.html
     - text: "Day 1"
-      icon: fa-battery-empty
+      icon: fa-battery-quarter
       href: 'day01.html'
+    #- text: "Day 2"
+    #  icon: fa-battery-half
+    #  href: 'day02.html'
+    - text: "Day 3"
+      icon: fa-battery-three-quarters
+      href: "day03.html"
+    - text: "Day 4"
+      icon: fa-battery-full
+      href: "day04.html"
+    - text: "summary"
+      href: "summary.html"
+      icon: ambulance
 
 output:
   html_document:

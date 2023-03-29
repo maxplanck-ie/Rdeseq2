@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: r-lib/actions/setup-tinytex@master
       - uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: configs/conda.yml
@@ -27,3 +28,8 @@ jobs:
       - name: render site
         run: |
           Rscript -e "rmarkdown::render('rmd/')"
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./rmd/site
