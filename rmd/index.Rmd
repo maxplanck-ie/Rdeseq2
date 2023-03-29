@@ -2,10 +2,11 @@
 title: "DESeq2 Analysis with R: Description"
 author: "Bioinfo-Core @ MPI-IE"
 date: "`r date() `"
-output:
-  pdf_document:
-    df_print: paged
 urlcolor: blue
+output:
+  html_document:
+  pdf_document:
+    toc: false
 ---
 
 # Goals: 
@@ -35,6 +36,3 @@ In case you do have your own (multifactorial) RNA-seq data, we encourage you to 
 * **Know your keyboard!** Special characters will be needed throughout the course, e.g. $ , | , [, ], {, }, >, <, #, ~, &, ^, %, !, ?
 
 ***
-
-
-

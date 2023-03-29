@@ -55,7 +55,6 @@ Hint: a list of cell-cycle genes (KEGG) are available under:
 Load some libraries.
 
 ```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
-.libPaths("/data/processing3/RdeseqCourse/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library")
 library("DESeq2")
 library("dplyr")
 library("tibble")
@@ -69,7 +68,7 @@ library("stringr")
 Read in the data.
 ```{r read in data, message=FALSE, warning=FALSE, paged.print=FALSE}
 # Get the data directory
-data_dir <- "/data/processing3/RdeseqCourse/Data/mpp/"
+data_dir <- "../data/mpp/"
 
 # Read count matrix
 countdata <- read.table(paste0(data_dir, "mpp_counts.tsv", sep=''),
