@@ -22,9 +22,6 @@ jobs:
       - name: activate_env
         run: |
           micromamba activate Rdeseq2
-      - name: render description
-        run: |
-          Rscript -e "rmarkdown::render('rmd/index.rmd', output_dir='.', output_format='pdf_document', output_file='description.pdf')"
       - name: render site
         run: |
           Rscript -e "rmarkdown::render('rmd/')"
