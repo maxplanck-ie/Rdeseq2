@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Bioinfo-Core @ MPI-IE" />
+
+
+<title>DESeq2 Analysis with R: outline</title>
+
+<script src="site_libs/header-attrs-2.21/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
+<script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+<link href="site_libs/font-awesome-6.2.1/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.2.1/css/v4-shims.min.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Rdeseq2 - RNA-seq analysis</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">
+    <span class="fa fa-home"></span>
+     
+    
+  </a>
+</li>
+<li>
+  <a href="outline.html">
+    <span class="fa fa-check"></span>
+     
+    outline
+  </a>
+</li>
+<li>
+  <a href="day01.html">
+    <span class="fa fa-battery-quarter"></span>
+     
+    Day 1
+  </a>
+</li>
+<li>
+  <a href="day03.html">
+    <span class="fa fa-battery-three-quarters"></span>
+     
+    Day 3
+  </a>
+</li>
+<li>
+  <a href="day04.html">
+    <span class="fa fa-battery-full"></span>
+     
+    Day 4
+  </a>
+</li>
+<li>
+  <a href="summary.html">
+    <span class=" ambulance"></span>
+     
+    summary
+  </a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">DESeq2 Analysis with R: outline</h1>
+<h4 class="author">Bioinfo-Core @ MPI-IE</h4>
+<h4 class="date">Wed Mar 29 15:00:49 2023</h4>
+
+</div>
+
+
+<p>This outline contains a template of a typical DESeq2 workflow - as
+discussed during the course.<br />
+For specific projects, the parts on data exploration, quality controls
+and filtering are frequently more iterative and could require
+tweaking.</p>
+<div id="load-libraries" class="section level1">
+<h1>Load Libraries</h1>
+<pre class="r"><code>library(DESeq2)
+library(pheatmap)
+library(tidyverse)
+library(ashr)
+
+### define own convenience functions ###
+my_volcano = function(res){
+  # a low-key alternative to
+  # EnhancedVolcano(res, lab = rownames(res), x = &#39;log2FoldChange&#39;, y = &#39;pvalue&#39;)
+  res %&gt;% 
+    data.frame() %&gt;%                                     # convert to data frame
+    arrange(padj) %&gt;%                                    # sort by padj 
+    mutate(significant=padj &lt; 0.05) %&gt;%                  # define significant genes 
+    mutate(rank=row_number()) %&gt;%         # define rank as rownumber (after sorting)
+    add_rownames(&quot;gene_name&quot;) %&gt;%         # add rownames
+    ggplot(aes(x=log2FoldChange, y=-log10(padj), color=significant)) + 
+    geom_point() + 
+    # label first 5 genes
+    geom_text(aes(label=ifelse(rank&lt;5,gene_name,&#39;&#39;)), size = 3, hjust=0,vjust=-0.15) 
+}</code></pre>
+</div>
+<div id="data-metadata-and-design" class="section level1">
+<h1>Data, Metadata and Design</h1>
+<pre class="r"><code>dfile &lt;- &quot;../data/mpp/mpp_counts.tsv&quot;     
+data &lt;- read_tsv(dfile)</code></pre>
+<pre><code>## Rows: 24417 Columns: 13
+## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: &quot;\t&quot;
+## chr  (1): gene_id
+## dbl (12): Young_HSC_1, Young_HSC_2, Young_MPP1_1, Young_MPP1_2, Young_MPP2_1...
+## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<pre class="r"><code>data &lt;- data %&gt;% column_to_rownames(&quot;gene_id&quot;) 
+
+mfile &lt;- &quot;../data/mpp/mpp_meta.tsv&quot;      
+metadata &lt;- read_tsv(mfile)</code></pre>
+<pre><code>## Rows: 12 Columns: 3
+## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: &quot;\t&quot;
+## chr (3): sample, celltype, condition
+## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<pre class="r"><code>metadata &lt;- metadata %&gt;% column_to_rownames(&quot;sample&quot;) 
+metadata$condition &lt;- as.factor(metadata$condition)
+metadata$celltype  &lt;- as.factor(metadata$celltype)
+
+
+my_design &lt;- ~ celltype + condition + celltype:condition
+
+all(rownames(metadata) == colnames(data))  # sanity check</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_design)</code></pre>
+<pre><code>## converting counts to integer mode</code></pre>
+</div>
+<div id="data-exploration-and-filters" class="section level1">
+<h1>Data Exploration and Filters</h1>
+<pre class="r"><code># data exploration and QC: not shown
+# ...
+
+# remove genes
+keep_genes &lt;- rowSums(counts(dds)) &gt; 1
+dds &lt;- dds[keep_genes,]
+
+# process/filter samples as required
+# ...
+
+# rerun Data Exploration and QC
+rld &lt;- rlog(dds)
+plotPCA(rld, intgroup=c(&quot;condition&quot;, &quot;celltype&quot;))</code></pre>
+<p><img src="summary_files/figure-html/filtering-1.png" width="672" /></p>
+<pre class="r"><code># keep transformed matrix A for later visualization
+# scale rows (genes) for heatmap = transpose; (column) scale; transpose
+A = assay(rld, normalized=TRUE) %&gt;% t %&gt;% scale %&gt;% t </code></pre>
+</div>
+<div id="run-deseq" class="section level1">
+<h1>Run DESeq</h1>
+<pre class="r"><code>dds &lt;- DESeq(dds)                          </code></pre>
+<pre><code>## estimating size factors</code></pre>
+<pre><code>## estimating dispersions</code></pre>
+<pre><code>## gene-wise dispersion estimates</code></pre>
+<pre><code>## mean-dispersion relationship</code></pre>
+<pre><code>## final dispersion estimates</code></pre>
+<pre><code>## fitting model and testing</code></pre>
+<pre class="r"><code>#Inspection
+colData(dds)                                # sizefactors were added to metadata</code></pre>
+<pre><code>## DataFrame with 12 rows and 3 columns
+##              celltype condition sizeFactor
+##              &lt;factor&gt;  &lt;factor&gt;  &lt;numeric&gt;
+## Young_HSC_1      HSC      Young   0.874166
+## Young_HSC_2      HSC      Young   1.090789
+## Young_MPP1_1     MPP1     Young   1.050110
+## Young_MPP1_2     MPP1     Young   1.059677
+## Young_MPP2_1     MPP2     Young   0.930771
+## ...               ...       ...        ...
+## Aged_HSC_2       HSC       Aged    1.07411
+## Aged_MPP1_1      MPP1      Aged    0.98275
+## Aged_MPP1_2      MPP1      Aged    1.10200
+## Aged_MPP2_1      MPP2      Aged    1.00093
+## Aged_MPP2_2      MPP2      Aged    1.04783</code></pre>
+<pre class="r"><code>plotDispEsts(dds, main=&quot;Dispersion plot&quot;)   # dispersion</code></pre>
+<p><img src="summary_files/figure-html/DEseq2-1.png" width="672" /></p>
+<pre class="r"><code># mcols(dds)                                # for the really curious: results of modeling</code></pre>
+</div>
+<div id="contrasts" class="section level1">
+<h1>Contrasts</h1>
+<p>Verify (base) levels and available coefficient (resultsNames).<br />
+Define model matrix and contrasts systematically</p>
+<pre class="r"><code>colData(dds)$condition</code></pre>
+<pre><code>##  [1] Young Young Young Young Young Young Aged  Aged  Aged  Aged  Aged  Aged 
+## Levels: Aged Young</code></pre>
+<pre class="r"><code>colData(dds)$celltype</code></pre>
+<pre><code>##  [1] HSC  HSC  MPP1 MPP1 MPP2 MPP2 HSC  HSC  MPP1 MPP1 MPP2 MPP2
+## Levels: HSC MPP1 MPP2</code></pre>
+<pre class="r"><code>resultsNames(dds)</code></pre>
+<pre><code>## [1] &quot;Intercept&quot;                   &quot;celltype_MPP1_vs_HSC&quot;       
+## [3] &quot;celltype_MPP2_vs_HSC&quot;        &quot;condition_Young_vs_Aged&quot;    
+## [5] &quot;celltypeMPP1.conditionYoung&quot; &quot;celltypeMPP2.conditionYoung&quot;</code></pre>
+<pre class="r"><code>mod_mat &lt;- model.matrix(my_design, metadata)
+
+# define contrast systematically
+Aged_MPP2 &lt;-  which(dds$condition==&quot;Aged&quot;  &amp; dds$celltype==&quot;MPP2&quot;)
+Young_MPP2 &lt;- which(dds$condition==&quot;Young&quot; &amp; dds$celltype==&quot;MPP2&quot;)
+YvA_MPP2=colMeans(mod_mat[Young_MPP2,]) - colMeans(mod_mat[Aged_MPP2,]) 
+
+YvA_MPP2</code></pre>
+<pre><code>##                 (Intercept)                celltypeMPP1 
+##                           0                           0 
+##                celltypeMPP2              conditionYoung 
+##                           0                           1 
+## celltypeMPP1:conditionYoung celltypeMPP2:conditionYoung 
+##                           0                           1</code></pre>
+</div>
+<div id="results" class="section level1">
+<h1>Results</h1>
+<pre class="r"><code>res &lt;- lfcShrink(dds, contrast=YvA_MPP2, type = &quot;ashr&quot;) </code></pre>
+<pre><code>## using &#39;ashr&#39; for LFC shrinkage. If used in published research, please cite:
+##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
+##     https://doi.org/10.1093/biostatistics/kxw041</code></pre>
+<pre class="r"><code># inspect results
+res %&gt;% head(5)                                        # first few results</code></pre>
+<pre><code>## log2 fold change (MMSE): 0,0,0,+1,0,+1 
+## Wald test p-value: 0,0,0,+1,0,+1 
+## DataFrame with 5 rows and 5 columns
+##          baseMean log2FoldChange     lfcSE      pvalue        padj
+##         &lt;numeric&gt;      &lt;numeric&gt; &lt;numeric&gt;   &lt;numeric&gt;   &lt;numeric&gt;
+## Plekhg2  133.8963       0.116174  0.185884 3.10302e-01 5.60298e-01
+## Plekhg3  195.2731       0.134482  0.171969 2.46270e-01 4.89375e-01
+## Plekhg1  120.6119       0.807279  0.548689 5.10819e-04 4.86566e-03
+## Plekhg6   77.5309       0.335161  0.517385 1.56011e-02 7.23021e-02
+## Plekhg5  168.7902       0.872573  0.276774 1.28764e-06 2.82492e-05</code></pre>
+<pre class="r"><code>summary(res)                                             # summary for all genes</code></pre>
+<pre><code>## 
+## out of 16478 with nonzero total read count
+## adjusted p-value &lt; 0.1
+## LFC &gt; 0 (up)       : 1482, 9%
+## LFC &lt; 0 (down)     : 1818, 11%
+## outliers [1]       : 0, 0%
+## low counts [2]     : 2876, 17%
+## (mean count &lt; 4)
+## [1] see &#39;cooksCutoff&#39; argument of ?results
+## [2] see &#39;independentFiltering&#39; argument of ?results</code></pre>
+<pre class="r"><code>plotMA(res, ylim=c(-3,3))                              # MA-plot from DESeq2</code></pre>
+<p><img src="summary_files/figure-html/results-1.png" width="672" /></p>
+<pre class="r"><code>plot(res$log2FoldChange, -log10(res$padj), cex=0.3)    # very simple volcano</code></pre>
+<p><img src="summary_files/figure-html/results-2.png" width="672" /></p>
+<pre class="r"><code>#my_volcano(res)                                        # better?
+
+# plot top-gene
+plotCounts(dds, gene=which.min(res$padj), intgroup=c(&quot;condition&quot;,&quot;celltype&quot;))  </code></pre>
+<p><img src="summary_files/figure-html/results-3.png" width="672" /></p>
+<pre class="r"><code># plot heatmap for top 15 genes
+ntop &lt;- 15
+sorted_res &lt;- res %&gt;% data.frame() %&gt;% arrange(padj)   # sort results by padj
+top_genes &lt;- sorted_res %&gt;% head(ntop) %&gt;% row.names() # top gene names
+col_sel=c(Young_MPP2, Aged_MPP2)                       # select only samples in contrast
+pheatmap(A[top_genes,col_sel], main=&quot;Top DE Genes (rlog)&quot;, annotation=metadata)</code></pre>
+<p><img src="summary_files/figure-html/results-4.png" width="672" /></p>
+<pre class="r"><code># write sorted results to file (add rowname as column)
+fn=&quot;results.tsv&quot;                        # might need a more informative filename
+write_tsv(sorted_res %&gt;% rownames_to_column(&quot;Gene&quot;), file=fn)            </code></pre>
+</div>
+<div id="sessioninfo" class="section level1">
+<h1>SessionInfo</h1>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>## R version 4.1.3 (2022-03-10)
+## Platform: x86_64-conda-linux-gnu (64-bit)
+## Running under: Ubuntu 22.04.2 LTS
+## 
+## Matrix products: default
+## BLAS/LAPACK: /home/runner/micromamba-root/envs/Rdeseq2/lib/libopenblasp-r0.3.21.so
+## 
+## locale:
+##  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+##  [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+##  [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+## [10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+## 
+## attached base packages:
+## [1] stats4    stats     graphics  grDevices utils     datasets  methods  
+## [8] base     
+## 
+## other attached packages:
+##  [1] ashr_2.2-54                 UpSetR_1.4.0               
+##  [3] EnsDb.Hsapiens.v75_2.99.0   ensembldb_2.18.1           
+##  [5] AnnotationFilter_1.18.0     GenomicFeatures_1.46.1     
+##  [7] AnnotationDbi_1.56.2        ggrepel_0.9.3              
+##  [9] pheatmap_1.0.12             lubridate_1.9.2            
+## [11] forcats_1.0.0               stringr_1.5.0              
+## [13] dplyr_1.1.1                 purrr_1.0.1                
+## [15] readr_2.1.4                 tidyr_1.3.0                
+## [17] tibble_3.2.1                ggplot2_3.4.1              
+## [19] tidyverse_2.0.0             DESeq2_1.34.0              
+## [21] SummarizedExperiment_1.24.0 Biobase_2.54.0             
+## [23] MatrixGenerics_1.6.0        matrixStats_0.63.0         
+## [25] GenomicRanges_1.46.1        GenomeInfoDb_1.30.1        
+## [27] IRanges_2.28.0              S4Vectors_0.32.4           
+## [29] BiocGenerics_0.40.0        
+## 
+## loaded via a namespace (and not attached):
+##   [1] colorspace_2.1-0         rjson_0.2.21             XVector_0.34.0          
+##   [4] farver_2.1.1             bit64_4.0.5              mvtnorm_1.1-3           
+##   [7] apeglm_1.16.0            fansi_1.0.4              xml2_1.3.3              
+##  [10] splines_4.1.3            cachem_1.0.7             geneplotter_1.72.0      
+##  [13] knitr_1.42               jsonlite_1.8.4           Rsamtools_2.10.0        
+##  [16] annotate_1.72.0          dbplyr_2.3.2             png_0.1-8               
+##  [19] compiler_4.1.3           httr_1.4.5               Matrix_1.5-3            
+##  [22] fastmap_1.1.1            lazyeval_0.2.2           cli_3.6.1               
+##  [25] htmltools_0.5.5          prettyunits_1.1.1        tools_4.1.3             
+##  [28] coda_0.19-4              gtable_0.3.3             glue_1.6.2              
+##  [31] GenomeInfoDbData_1.2.7   rappdirs_0.3.3           tinytex_0.44            
+##  [34] Rcpp_1.0.10              bbmle_1.0.25             jquerylib_0.1.4         
+##  [37] vctrs_0.6.1              Biostrings_2.62.0        rtracklayer_1.54.0      
+##  [40] xfun_0.38                irlba_2.3.5.1            timechange_0.2.0        
+##  [43] lifecycle_1.0.3          restfulr_0.0.15          XML_3.99-0.14           
+##  [46] MASS_7.3-58.3            zlibbioc_1.40.0          scales_1.2.1            
+##  [49] vroom_1.6.1              hms_1.1.3                ProtGenerics_1.26.0     
+##  [52] parallel_4.1.3           RColorBrewer_1.1-3       yaml_2.3.7              
+##  [55] curl_4.3.3               gridExtra_2.3            memoise_2.0.1           
+##  [58] emdbook_1.3.12           sass_0.4.5               bdsmatrix_1.3-6         
+##  [61] biomaRt_2.50.0           SQUAREM_2021.1           stringi_1.7.12          
+##  [64] RSQLite_2.3.0            highr_0.10               genefilter_1.76.0       
+##  [67] BiocIO_1.4.0             filelock_1.0.2           BiocParallel_1.28.3     
+##  [70] truncnorm_1.0-9          rlang_1.1.0              pkgconfig_2.0.3         
+##  [73] bitops_1.0-7             invgamma_1.1             evaluate_0.20           
+##  [76] lattice_0.20-45          fontawesome_0.5.0        GenomicAlignments_1.30.0
+##  [79] labeling_0.4.2           bit_4.0.5                tidyselect_1.2.0        
+##  [82] plyr_1.8.8               magrittr_2.0.3           R6_2.5.1                
+##  [85] generics_0.1.3           DelayedArray_0.20.0      DBI_1.1.3               
+##  [88] pillar_1.9.0             withr_2.5.0              mixsqp_0.3-48           
+##  [91] survival_3.5-5           KEGGREST_1.34.0          RCurl_1.98-1.12         
+##  [94] crayon_1.5.2             KernSmooth_2.23-20       utf8_1.2.3              
+##  [97] BiocFileCache_2.2.0      tzdb_0.3.0               rmarkdown_2.21          
+## [100] progress_1.2.2           locfit_1.5-9.7           grid_4.1.3              
+## [103] blob_1.2.4               digest_0.6.31            xtable_1.8-4            
+## [106] numDeriv_2016.8-1.1      munsell_0.5.0            bslib_0.4.2</code></pre>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

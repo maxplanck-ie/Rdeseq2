@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Thomas Manke @ MPI-IE" />
+
+
+<title>DESeq2 Analysis with R: Part 01</title>
+
+<script src="site_libs/header-attrs-2.21/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
+<script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+<link href="site_libs/font-awesome-6.2.1/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.2.1/css/v4-shims.min.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Rdeseq2 - RNA-seq analysis</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">
+    <span class="fa fa-home"></span>
+     
+    
+  </a>
+</li>
+<li>
+  <a href="outline.html">
+    <span class="fa fa-check"></span>
+     
+    outline
+  </a>
+</li>
+<li>
+  <a href="day01.html">
+    <span class="fa fa-battery-quarter"></span>
+     
+    Day 1
+  </a>
+</li>
+<li>
+  <a href="day03.html">
+    <span class="fa fa-battery-three-quarters"></span>
+     
+    Day 3
+  </a>
+</li>
+<li>
+  <a href="day04.html">
+    <span class="fa fa-battery-full"></span>
+     
+    Day 4
+  </a>
+</li>
+<li>
+  <a href="summary.html">
+    <span class=" ambulance"></span>
+     
+    summary
+  </a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">DESeq2 Analysis with R: Part 01</h1>
+<h4 class="author">Thomas Manke @ MPI-IE</h4>
+<h4 class="date">Wed Mar 29 14:58:41 2023</h4>
+
+</div>
+
+
+<div id="preparation-60-min" class="section level1">
+<h1>Preparation (60 min)</h1>
+<div id="get-story-2-min" class="section level2">
+<h2>Get Story (2 min)</h2>
+<p>Purpose: <a href="https://pubmed.ncbi.nlm.nih.gov/28790111/"
+class="uri">https://pubmed.ncbi.nlm.nih.gov/28790111/</a></p>
+<p>Goal for this tutorial:<br />
+Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in
+two cancer (multiple myeloma) cell lines with different mutations (BM:
+p53mut, JJ: del(17p)).</p>
+<hr />
+</div>
+<div id="get-tools-15-min" class="section level2">
+<h2>Get Tools (15 min)</h2>
+<p><strong>Warmup Tasks</strong>:</p>
+<ol style="list-style-type: decimal">
+<li>Start a new session in <a
+href="https://workbench.ie-freiburg.mpg.de"
+class="uri">https://workbench.ie-freiburg.mpg.de</a>, or on your local
+computer.</li>
+<li>In workbench we’ll be working with R version 4.1.3</li>
+<li>Create a new R-project, e.g. DESeq2_Course</li>
+<li>Open a new notebook: e.g. DESeq2_notebook</li>
+</ol>
+<p><br></p>
+<p><strong>Reminder</strong>: Difference between <em>Console</em>,
+<em>Scripts</em> or <em>Notebooks</em>.</p>
+<p><strong>Recommendation</strong>: Please use Notebooks throughout the
+course (and beyond).</p>
+<blockquote>
+<p><strong>Poll 1.1</strong>: How do you get information about the
+current R-version and loaded packages?</p>
+</blockquote>
+<p><br><br></p>
+<div id="install-packages" class="section level3">
+<h3>Install Packages</h3>
+<p><strong>Reminder</strong>: Many useful functions are already
+available with R: <em>base packages</em>.</p>
+<p>Many analysis tools come with software packages that will need to be
+installed before use.</p>
+<p>For R, two of the most common and reliable package repositories
+are</p>
+<ul>
+<li><strong>CRAN</strong> <a href="https://cran.r-project.org/"
+class="uri">https://cran.r-project.org/</a></li>
+<li><strong>Bioconductor</strong> <a href="https://bioconductor.org/"
+class="uri">https://bioconductor.org/</a></li>
+</ul>
+<p><strong>Notice</strong>:</p>
+<ol style="list-style-type: decimal">
+<li>All packages come for a <strong>specific R-version</strong>. This
+tutorial uses R version 4.0.3.</li>
+<li>All packages have specific <strong>package version</strong>
+(e.g. DESeq2 is version 1.30.1), and can come from different sources
+(CRAN, Bioconductor, github, …).</li>
+<li>Most packages have <strong>dependencies</strong> on other packages
+that should also be installed</li>
+<li>Installation can be very <strong>time consuming</strong> but needs
+to be done only once.</li>
+</ol>
+</div>
+<div id="load-packages" class="section level3">
+<h3>Load Packages</h3>
+<blockquote>
+<p><strong>Task</strong>: Load the following packages: DESeq2,
+tidyverse, pheatmap</p>
+</blockquote>
+<blockquote>
+<p><strong>Poll 1.2</strong>: Did you manage to load DESeq2, tidyverse
+&amp; pheatmap ?</p>
+</blockquote>
+<pre class="r"><code>library(DESeq2)
+library(tidyverse)
+library(pheatmap)</code></pre>
+<p><strong>Reminder</strong> Installation of these packages was carried
+out in Part_00!</p>
+<p><strong>Notice</strong>: Loading new packages enables new
+functionalities for a given R-session.</p>
+<p>This may result in multiple (sometimes redundant) functions with the
+same name: e.g. sd()</p>
+<p>In case of doubt, use package name explicitly: e.g. stats::sd()</p>
+<blockquote>
+<p><strong>Task</strong>: Uses “sessionInfo()” to show all available
+packages in your R session.</p>
+</blockquote>
+<hr />
+</div>
+</div>
+<div id="get-data-40-min" class="section level2">
+<h2>Get Data (40 min)</h2>
+<p>We assume that the sequencing data has already been processed (QC,
+mapping, counting) to obtain a so-called <em>count matrix</em>. Data
+received in-house (given that it’s a model organism) will have count
+matrices generated that you can start with immediately.</p>
+<p>It contains the number of reads that have been mapped to each gene
+and for each sample.</p>
+<p><br><br></p>
+<div class="figure">
+<img src="images/day1_countmatrix.png" alt="" />
+<p class="caption"><strong>Count matrix</strong>. Image from
+github.com/hbctraining</p>
+</div>
+<hr />
+<p>In principle, you can download the published data for our tutorial
+from GEO</p>
+<ul>
+<li><a
+href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077"
+class="uri">https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077</a></li>
+</ul>
+<p>For this course, we have already prepared the data in a convenient
+format here:</p>
+<ul>
+<li>github: <a
+href="https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_counts.tsv"
+class="uri">https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_counts.tsv</a></li>
+<li>local:
+/data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv</li>
+</ul>
+<p><strong>Notice</strong>: It is good style to put data into a separate
+directory (e.g. data/)</p>
+<div id="import-data" class="section level3">
+<h3>Import Data</h3>
+<p>Data can come in various formats. Here we have prepared the data as
+tab-separated file with header information.</p>
+<blockquote>
+<p><strong>Task</strong>: Read the data e.g. using read_tsv()</p>
+</blockquote>
+<pre class="r"><code>dfile &lt;- &quot;../data/myeloma/myeloma_counts.tsv&quot;      # location of data file
+data &lt;- read_tsv(file=dfile)    # diagnostic: problemes(data)</code></pre>
+<p><strong>Discussion</strong> Inspect the data structure. What are the
+variables? How many samples are in the data ?</p>
+<pre class="r"><code>data %&gt;% head()</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["gene_id"],"name":[1],"type":["chr"],"align":["left"]},{"label":["JJ_CTRL_1"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_3"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_1"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_2"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_3"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_1"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_2"],"name":[9],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_3"],"name":[10],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_1"],"name":[11],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_2"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_3"],"name":[13],"type":["dbl"],"align":["right"]},{"label":["BM_TG_1"],"name":[14],"type":["dbl"],"align":["right"]},{"label":["BM_TG_2"],"name":[15],"type":["dbl"],"align":["right"]},{"label":["BM_TG_3"],"name":[16],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_1"],"name":[17],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_2"],"name":[18],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_3"],"name":[19],"type":["dbl"],"align":["right"]}],"data":[{"1":"ENSG00000000003","2":"0","3":"0","4":"0","5":"0","6":"0","7":"0","8":"0","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","19":"0"},{"1":"ENSG00000000005","2":"0","3":"0","4":"0","5":"0","6":"0","7":"0","8":"0","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","19":"0"},{"1":"ENSG00000000419","2":"1637","3":"1792","4":"2368","5":"2365","6":"4808","7":"2098","8":"1664","9":"1878","10":"1367","11":"1155","12":"3020","13":"3834","14":"2461","15":"1962","16":"2417","17":"1601","18":"3110","19":"2129"},{"1":"ENSG00000000457","2":"453","3":"614","4":"854","5":"623","6":"585","7":"431","8":"687","9":"869","10":"619","11":"512","12":"953","13":"1049","14":"845","15":"757","16":"859","17":"823","18":"1342","19":"904"},{"1":"ENSG00000000460","2":"719","3":"961","4":"1280","5":"937","6":"1247","7":"852","8":"884","9":"1058","10":"616","11":"840","12":"1320","13":"1161","14":"1944","15":"1528","16":"2106","17":"1350","18":"2569","19":"1654"},{"1":"ENSG00000000938","2":"2","3":"3","4":"6","5":"0","6":"0","7":"0","8":"1","9":"4","10":"1","11":"3","12":"3","13":"5","14":"5","15":"1","16":"3","17":"2","18":"2","19":"3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<blockquote>
+<p><strong>Poll 1.3</strong>: What is the median expression count in
+sample “BM_CTRL_3”?</p>
+</blockquote>
+<blockquote>
+<p>**Notice: Some functions that could be of help: summary (baseR), pull
+(tidyverse)</p>
+</blockquote>
+<pre class="r"><code>data %&gt;% summary
+data %&gt;% pull(&quot;BM_CTRL_3&quot;) %&gt;% median()</code></pre>
+<p><strong>Discussion</strong>: Where are the gene names, and which
+convention is chosen for them?</p>
+<blockquote>
+<p><strong>Task</strong>: Ensure that the rownames of the count data are
+gene names.</p>
+</blockquote>
+<pre class="r"><code># dplyr
+data &lt;- data %&gt;% column_to_rownames(&quot;gene_id&quot;)  # gene_id -&gt; rownames and removes gene_id
+
+# base-R
+# rownames(data)    # check: may already be defined during read
+# rownames(data) &lt;- data$gene_id
+# data$gene_id   &lt;- NULL</code></pre>
+</div>
+<div id="import-metadata" class="section level3">
+<h3>Import Metadata</h3>
+<p>Metadata (=data about data); typically contains important information
+on the samples and their origin.</p>
+<p>Often these are categorical data such as cell type, experimental
+condition or other batch assignments. But it could also be quantitative
+data (e.g. age).</p>
+<p>Often the metadata is hidden in the paper (or in the filename). This
+is bad practise - make sure to have a proper sample sheet. Metadata is
+just as important as data. Here is the prepared file for this
+introduction:</p>
+<ul>
+<li>github: <a
+href="https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_meta.tsv"
+class="uri">https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_meta.tsv</a></li>
+<li>local:
+/data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv</li>
+</ul>
+<blockquote>
+<p><strong>Task</strong>: Read the metadata into an R-object “metadata”.
+Inspect the data frame - which data types are included? Make sure that
+the rownames of the metadata are valid sample names.</p>
+</blockquote>
+<pre class="r"><code>mfile &lt;- &quot;../data/myeloma/myeloma_meta.tsv&quot;               # location of metadata file
+#metadata &lt;- read.csv(file=mfile, header=TRUE, sep=&quot;\t&quot;)
+metadata &lt;- read_tsv(file=mfile)</code></pre>
+<pre><code>## Rows: 18 Columns: 3
+## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: &quot;\t&quot;
+## chr (3): sample, celltype, condition
+## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<pre class="r"><code>metadata &lt;- metadata %&gt;% column_to_rownames(&quot;sample&quot;)  # sample -&gt; rownames</code></pre>
+<pre class="r"><code>metadata %&gt;% head()</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["celltype"],"name":[1],"type":["chr"],"align":["left"]},{"label":["condition"],"name":[2],"type":["chr"],"align":["left"]}],"data":[{"1":"JJ","2":"DMSO","_rn_":"JJ_CTRL_1"},{"1":"BM","2":"DMSO","_rn_":"BM_CTRL_2"},{"1":"BM","2":"DMSO","_rn_":"BM_CTRL_3"},{"1":"BM","2":"AMIL","_rn_":"BM_AMIL_1"},{"1":"BM","2":"AMIL","_rn_":"BM_AMIL_2"},{"1":"BM","2":"AMIL","_rn_":"BM_AMIL_3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<blockquote>
+<p><strong>Poll 1.4</strong>: What is a factor?</p>
+</blockquote>
+<p><br><br><br></p>
+<blockquote>
+<p><strong>Task</strong> Convert the character variables “condition” and
+“celltype” into factors.</p>
+</blockquote>
+<pre class="r"><code># convert text strings to categorical variable (characters --&gt; factors)
+metadata$condition &lt;- as.factor(metadata$condition)
+metadata$celltype  &lt;- as.factor(metadata$celltype)</code></pre>
+<p><strong>Discussion</strong>: Is there any metadata for genes?</p>
+<hr />
+</div>
+</div>
+</div>
+<div id="break-10-min" class="section level1">
+<h1>Break (10 min)</h1>
+<hr />
+</div>
+<div id="design-20-min" class="section level1">
+<h1>Design (20 min)</h1>
+<p>For each gene (=row), the data matrix contains a vector of counts
+(<span class="math inline">\(y\)</span>) which depends on the vector of
+samples (<span class="math inline">\(x\)</span>)</p>
+<blockquote>
+<p><strong>Task (optional)</strong>: Extract the 42nd gene in the data
+matrix and plot it against all samples</p>
+</blockquote>
+<pre class="r"><code>boxplot(data[42,], xlab=&quot;sample&quot;, ylab=&quot;count&quot;, names=FALSE) # base-R (ggplot below)
+abline(h=rowMeans(data[42,]), col=&quot;red&quot;, lty=2)</code></pre>
+<p><img src="day01_files/figure-html/gene_plot-1.png" width="672" /></p>
+<div id="hope" class="section level3">
+<h3>Hope</h3>
+<p>Counts (<span class="math inline">\(y\)</span>) could be predicted
+(and controlled) given sufficient sample information <span
+class="math inline">\(x\)</span></p>
+<p><span class="math display">\[
+y_i = f(x_i) = \mu + \beta x_i ~~~~~~~~~ (i = 1\ldots n) \\ \\
+\]</span></p>
+<blockquote>
+<p><strong>Poll 1.5</strong>: What is <span
+class="math inline">\(n\)</span> in our example?</p>
+</blockquote>
+</div>
+<div id="goal" class="section level3">
+<h3>Goal</h3>
+<p>Model the counts (<span class="math inline">\(y_i\)</span>) as a
+function of sample <span class="math inline">\(x_i\)</span> + noise
+factor (<span class="math inline">\(\epsilon_i\)</span>)</p>
+<p><span class="math display">\[
+y_i = \mu + \beta x_i + \epsilon_i
+\]</span></p>
+<p><strong>Discussion</strong>: What should <span
+class="math inline">\(x\)</span> be?
+<br><br><br><br><br><br><br><br><br></p>
+<p><strong>Notice</strong>: The researcher needs to decide <em>which
+factors</em> should be included in the model:</p>
+<ul>
+<li>none: all samples have their own values</li>
+<li>quantitative variable: e.g. sequence depth</li>
+<li>categorical variable: e.g. condition</li>
+<li>combination of variables: e.g. condition and celltype</li>
+</ul>
+<pre class="r"><code>gene &lt;- data %&gt;% 
+  slice(42) %&gt;%                         # pick gene #42
+  gather(sample, count) %&gt;%             # reshape for ggplot (1 sample per row!)
+  mutate(condition=metadata$condition)  # add condition. Careful: order needs to agree 
+
+ggplot(gene, aes(x=condition, y=count, col=condition)) + 
+  geom_point(size=3)  #plot against condition</code></pre>
+<p><img src="day01_files/figure-html/gene_plot_factors-1.png" width="672" /></p>
+<pre class="r"><code># compare DESeq2 functionality
+# plotCounts(dds, gene=&quot;ENSG00000003509&quot;, col=metadata$condition)</code></pre>
+</div>
+<div id="the-r-syntax-y-sim-x" class="section level3">
+<h3>The R-syntax: <span class="math inline">\(Y \sim X\)</span></h3>
+<p>Define your design:</p>
+<pre class="r"><code># here: X = condition
+my_design &lt;- ~ condition  # notice the tilde *not* minus</code></pre>
+<blockquote>
+<p><strong>Discussion</strong>: Which other variables could be used to
+define the design?</p>
+</blockquote>
+<p><br><br><br><br></p>
+<p><strong>Notice 1</strong>: The variables need to correspond to
+columns in the metadata.</p>
+<p><strong>Notice 2</strong>: More complicated designs are possible and
+often necessary (<span class="math inline">\(\to\)</span> day 2 and
+3)</p>
+<hr />
+</div>
+<div id="interlude-model-matrix-5-min-day-3" class="section level2">
+<h2>Interlude: Model Matrix (5 min) –&gt; Day 3</h2>
+<p><strong>Discussion</strong>: How to convert sample factor
+(e.g. condition) into something numerical?</p>
+<p><strong>Idea</strong>: binary encoding of categorical variable <span
+class="math inline">\(x\)</span> (switch on and of contributions)</p>
+<p><span class="math inline">\(x\)</span>=(“Cond1”, “Cond2”, “Cond3”)
+<span class="math inline">\(\longrightarrow \left( \begin{array}{ccc}
+X_0 &amp; X_1 &amp; X_2 \\ 1 &amp; 0 &amp; 0 \\ 1 &amp; 1 &amp; 0 \\ 1
+&amp; 0 &amp; 1 \end{array}\right)\)</span></p>
+<p><span class="math display">\[
+y_i = \mu + \beta x_i \longrightarrow \beta_0 X_{0i} + \beta_1 X_{1i} +
+\beta_2 X_{2i} = X \cdot \beta
+\]</span></p>
+<p>(c.f. linear regression <span class="math inline">\(\to\)</span>
+multivariate linear regression)</p>
+<p><strong>Upshot</strong>: A factorial design can be translated into a
+(binary) <em>model matrix</em></p>
+<pre class="r"><code>MM &lt;- model.matrix(my_design, data=metadata)
+pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)</code></pre>
+<p><img src="day01_files/figure-html/model_matrix-1.png" width="672" /></p>
+<blockquote>
+<p><strong>Tasks</strong></p>
+</blockquote>
+<ul>
+<li>Include an additional factor (+ celltype) and observe the design
+matrix</li>
+<li>Bonus: include an interaction term (+ condition:celltype) and
+discuss its interpretation</li>
+</ul>
+<hr />
+</div>
+<div id="interlude-experimental-design-10-min" class="section level2">
+<h2>Interlude: Experimental Design (10 min)</h2>
+<p><a
+href="https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md"
+class="uri">https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md</a>
+(50min)</p>
+<div class="figure">
+<img src="images/day1_expdesign.jpg" alt="" />
+<p class="caption"><strong>A typical experiment</strong></p>
+</div>
+<p><br><br><br></p>
+<div id="the-problem-more-factors" class="section level3">
+<h3>The problem: more factors!</h3>
+<p>Usually there are other factors in addition to a simple
+treatment:</p>
+<ul>
+<li>known and interesting: multi-factorial design and interaction
+effects (genotype * treatment)</li>
+<li>known and uninteresting: batch, covariates</li>
+<li>unknown and unvoidable: noise</li>
+</ul>
+<p>… all contribute to total variability and limit our ability to detect
+treatment-related differences <span class="math inline">\(\to\)</span>
+account for them as much as possible !</p>
+<p><br><br></p>
+<blockquote>
+<p><strong>Poll 1.6</strong> You are planning an experiment with 3
+treatment levels <span class="math inline">\((X_1, X_2, X_3)\)</span>
+and aim for 3 replicates each. Unfortunately, you can process at most 3
+samples per day. So you’ll need three days <span
+class="math inline">\((Z_1, Z_2, Z_3)\)</span>. How should you assign
+your samples to different treatments?</p>
+</blockquote>
+<div class="figure">
+<img src="images/day1_expdesign_poll.jpg" alt="" />
+<p class="caption"><strong>Experimental Design - Poll</strong></p>
+</div>
+</div>
+<div id="sources-of-variability" class="section level3">
+<h3>Sources of Variability</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Source</th>
+<th align="left">What can be done about it</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Treatment</td>
+<td align="left">Observe!?</td>
+</tr>
+<tr class="even">
+<td>Biological</td>
+<td align="left">Estimate with <strong>replication</strong></td>
+</tr>
+<tr class="odd">
+<td>Sample Preparation</td>
+<td align="left">Estimate with batch controls
+(<strong>blocking</strong>)</td>
+</tr>
+<tr class="even">
+<td>Unknown Confounders</td>
+<td align="left">Reduce risk by <strong>randomization</strong></td>
+</tr>
+<tr class="odd">
+<td>Sequencing</td>
+<td align="left">Control with sequencing depth (read sampling)</td>
+</tr>
+<tr class="even">
+<td>Analysis</td>
+<td align="left">Control software version and parameters</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Practical Notice</strong>:<br />
+Some <em>nuisance factors</em> (e.g. batches) may be known and
+measurable, but are not of primary interest - they should be included as
+metadata and in the model.</p>
+<p><span class="math display">\[
+y_i = \mu + \beta x_i + \gamma z_i + \epsilon_i \\ ~~\\
+\mbox{R syntax:} ~~~Y \sim X + Z
+\]</span></p>
+<pre class="r"><code>my_alt_design &lt;- ~ celltype + condition</code></pre>
+<p><strong>Repeat</strong>: The choice of factors rests with the
+researcher.</p>
+<div class="figure">
+<img src="images/day1_myelomafactors.jpg" alt="" />
+<p class="caption"><strong>Factor Choices</strong>.</p>
+</div>
+<hr />
+<p><br><br></p>
+</div>
+</div>
+</div>
+<div id="create-deseq2-object-5-min" class="section level1">
+<h1>Create DESeq2 object (5 min)</h1>
+<p>Each software has their own data representation. A DESeq2 data object
+combines data, metadata and the design formula in one single object</p>
+<pre><code>dds = data + metadata + design</code></pre>
+<p>All subsequent calculations will use this object (and modify it).</p>
+<blockquote>
+<p><strong>Task</strong>: Create a DESeq data set.</p>
+</blockquote>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_design)</code></pre>
+<pre><code>## converting counts to integer mode</code></pre>
+<div id="interlude-alternatives-5-min" class="section level3">
+<h3>Interlude: Alternatives (5 min)</h3>
+<p>There are various tools (HTSeq, Salmon) to produce count matrices
+(each with their own specific output formats). Several other convenience
+functions exist to read them as DESeqDataSet objects</p>
+<pre class="r"><code># Alternative 1: HTSeq object
+fm &lt;- &quot;../data/sampleTable2.csv&quot;              # file with data links and metadata
+sampleTable &lt;- read.csv(fm, header=FALSE)
+colnames(sampleTable)=c(&quot;name&quot;,&quot;filename&quot;, &quot;condition&quot;,&quot;celltype&quot;)   # specifications for DESeqDataSetFromHTSeqCount
+
+# categorical variables --&gt; &quot;factors&quot;
+sampleTable$condition &lt;- as.factor(sampleTable$condition)
+sampleTable$celltype  &lt;- as.factor(sampleTable$celltype)
+dds &lt;- DESeqDataSetFromHTSeqCount(sampleTable, directory = &quot;.&quot;, design = my_design)
+
+# Alternative 2: txi object
+#txi &lt;- tximport(files, type=&quot;salmon&quot;, tx2gene=t2g, countsFromAbundance = &quot;lengthScaledTPM&quot;)
+#dds &lt;- DESeqDataSetFromTximport(txi, colData = sample.table, design = my_desig)
+
+
+# Alternative 3: Existing Data sets: just specify design
+#library(&quot;airway&quot;)
+#data(&quot;airway&quot;)
+#DESeqDataSet(airway, design = ~ cell + dex)
+
+# Alternative 4: Synthetic Data Generation (two conditions)
+# dds &lt;- makeExampleDESeqDataSet(n = 1000, m = 6, betaSD = 2)</code></pre>
+</div>
+</div>
+<div id="data-exploration-40-min" class="section level1">
+<h1>Data Exploration (40 min)</h1>
+<div id="show-me-the-raw-data-15-min" class="section level2">
+<h2>Show me the (raw) data! (15 min)</h2>
+<ul>
+<li>Data Structure</li>
+<li>Data Entries</li>
+<li>Visualization</li>
+<li>Correlations</li>
+</ul>
+<blockquote>
+<p><strong>Task 1</strong>: Inspect the data structures and dimensions
+of objects dds and extract the count matrix M (Hint: &gt; ?counts)</p>
+</blockquote>
+<blockquote>
+<p><strong>Task 2</strong>: Extract the first 10 rows (genes) from count
+matrix and safe as new data object -&gt; Mr &lt;- (for further use)</p>
+</blockquote>
+<blockquote>
+<p><strong>Bonus</strong>: Extract 10 randomly sampled genes.</p>
+</blockquote>
+<pre class="r"><code>dds                         # dds object --&gt; inspect: str(dds), dim(dds)</code></pre>
+<pre><code>## class: DESeqDataSet 
+## dim: 57905 18 
+## metadata(1): version
+## assays(1): counts
+## rownames(57905): ENSG00000000003 ENSG00000000005 ... ENSG00000273492
+##   ENSG00000273493
+## rowData names(0):
+## colnames(18): JJ_CTRL_1 BM_CTRL_2 ... JJ_TG_2 JJ_TG_3
+## colData names(2): celltype condition</code></pre>
+<pre class="r"><code>M &lt;- counts(dds)            # get gene-sample matrix
+( Mr &lt;- M %&gt;% head(10) )                                 # just the first</code></pre>
+<pre><code>##                 JJ_CTRL_1 BM_CTRL_2 BM_CTRL_3 BM_AMIL_1 BM_AMIL_2 BM_AMIL_3
+## ENSG00000000003         0         0         0         0         0         0
+## ENSG00000000005         0         0         0         0         0         0
+## ENSG00000000419      1637      1792      2368      2365      4808      2098
+## ENSG00000000457       453       614       854       623       585       431
+## ENSG00000000460       719       961      1280       937      1247       852
+## ENSG00000000938         2         3         6         0         0         0
+## ENSG00000000971         2         1         2         3         0         0
+## ENSG00000001036        61        76        98       180       176       163
+## ENSG00000001084      2354      2808      3963      1298      1240       812
+## ENSG00000001167      3025      4071      4837      2242      2818      1981
+##                 BM_CTRL_1 JJ_CTRL_2 JJ_CTRL_3 JJ_AMIL_1 JJ_AMIL_2 JJ_AMIL_3
+## ENSG00000000003         0         0         0         0         0         0
+## ENSG00000000005         0         0         0         0         0         0
+## ENSG00000000419      1664      1878      1367      1155      3020      3834
+## ENSG00000000457       687       869       619       512       953      1049
+## ENSG00000000460       884      1058       616       840      1320      1161
+## ENSG00000000938         1         4         1         3         3         5
+## ENSG00000000971      2498      2860      1991      2274      3197      3817
+## ENSG00000001036      1543      2165      1513      1262      2265      2411
+## ENSG00000001084      1590      2018      1331       552      1316      1194
+## ENSG00000001167      2097      2906      1971      1178      2099      2075
+##                 BM_TG_1 BM_TG_2 BM_TG_3 JJ_TG_1 JJ_TG_2 JJ_TG_3
+## ENSG00000000003       0       0       0       0       0       0
+## ENSG00000000005       0       0       0       0       0       0
+## ENSG00000000419    2461    1962    2417    1601    3110    2129
+## ENSG00000000457     845     757     859     823    1342     904
+## ENSG00000000460    1944    1528    2106    1350    2569    1654
+## ENSG00000000938       5       1       3       2       2       3
+## ENSG00000000971       3       0       1    2917    4345    3278
+## ENSG00000001036      53      40      43    1280    1998    1434
+## ENSG00000001084    3384    2918    3516    1999    3321    2352
+## ENSG00000001167    3274    2785    3610    1889    3467    2404</code></pre>
+<pre class="r"><code>#Mr &lt;- M %&gt;% data.frame() %&gt;% sample_n(10)           # random rows</code></pre>
+</div>
+<div id="visualize-15-min" class="section level2">
+<h2>Visualize (15 min)</h2>
+<blockquote>
+<p><strong>Task</strong>: Create heatmap for the first view genes in Mr
+(?pheatmap). How would you add metadata as below?</p>
+</blockquote>
+<pre class="r"><code>pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, main=&quot;First glimpse&quot;)</code></pre>
+<p><img src="day01_files/figure-html/visual_explore-1.png" width="672" /></p>
+<pre class="r"><code># create annotation data frame (metadata) and add as color to pheatmap
+ann &lt;- data.frame(colData(dds))                     
+pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, annotation=ann, main=&quot;Data + Metadata&quot;)</code></pre>
+<p><img src="day01_files/figure-html/visual_explore-2.png" width="672" /></p>
+<blockquote>
+<p><strong>Task</strong>: understand the object “ann” and suggest how to
+add sequence depth as additional annotation column</p>
+</blockquote>
+<pre class="r"><code>ann$seq_depth &lt;- colSums(counts(dds))/1e6    # sequencing depth in millions </code></pre>
+</div>
+<div id="genome-wide-correlations" class="section level2">
+<h2>genome-wide correlations</h2>
+<p><strong>Question</strong>: How to calculate the sample-sample
+correlation matrix?</p>
+<pre class="r"><code>C &lt;- cor(M)       # get sample-sample correlations: other correlations?
+pheatmap(C, annotation = ann)</code></pre>
+<p><img src="day01_files/figure-html/correlations-1.png" width="672" /></p>
+<div id="interlude-customizing-colors-5-min" class="section level3">
+<h3>Interlude: Customizing Colors (5 min)</h3>
+<p>Often we need to adjust colours or ensure consistency across a
+project. Use &gt; library(RColorBrewer) for systematic and educated
+choices.</p>
+<p><strong>Goal</strong>: Define list of colours to be used for
+metadata?</p>
+<pre class="r"><code>ct_col &lt;- c(&quot;white&quot;, &quot;black&quot;)                   # celltype colours
+names(ct_col) &lt;- levels(ann$celltype)
+
+#cn_col &lt;- brewer.pal(n=3, &quot;Dark2&quot;)            # avoid RColorBrewer dependence for this course
+cn_col &lt;- c(&quot;#1B9E77&quot;, &quot;#D95F02&quot;, &quot;#7570B3&quot;)   # condition colours
+names(cn_col) &lt;- levels(ann$condition)
+
+my_colors &lt;- list( celltype= ct_col, condition = cn_col )
+pheatmap(C, annotation = ann, annotation_colors = my_colors)</code></pre>
+<p><img src="day01_files/figure-html/colour-1.png" width="672" /></p>
+<pre class="r"><code># adjust also heatmap
+# blue_colors = RColorBrewer::brewer.pal(9,&quot;Blues&quot;))
+# pheatmap(C, annotation = ann, annotation_colors = my_colors, color=blue_colors) </code></pre>
+</div>
+</div>
+<div id="simple-transformation-10-min" class="section level2">
+<h2>Simple transformation (10 min)</h2>
+<p><a
+href="https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/03_DGE_QC_analysis.html"
+class="uri">https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/03_DGE_QC_analysis.html</a>
+(80min)</p>
+<blockquote>
+<p><strong>Task</strong> Look at the quantiles and means of the first 3
+samples and create a boxplot</p>
+</blockquote>
+<pre><code>##    JJ_CTRL_1          BM_CTRL_2          BM_CTRL_3       
+##  Min.   :     0.0   Min.   :     0.0   Min.   :     0.0  
+##  1st Qu.:     0.0   1st Qu.:     0.0   1st Qu.:     0.0  
+##  Median :     0.0   Median :     0.0   Median :     0.0  
+##  Mean   :   520.3   Mean   :   705.6   Mean   :   873.3  
+##  3rd Qu.:    11.0   3rd Qu.:    14.0   3rd Qu.:    18.0  
+##  Max.   :285379.0   Max.   :320929.0   Max.   :372028.0</code></pre>
+<p><img src="day01_files/figure-html/summary-1.png" width="672" /></p>
+<p><strong>Discussion</strong>: What is the problem - What could we do
+about it ?</p>
+<pre class="r"><code>myred &lt;- rgb(1,0,0,0.5)
+myblue &lt;- rgb(0,0,1,0.5)
+hist(log(M[,1]),100, col=myred)
+hist(log(M[,3]),100, col=myblue, add=TRUE)</code></pre>
+<p><img src="day01_files/figure-html/log_norm-1.png" width="672" /></p>
+<p><strong>Discussion</strong>: What happened to zero counts ? What may
+be the source of remaining discrepancy ?</p>
+<p><br><br><br><br><br><br><br><br><br></p>
+<ul>
+<li><strong>Transformation</strong>: make distributions more
+pleasing<br />
+</li>
+<li><strong>Normalization</strong>: make samples comparable</li>
+</ul>
+</div>
+<div id="sample-sample-correlations" class="section level2">
+<h2>Sample-Sample Correlations</h2>
+<p>Compare the genome-wide correlations before and after
+transformation</p>
+<pre class="r"><code>Mt &lt;- log2(M + 1)      # simple log-transform; (why + 1 ?)
+pheatmap(cor(Mt), annotation = ann, annotation_colors = my_colors)</code></pre>
+<p><img src="day01_files/figure-html/explore_corr-1.png" width="672" /></p>
+<p><strong>Discussion</strong>: Notice the overall high correlations?
+How would you explore this further</p>
+<p><br><br><br><br></p>
+<pre class="r"><code># correlation coeff. is only a single number
+smoothScatter(Mt[,1], Mt[,5])</code></pre>
+<p><img src="day01_files/figure-html/smoothScatter-1.png" width="672" /></p>
+<blockquote>
+<p><strong>Task</strong>: Compare this to an untransformed
+scatterplot.</p>
+</blockquote>
+<p><strong>Upshot</strong>: transformations are important for data
+exploration !</p>
+</div>
+<div id="pca-plot-10-min" class="section level2">
+<h2>PCA plot (10 min)</h2>
+<p>PCA aims to project samples from a high-dimensional space (M=20k+
+genes) to a lower dimension (D=2). Similar to correlation analysis, the
+main purpose is to identify distinct and similar samples.</p>
+<pre class="r"><code>#Mt is the transformed count matrix: log, rlog, vst, ...
+
+nt &lt;- 500     # set number of most variable genes
+
+# get top variable genes (rows)
+top &lt;- order(rowVars(Mt), decreasing = TRUE)[1:nt]  # calculate variance for each row and sort
+
+pca &lt;- prcomp(t(Mt[top,]), scale=TRUE)      # perform PCA
+
+# pca-object contains transformed coordinates for each sample 
+# pca$x:  number of genes --&gt; 2
+
+# calculate explained variance from pca object
+#eigs &lt;- pca$sdev^2                       # extract eigenvalue
+#vars &lt;- round(100*eigs / sum(eigs), 2)   # calculate % of explained variance
+
+# prepare data frame for plotting
+rld_PCA &lt;- as.data.frame(pca$x[,1:2])                     # only take PC1 and PC2 (column 1 + 2)
+rld_PCA$condition &lt;- ann[rownames(rld_PCA),&quot;condition&quot;]   # add condition label from ann
+rld_PCA$celltype  &lt;- ann[rownames(rld_PCA),&quot;celltype&quot;]    # add celltype label from ann
+
+ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
+  geom_point(size=3) +
+#  xlab(paste0(&quot;PC1: &quot;,vars[1])) +
+#  ylab(paste0(&quot;PC2: &quot;,vars[2])) +
+  scale_colour_manual(values=cn_col)</code></pre>
+<p><img src="day01_files/figure-html/PCA_manual-1.png" width="672" /></p>
+<blockquote>
+<p><strong>Tasks / Homework</strong></p>
+</blockquote>
+<ol style="list-style-type: decimal">
+<li>Observe and interprete the PCA plot.</li>
+<li>Which factor explains the separation?</li>
+<li>Can we go ahead with analysis ?</li>
+<li>Optional: Repeat PCA analysis with more sophisticated normalization
+from the DESeq2 package “rlog()”. Notice that the output is not a matrix
+but a more complicated object. It can be used by the plotPCA()
+function.</li>
+</ol>
+<pre class="r"><code>rld &lt;- rlog(dds)      # more sophisticated log-transform to account for seq.depth=lib.size --&gt; str(rld)
+rld_PCA &lt;- plotPCA(rld, intgroup=c(&quot;condition&quot;, &quot;celltype&quot;), returnData=TRUE)
+percentVar &lt;- round(100 * attr(rld_PCA, &quot;percentVar&quot;), 1)
+
+ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
+  geom_point(size=3) +
+  xlab(paste0(&quot;PC1: &quot;,percentVar[1])) +
+  ylab(paste0(&quot;PC2: &quot;,percentVar[2])) +
+  scale_colour_manual(values=cn_col)</code></pre>
+</div>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
