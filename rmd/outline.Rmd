@@ -12,8 +12,17 @@ output:
     toc_float: true
     df_print: paged
 ---
+# Prerequistites
 
-# Goals
+* R introduction: data formats, functions, help, plotting, work with packages
+* Account for  [workbench](https://workbench.ie-freiburg.mpg.de) or your own local R/Rstudio installation.
+* Patience
+
+Note that this course will be based on R version 4.1.3, Bioconductor version 3.14.
+
+***
+
+# What you will (hopefully) learn
 
 After the course you will be able to
 
@@ -27,23 +36,14 @@ After the course you will be able to
 
 ***
 
-# Prerequistites
-
-* R introduction: data formats, functions, help, plotting, work with packages
-* Account for  [workbench](https://workbench.ie-freiburg.mpg.de) or your own local R/Rstudio installation.
-* Patience
-
-Note that this course will be based on R version 4.1.3, Bioconductor version 3.14.
-
-***
-
 # Credits
 
-There is lots of useful material out there. This course is heavily influenced by those tutorials
+There is lots of useful material out there. This course is heavily influenced by those tutorials:
 
- * https://hbctraining.github.io/DGE_workshop_salmon_online/
- * http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html
- 
+ * [Harvard Chan bioinformatics core's](https://hbctraining.github.io/DGE_workshop_salmon_online/) DGE workshop using Salmon counts
+ * [DESeq2 vignette](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html)
+ * [Hugo Tavares' contrast tutorial](https://github.com/tavareshugo/tutorial_DESeq2_contrasts)
+
 We will also be using publicly available data, which has been altered for educational purposes (and should thus be treated as such).
 
 ***
@@ -77,6 +77,11 @@ We will also be using publicly available data, which has been altered for educat
 ## 4. Day IV: On your own 
 * Run a multifactorial DESeq2 Analysis. We'll be around to help.
 
-# Recap - R and libraries.
-explain GUI - difference console - env - script - rmds.
+***
+
+# Recap
+
+## 1. Rstudio GUI
+## 2. notebooks versus scripts
+
 ***
