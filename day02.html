@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Mirela Balan" />
+
+
+<title>DESeq2 Analysis with R: Part 02</title>
+
+<script src="site_libs/header-attrs-2.21/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
+<script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+<link href="site_libs/font-awesome-6.2.1/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.2.1/css/v4-shims.min.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Rdeseq2 - RNA-seq analysis</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">
+    <span class="fa fa-home"></span>
+     
+    
+  </a>
+</li>
+<li>
+  <a href="outline.html">
+    <span class="fa fa-check"></span>
+     
+    outline
+  </a>
+</li>
+<li>
+  <a href="day01.html">
+    <span class="fa fa-battery-quarter"></span>
+     
+    Day 1
+  </a>
+</li>
+<li>
+  <a href="day03.html">
+    <span class="fa fa-battery-three-quarters"></span>
+     
+    Day 3
+  </a>
+</li>
+<li>
+  <a href="day04.html">
+    <span class="fa fa-battery-full"></span>
+     
+    Day 4
+  </a>
+</li>
+<li>
+  <a href="summary.html">
+    <span class=" ambulance"></span>
+     
+    summary
+  </a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">DESeq2 Analysis with R: Part 02</h1>
+<h4 class="author">Mirela Balan</h4>
+
+</div>
+
+
+<div id="goals" class="section level2">
+<h2>Goals:</h2>
+<ul>
+<li>going over the DESeq2 workflow</li>
+<li>indepth explanations for:
+<ul>
+<li>general formating for data and metadata</li>
+<li>factorization</li>
+<li>pre-filtering</li>
+<li>RNA-seq data distribution</li>
+<li>modelling data</li>
+<li>data transformation</li>
+<li>size factors and normalization</li>
+<li>dispersions</li>
+</ul></li>
+<li>extracting the results<br />
+<br />
+<br />
+</li>
+</ul>
+</div>
+<div id="filtering-data---25-min" class="section level2">
+<h2>1. Filtering data - 25 min</h2>
+<p><strong>Load data, metadata, check samples</strong></p>
+<p><br />
+</p>
+<p><code>dds &lt;- data + metadata + design</code></p>
+<p><br />
+</p>
+<pre class="r"><code>library(&quot;DESeq2&quot;)
+library(&quot;pheatmap&quot;)
+library(&quot;ashr&quot;)
+library(&quot;tidyverse&quot;)</code></pre>
+<ol start="2" style="list-style-type: lower-alpha">
+<li>Load data and metadata</li>
+</ol>
+<pre class="r"><code>#loading data and metadata (sample sheet) with tidyverse
+data &lt;- readr::read_tsv(&quot;../data/myeloma/myeloma_counts.tsv&quot;, col_types = cols(gene_id=&quot;c&quot;, .default= &quot;i&quot;), col_names=TRUE)
+
+metadata &lt;- readr::read_tsv(&quot;../data/myeloma/myeloma_meta.tsv&quot;, col_types = list(&quot;c&quot;, &quot;f&quot;, &quot;f&quot;), col_names=TRUE)
+
+# Same as:
+# metadata %&gt;% mutate(celltype = factor(celltype))
+# metadata %&gt;% mutate(condition = factor(condition))
+
+data &lt;- column_to_rownames(data, var=&quot;gene_id&quot;)
+metadata &lt;- column_to_rownames(metadata, var=&quot;sample&quot;)
+
+#preview your data and metadata
+data %&gt;% head()
+data %&gt;% dim()
+
+metadata %&gt;% head()
+metadata %&gt;% dim()</code></pre>
+<ol start="3" style="list-style-type: lower-alpha">
+<li>Make design and create the DDS object</li>
+</ol>
+<pre class="r"><code>#check if the col and rows are in the same order:
+all(rownames(metadata) == colnames(data))
+
+#create design
+my_design &lt;- ~celltype + condition
+
+#make dds obj
+dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_design)</code></pre>
+<div id="sample-filtering---15-min" class="section level3">
+<h3>1.1. Sample filtering - 15 min</h3>
+<p>Previously you noticed that the PCA shows a problem with our
+data.</p>
+<p><img src="day02_files/figure-html/old_PCA-1.png" width="60%" style="display: block; margin: auto;" /></p>
+<blockquote>
+<p><strong>Poll 1:</strong> What do you think about this PCA plot? Does
+it need to be fixed? How would you do it? - 5 min</p>
+</blockquote>
+<p> </p>
+<blockquote>
+<p><strong>Task 1:</strong> Let’s fix the data by removing the
+problematic samples and visualize the resulting PCA:</p>
+</blockquote>
+<pre><code># select the wrong samples from the dds object (columns: 1 and 7), then drop it:
+dds_clean &lt;- dds[, -c(column_number_sample1, column_number_sample2)]
+
+# plot the PCA using the the new dds object (can use yesterday&#39;s code)
+ # first get the counts out of the dds object (): counts(dds) 
+ # use log2() on the counts  -  or use rlog() on the dds object!
+ # plot the PCA</code></pre>
+<pre class="r"><code>#remove the samples from data and metadata:
+dds_clean &lt;- dds[, -c(1,7)]
+#or
+#dds_clean2 &lt;- dds[, -which(colnames(dds) %in% c(&quot;JJ_CTRL_1&quot;, &quot;BM_CTRL_1&quot;))]
+
+rld_PCA_clean &lt;- rlog(dds_clean, blind = TRUE) %&gt;% plotPCA(intgroup=c(&quot;condition&quot;, &quot;celltype&quot;), returnData=TRUE)
+
+# cosmetic changes:
+percentVar_clean &lt;- round(100 * attr(rld_PCA_clean, &quot;percentVar&quot;), 1)   # rounded values for each axis of PC variance
+
+rld_PCA_clean %&gt;% ggplot(aes(PC1, PC2, color=condition, shape=celltype)) +
+  geom_point(size=3) +
+  scale_shape_manual(values=c(3, 1))+    # change shapes of symbols
+  scale_size_manual(values=c(2, 2))+     # change sizes of symbols
+  xlab(paste0(&quot;PC1: &quot;,percentVar[1])) +
+  ylab(paste0(&quot;PC2: &quot;,percentVar[2]))</code></pre>
+<p><img src="day02_files/figure-html/fix_data_metadata-1.png" width="60%" style="display: block; margin: auto;" /></p>
+<p><br />
+<br />
+</p>
+</div>
+<div id="feature-filtering---10-min" class="section level3">
+<h3>1.2. Feature filtering - 10 min</h3>
+<ul>
+<li>filtering: manual or automatic</li>
+<li>helpful but not necessary to remove rows/genes that have very low
+counts (very unlikely to have biological meaning)
+<ul>
+<li>arbitrary threshold: &lt; 1, &lt; 10</li>
+<li>reduces the memory size that the ‘dds’ object occupies =&gt;
+increases the speed of transformations and calculations</li>
+</ul></li>
+</ul>
+<p><br />
+</p>
+<blockquote>
+<p><strong>Task 2:</strong> Filter out the genes that have a total
+amount of only zero or 1 counts:</p>
+</blockquote>
+<p><br />
+</p>
+<pre><code># find which rows in the counts of the dds object have only zero or 1 counts overall (= sum of rows is zero or 1)
+  # on the counts from dds object, find out the sum of rows; keep them if &gt; 1 
+    keep &lt;- rowSums() &gt; 1
+
+# filter out the unnecessary rows
+dds &lt;- dds[keep, ]</code></pre>
+<p><br />
+</p>
+<blockquote>
+<p><strong>Discussion:</strong> What type of object is ‘keep’?:</p>
+</blockquote>
+<p><br />
+</p>
+<pre class="r"><code>#decide on the threshold you want to use  (= the minimum number of counts you want to keep)
+keep2 &lt;- rowSums(counts(dds_clean)) &gt; 1
+cat(&#39;genes before filter: &#39;, nrow(dds_clean), &#39;\n&#39;)    # prints the number of rows you have before the filtering</code></pre>
+<pre><code>## genes before filter:  57905</code></pre>
+<pre class="r"><code># keep the desired rows
+fdds_clean &lt;- dds_clean[keep2, ]                     # most people keep the &#39;dds&#39; name, but I will change it to help you differentiate between the different steps and learn. But doing this will fill up your memory.
+cat(&#39;genes before filter: &#39;, nrow(fdds_clean), &#39;\n&#39;)    # prints the number of rows you have after the filtering</code></pre>
+<pre><code>## genes before filter:  27351</code></pre>
+</div>
+</div>
+<div
+id="notice-how-many-rows-you-have-dropped.-in-this-case-you-are-left-only-with-47.23-of-the-initial-number-of-rows"
+class="section level1">
+<h1>Notice how many rows you have dropped. In this case you are left
+only with <strong>47.23 %</strong> of the initial number of rows!</h1>
+<p><br />
+<br />
+<br />
+</p>
+<p><br />
+</p>
+<div id="brief-overview-and-semi-deep-dive-into-concepts---25-min"
+class="section level2">
+<h2>2. Brief overview and (semi-)deep dive into concepts - 25 min</h2>
+<p><br />
+</p>
+<p>The steps required to do differential expression analysis using
+DESeq2 package (with default parameters):</p>
+<p><br />
+</p>
+<pre><code># make the DESeqDataSet (dds) object:
+dds &lt;- DESeqDataSetFromMatrix(countData = matrix_with_count_data,
+                              colData = dataframe_with_sample_information,
+                              design = what_variables_interest_you)
+
+# explore data &amp; QC: transform data, plot (filtering, PCA, heatmap)
+
+***********************************************************************
+
+# perform statistical analysis
+dds &lt;- DESeq(dds)
+
+# extract results
+res &lt;- results(dds)</code></pre>
+<p><br />
+</p>
+<p>Things are a bit more complicated in reality - an interative
+process.</p>
+<p><br></p>
+<center>
+<p><img src="images/workflow_DESeq2.png" style="width:80.0%" /></p>
+</center>
+<p><br></p>
+<p><strong>Know your starting data and what you want to achieve with
+it</strong></p>
+<ul>
+<li><p>Have a <strong>working log</strong> where you keep track of all
+the information regarding the experimental design, the output from the
+sequencing, the purpose of the analyses, the analysis steps, the
+observations and all the decissions that you took during the
+analyses</p>
+<ul>
+<li><p>e.g. does the experimental design and the number of biological
+repeats allow you to apply certain statistical analyses? What did the QC
+report of the sequencing say? Do you see the expected sample separation
+on PCA? Did you find a problem that forced you to make decissions such
+as dropping samples? Using a certain unusual threshold?</p></li>
+<li><p>can use R notebooks as working logs - it is a place to
+experiment. But pay attention to not getting mixed up in the
+data!!</p></li>
+</ul></li>
+</ul>
+<p><br />
+</p>
+<ul>
+<li><p>For every step:</p>
+<ul>
+<li>examine what you have initially (data and the format)</li>
+<li>know your next step and how the outcome should look like</li>
+<li>apply the transformation to get the result</li>
+<li>examine what you got and see if it is what you wanted</li>
+</ul></li>
+</ul>
+<p><br />
+</p>
+<div id="a.-count-data" class="section level4">
+<h4>2.1.a. count data</h4>
+<ul>
+<li>usually named ‘data’, ‘counts’</li>
+<li>a matrix with <strong>raw counts</strong> - not normalized, not
+transformed; integers</li>
+<li>to explore: head(data), dim(data), str(data), summary(data)</li>
+</ul>
+<p><br />
+</p>
+</div>
+<div id="b.-information-about-the-samples" class="section level4">
+<h4>2.1.b. information about the samples</h4>
+<ul>
+<li>usually named ‘metadata’, ‘colData’</li>
+<li>dataframe with all known useful information about the samples: name,
+condition (control/treatment, WT/KO/KD/OE), batch/ sequencing day,
+gender, age</li>
+<li>to explore: head(metadata)
+<ul>
+<li>rows of the metadata should be named with sample names (important
+for downstream steps)</li>
+<li><strong>column names of the data should be identical and in the same
+order with the row names of the metadata!</strong>:
+<code>all(colnames(data)==rownames(metadata))</code> should output
+‘TRUE’</li>
+</ul></li>
+</ul>
+<div id="understanding-factors" class="section level5">
+<h5><strong>Understanding factors</strong></h5>
+<ul>
+<li><p>used to represent categorical data</p></li>
+<li><p>stored as integers that have associated labels: R sorts the
+labels alphabetically</p>
+<pre><code>1    2    3
+AMIL DMSO TG</code></pre></li>
+<li><p>can be:</p>
+<ul>
+<li>ordered: small &lt; normal &lt; large; sand &lt; pebels &lt; stones
+&lt; boulders;</li>
+<li>unordered: DMSO, TG, AMIL; WT, KO-1, KO-2;</li>
+</ul></li>
+<li><p>levels = predefined factors; reference level = the 1st
+level</p></li>
+<li><p>the order in which the factors are ordered matters:</p>
+<ul>
+<li>for plotting:
+<img src="day02_files/figure-html/bar1-1.png" width="60%" style="display: block; margin: auto;" /></li>
+<li>for statistics: for DE analysis, DESeq2 compares all other levels
+within a variable with the 1st level. So if they are mixed, instead of
+comparing ‘treatment1 to control’ and ‘treatment2 to control’, you might
+end up with unexpected results!</li>
+</ul></li>
+</ul>
+<p><br></p>
+<center>
+<p><img src="images/factor_order_comparison.png"
+style="width:60.0%" /></p>
+</center>
+<p><br></p>
+<ul>
+<li>how to reorder factors:<br />
+</li>
+</ul>
+<pre><code># or in the dds object, if you only care about what is the reference level:
+dds$condition &lt;- relevel(dds$condition, ref=&#39;DMSO&#39;)   
+
+# or in the dds, if you want a specific order for all of them
+dds$condition &lt;- factor(dds$condition, levels = c (&#39;DMSO&#39;, &#39;TG&#39;, &#39;AMIL&#39;)) 
+
+# don&#39;t reorder the factors, but then remember to use the &#39;contrast&#39; arguments in the results() function </code></pre>
+<p><br />
+</p>
+<blockquote>
+<p><strong>Task 3:</strong> Please reorder factors with ‘DMSO’ as
+baseline - 2 min</p>
+</blockquote>
+<p><br />
+</p>
+<p>This is the order of the factors before and after re-arrangement:</p>
+<pre class="r"><code>#initial factor arrangement:
+dds_clean$condition</code></pre>
+<pre><code>##  [1] DMSO DMSO AMIL AMIL AMIL DMSO DMSO AMIL AMIL AMIL TG   TG   TG   TG   TG  
+## [16] TG  
+## Levels: DMSO AMIL TG</code></pre>
+<pre class="r"><code>#rearrange factors
+dds_clean$condition &lt;- relevel(dds_clean$condition, ref=&#39;DMSO&#39;)
+
+dds_clean$condition</code></pre>
+<pre><code>##  [1] DMSO DMSO AMIL AMIL AMIL DMSO DMSO AMIL AMIL AMIL TG   TG   TG   TG   TG  
+## [16] TG  
+## Levels: DMSO AMIL TG</code></pre>
+<p> </p>
+</div>
+</div>
+<div id="c.-experimental-design" class="section level4">
+<h4>2.1.c. experimental design</h4>
+<ul>
+<li>contains variables which will be used in data modeling for
+estimating dispersions and the log fold changes.</li>
+<li>formula:
+<ul>
+<li>the names used are the names of the columns of the metadata</li>
+<li>add the needed variables, with <strong>the one you are most
+interested in explaining at the end</strong>
+<ul>
+<li>e.g. ‘~ celltype + condition’ = measure the effect of condition,
+while controlling for cell type-induced differences</li>
+</ul></li>
+</ul></li>
+</ul>
+<pre><code>my_design &lt;- ~ celltype + condition</code></pre>
+<p><br />
+</p>
+</div>
+<div id="d.-dds-object" class="section level4">
+<h4>2.1.d. dds object</h4>
+<p>All that is left now is to make the dds object:</p>
+<pre><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=my_design) </code></pre>
+<ul>
+<li>dds object stores:
+<ul>
+<li>read counts (data) - call it with <code>counts(dds)</code></li>
+<li>sample info (metadata) - call it with <code>colData(dds)</code></li>
+<li>intermediate estimated quantities - during statistical analysis</li>
+<li>more additional features that you can add manually to the metadata
+columns of a newly constructed object:
+<code>mcols(dds) &lt;- DataFrame(mcols(dds), my_dataframe)</code></li>
+<li><em>every time you change anything about the ‘data’, ‘metadata’ or
+‘design’, you have to re-create the dds object!</em></li>
+</ul></li>
+</ul>
+<p><br />
+<br />
+<br />
+</p>
+</div>
+</div>
+<div id="break---10-min" class="section level2">
+<h2>Break - 10 min</h2>
+<p><br />
+<br />
+<br />
+</p>
+</div>
+<div id="data-exploration-visualization-and-qc---20-min"
+class="section level2">
+<h2>3. Data exploration, visualization and QC - 20 min</h2>
+<p>To explore your data further and to create informative, easy to
+interpret visualizations, the data needs to be transformed before
+plotting.</p>
+<p><br />
+</p>
+<div id="data-transformation-log-and-rlog" class="section level3">
+<h3>Data transformation: log and rlog</h3>
+<p>DESeq2 needs as input <strong>raw counts</strong> for statistical
+testing, but for some stages of visualization or downstream analysis,
+you need <strong>transformed data</strong>.</p>
+<ol style="list-style-type: lower-alpha">
+<li><strong>logarithmic data</strong> - mostly in visualization because
+it reduces the large dynamic range of the data (usually
+log2(count+1)).</li>
+</ol>
+<blockquote>
+<p><strong>Task 4.a):</strong> Do a logarithmic transformation of the
+first 4 samples (columns) and look only at the output before and after,
+only for the first 4 samples</p>
+</blockquote>
+<pre><code># look at the first rows of the counts of the first 4 samples from the dds object
+# transform the *dds counts* using a log() function
+# look at the first rows of first 4 samples from the transformed data</code></pre>
+<pre class="r"><code>print(&#39;dataset with counts before transformation (raw counts):&#39; )  </code></pre>
+<pre><code>## [1] &quot;dataset with counts before transformation (raw counts):&quot;</code></pre>
+<pre class="r"><code>counts(dds_clean)[,1:4] %&gt;% head(n=3)</code></pre>
+<pre><code>##                 BM_CTRL_2 BM_CTRL_3 BM_AMIL_1 BM_AMIL_2
+## ENSG00000000419      1792      2368      2365      4808
+## ENSG00000000457       614       854       623       585
+## ENSG00000000460       961      1280       937      1247</code></pre>
+<pre class="r"><code>print(&#39;dataset with counts after logarithmic transformation:&#39; )  </code></pre>
+<pre><code>## [1] &quot;dataset with counts after logarithmic transformation:&quot;</code></pre>
+<pre class="r"><code>counts(dds_clean)[,1:4] %&gt;% log(base=2) %&gt;% head(n=3)</code></pre>
+<pre><code>##                 BM_CTRL_2 BM_CTRL_3 BM_AMIL_1 BM_AMIL_2
+## ENSG00000000419 10.807355 11.209453 11.207624 12.231221
+## ENSG00000000457  9.262095  9.738092  9.283088  9.192293
+## ENSG00000000460  9.908393 10.321928  9.871905 10.284246</code></pre>
+<p><br />
+<br />
+</p>
+<ol start="2" style="list-style-type: lower-alpha">
+<li><strong>Regularized logarithm (RLOG)</strong> transform takes in
+consideration prior information about all the samples in the experiment.
+It is slower.</li>
+</ol>
+<blockquote>
+<p><strong>Task 4.b):</strong> Do a rlog transformation of the first 4
+samples (columns) of the dds object and look at the output</p>
+</blockquote>
+<pre><code># transform the *dds object* using the rlog() function
+# look at the first rows of first 4 samples from the transformed data</code></pre>
+<pre><code>## [1] &quot;dataset with counts after RLOG transformation:&quot;</code></pre>
+<pre><code>##                 BM_CTRL_2 BM_CTRL_3 BM_AMIL_1 BM_AMIL_2
+## ENSG00000000419 10.741725 10.808387 11.074031 11.724421
+## ENSG00000000457  9.186347  9.311043  9.236005  9.036658
+## ENSG00000000460  9.860759  9.934575  9.866865 10.038373</code></pre>
+<p><br />
+<br />
+<br />
+</p>
+<pre class="r"><code>counts(dds_clean)[,c(3,10)] %&gt;% plot()
+
+counts(dds_clean)[,c(3,10)] %&gt;% log(base=2) %&gt;% plot()
+assay(rld_clean)[,c(3,10)] %&gt;% plot()               # &#39;assay()&#39; allows you to extract the counts from the &#39;rld&#39; object</code></pre>
+<p><img src="day02_files/figure-html/logs_plot-1.png" width="50%" /><img src="day02_files/figure-html/logs_plot-2.png" width="50%" /><img src="day02_files/figure-html/logs_plot-3.png" width="50%" /></p>
+<p><br />
+<br />
+<br />
+</p>
+<p>Where can we see the difference between the log and rlog
+transform?</p>
+<pre class="r"><code>df1 &lt;- data.frame(rlg_base2=log2(counts(dds_clean)[, 1]+1))
+df2 &lt;- data.frame(rlg=assay(rld_clean)[, 1])
+
+df &lt;- merge(df1, df2, by=0) # merge the 2 dataframes by rownames
+
+df %&gt;% ggplot(aes(x=rlg_base2, y=rlg)) +
+      geom_point(size=1, shape=3) +
+      ggtitle(&quot;Comparing &#39;log2(n+1)&#39; and &#39;rlog&#39; data transformation&quot;) +
+      xlab(&quot;log2(n+1) transformation&quot;) + ylab(&quot;rlog transformation&quot;) +
+      theme(plot.title = element_text(hjust=0.5))</code></pre>
+<p><img src="day02_files/figure-html/diff_log_vst_rlog-1.png" width="60%" style="display: block; margin: auto;" /></p>
+<p><br />
+<br />
+<br />
+</p>
+<p>Does it make a difference to the visualizations?</p>
+<pre class="r"><code>th &lt;- data.frame(round(log(counts(dds_clean)+1)))
+
+th.pca &lt;- prcomp(t(th))
+pca_data_perc=round(100*th.pca$sdev^2/sum(th.pca$sdev^2),1)
+
+df_pca_data=data.frame(PC1 = th.pca$x[,1], PC2 = th.pca$x[,2], sample = colData(dds_clean)$celltype, condition=colData(dds_clean)$celltype)  #! !Extract the needed info from dds with colData instead of using the &#39;metadata&#39; (&#39;metadata&#39; needs to be corrected too if you drop samples!)
+
+df_pca_data %&gt;% ggplot(aes(PC1, PC2, color=sample)) +
+  geom_point(size=3) +
+  geom_text(x = 0, y = -1, label=&quot;PCA done with log(n+1) transformation&quot;, color=&quot;black&quot;, size=5) +
+  xlab(paste0(&quot;PC1: &quot;,pca_data_perc[1])) +
+  ylab(paste0(&quot;PC2: &quot;,pca_data_perc[2]))
+
+#############################
+rld_new3 &lt;- rlog(dds_clean, blind = TRUE) %&gt;% plotPCA(intgroup=&#39;celltype&#39;, returnData=TRUE)  # &#39;plotPCA&#39; is a DESeq2 function used for plotting transformed data; can use ggplot code you learned yesterday
+percentVar &lt;- round(100 * attr(rld_new3, &quot;percentVar&quot;), 1)   # rounded values for each axis of PC variance
+
+rld_new3 %&gt;% ggplot(aes(PC1, PC2, color=celltype)) +
+  geom_point(size=3) +
+  geom_text(x = 0, y = -1, label=&quot;PCA done with rlog transformation&quot;, color=&quot;black&quot;, size=5) +
+  xlab(paste0(&quot;PC1: &quot;,percentVar[1])) +
+  ylab(paste0(&quot;PC2: &quot;,percentVar[2]))
+
+##ref: https://www.biostars.org/p/289333/</code></pre>
+<p><img src="day02_files/figure-html/ploc-1.png" width="50%" /><img src="day02_files/figure-html/ploc-2.png" width="50%" /></p>
+<p><br />
+<br />
+<br />
+</p>
+</div>
+</div>
+<div id="differential-expression-analysis---30-min"
+class="section level2">
+<h2>4. Differential expression analysis - 30 min</h2>
+<pre><code>dds &lt;- DESeq(dds)</code></pre>
+<p>There are several steps to generating the DE results, and they are
+wrapped together in the <strong>DESeq()</strong> function. The 3 main
+steps are estimations of:</p>
+<ul>
+<li>estimating size factors - <em>estimateSizeFactors()</em></li>
+<li>estimating gene-wise dispersions -
+<em>estimateDispersions()</em></li>
+<li>general linear model fit for each gene and testing -
+<em>nbinomWaldTest()</em></li>
+</ul>
+<p> <br />
+</p>
+<div id="modeling-count-data---15-min" class="section level3">
+<h3>4.1. Modeling count data - 15 min</h3>
+<p><strong>Why is modeling needed?</strong></p>
+<p><br></p>
+<center>
+<p><img src="images/expression_model.png" style="width:80.0%" /></p>
+</center>
+<p><br></p>
+<p><br />
+<br />
+<br />
+</p>
+<ul>
+<li><p>data can be modeled with various distributions depending on its
+properties.</p></li>
+<li><p>terms:</p>
+<ul>
+<li>mean of the group: the average value of a sample</li>
+<li>variance: the expectation of the squared deviation (stdev^2) of a
+variable from its population mean.</li>
+</ul></li>
+</ul>
+<p>What properties can you attribute to RNA-seq data?</p>
+<pre><code>RNAseq data is: 
+   - discrete (counts) 
+   - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small 
+   - variance is higher than mean</code></pre>
+<p><br />
+<br />
+</p>
+<blockquote>
+<p><strong>Poll 2</strong>: what kind of distribution would you use for
+count data?</p>
+</blockquote>
+<p><br />
+<br />
+<br />
+</p>
+<blockquote>
+<p><strong>Task 5:</strong> Please plot the mean vs the variance of the
+genes. Use the following code as guide</p>
+</blockquote>
+<pre><code>#calculate the mean and the variance for each gene (the code for the mean is given bellow)
+mean_counts &lt;- apply(counts(dds)[,6:8], 1, mean) 
+
+# plot mean vs variance using plot() and smoothScatter()</code></pre>
+<p> </p>
+<pre class="r"><code>op &lt;- par( mar=c(2.3, 0, 0.3, 0), pty=&quot;s&quot;, fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0))
+
+mean_counts &lt;- apply(counts(dds_clean)[,3:5], 1, mean)        # &#39;1&#39; means that the function &#39;apply&#39; is applied to rows.
+
+variance_counts &lt;- apply(counts(dds_clean)[,3:5], 1, var)
+
+plot(log10(mean_counts), log10(variance_counts), xlim=c(-1, 10), ylim=c(-1, 10))
+abline(0,1, col=&quot;red&quot;)
+
+smoothScatter(log10(mean_counts), log10(variance_counts), xlim=c(-1, 10), ylim=c(-1, 10))
+abline(0,1, col=&quot;red&quot;)
+
+par(op)</code></pre>
+<p><img src="day02_files/figure-html/mean_vs_variation2-1.png" width="40%" /><img src="day02_files/figure-html/mean_vs_variation2-2.png" width="40%" /></p>
+<ul>
+<li>for genes with high mean expression, the variance across replicates
+tends to be greater that the mean =&gt; use a <strong>negative
+binomial</strong> distribution</li>
+<li>for genes with low mean expression, there is a large scatter =
+hetero-scedasti-city = for a given expression level in the low range, we
+obs a lot of variability in the variance values.</li>
+</ul>
+<p><br />
+<br />
+<br />
+</p>
+</div>
+<div id="size-factors---20-min" class="section level3">
+<h3>4.2. Size factors - 20 min</h3>
+<ul>
+<li>sequencing depth - the ratio between the total nr of bases and the
+size of the genome; the avg nr of times each base is measured in the
+genome</li>
+</ul>
+<p><br />
+</p>
+<p><img src="images/coverage_depth.png" width="60%" style="display: block; margin: auto;" /></p>
+<p><br />
+</p>
+<ul>
+<li>composition bias - e.g. if there are just a few highly expressed
+genes dominating in some of your samples</li>
+<li>normalization</li>
+</ul>
+<p><br />
+</p>
+<div class="figure" style="text-align: center">
+<img src="images/comp_bias.png" alt="\label{fig:figs}(ref: Kumar, 2018, BMC Genomics)" width="60%" />
+<p class="caption">
+(ref: Kumar, 2018, BMC Genomics)
+</p>
+</div>
+<p><br />
+</p>
+<blockquote>
+<p><strong>Task 6.a):</strong> Please print out the sizes of each sample
+(hint: library size is the sum of all counts)</p>
+</blockquote>
+<p><br />
+</p>
+<p><br />
+<br />
+</p>
+<p>How to calculate size factors in DESeq2?</p>
+<pre class="r"><code>dds_clean &lt;- estimateSizeFactors(dds_clean)
+sizeFactors(dds_clean)</code></pre>
+<pre><code>## BM_CTRL_2 BM_CTRL_3 BM_AMIL_1 BM_AMIL_2 BM_AMIL_3 JJ_CTRL_2 JJ_CTRL_3 JJ_AMIL_1 
+## 1.1433547 1.4178968 1.1081712 1.2521730 0.8317523 1.0132260 0.6720967 0.6667752 
+## JJ_AMIL_2 JJ_AMIL_3   BM_TG_1   BM_TG_2   BM_TG_3   JJ_TG_1   JJ_TG_2   JJ_TG_3 
+## 1.0994127 1.2136785 1.1125837 0.9072609 1.1596233 0.7719960 1.2800491 0.9103010</code></pre>
+<blockquote>
+<p><strong>Task 6.b):</strong> Please print out the sizes of each sample
+after normalization</p>
+</blockquote>
+<blockquote>
+<p><strong>Discuss</strong>: Can the size factors be used as quality
+control? At what value of the size factors should you go back and look
+at your data?</p>
+</blockquote>
+<p><br />
+<br />
+<br />
+</p>
+<p>NOTE: ‘DESeq()’ function estimates size factors automatically. But if
+you <em>run <code>estimateSizeFactors()</code></em> or another function
+to estimate factors <em>before <code>DESeq()</code></em>, those
+calculated values would be used instead.</p>
+<p>Why can you do this in 2 different ways? So you can integrate various
+methods to compensate for sources of bias within the DESeq2 workflow
+(e.g. <em>cqn</em>, <em>EDASeq</em>, etc)</p>
+<p><img src="images/expl_size_factors.png" width="80%" style="display: block; margin: auto;" /></p>
+<p> </p>
+</div>
+<div id="dispersions---15-min" class="section level3">
+<h3>4.3. Dispersions - 15 min</h3>
+<p>Within group variability (e.g. between replicates) is modeled by
+parameter <code>α</code>, which describes variance of counts with:
+<code>Var = μ + α*μ^2</code>, where <code>α</code> = dispersion,
+<code>Var</code> = variance, and <code>μ</code> = mean. Accurate
+estimation of <code>α</code> is critical:</p>
+<ul>
+<li><p>not a problem for large studies with many samples and
+replicates</p></li>
+<li><p>but usually we only have 2-3 replicates =&gt; highly variable
+<code>α</code> estimates for each gene.</p></li>
+</ul>
+<p><br />
+<br />
+<br />
+</p>
+<blockquote>
+<p><strong>Task 7:</strong> Visualize the dispersion in your analysis
+using the following functions:
+<code>dds &lt;- estimateDispersions(dds)</code> and
+<code>plotDispEsts(dds)</code></p>
+</blockquote>
+<p><br />
+<br />
+<br />
+</p>
+<p><img src="images/explain_dispersion.png" width="50%" style="display: block; margin: auto;" /></p>
+<p><br />
+</p>
+<ul>
+<li><p>count data for each gene separately =&gt; get preliminary
+gene-wise dispersion estimates using maximum-likelihood estimation
+(black dots)</p></li>
+<li><p>fit the dispersion trend (red line)</p></li>
+<li><p>combine the likelihood with the trended prior to get a maximum
+<em>a posteriori</em> (MAP) values = final dispersion estimates (blue
+dots)</p></li>
+</ul>
+<p><br />
+</p>
+<p>Bad examples of dispersion plots:</p>
+<p><br></p>
+<center>
+<p><img src="images/initial_dispersion.png" width="60%" style="display: block; margin: auto;" /></p>
+</center>
+<p><br></p>
+<p><br />
+<br />
+</p>
+</div>
+<div id="wald-test" class="section level3">
+<h3>4.4. Wald test</h3>
+<ul>
+<li>gene-wise dispersion by fitting a negative binomial general linear
+model (GLM) to the data and then returning the results using Wald
+statistics (<strong>nbinomWaldTest</strong>) &gt; tomorrow</li>
+<li>default parameters: obtain DE genes for the last variable in the
+design formula (‘TG/DMSO’)</li>
+</ul>
+<blockquote>
+<p><strong>Task 8:</strong> Please run the DESeq() function on the dds
+object to do the DE analysis:</p>
+</blockquote>
+<pre class="r"><code>dds_clean &lt;- DESeq(dds_clean)</code></pre>
+<p><br />
+<br />
+<br />
+</p>
+</div>
+</div>
+<div id="extracting-results---10-min" class="section level2">
+<h2>5. Extracting results - 10 min</h2>
+<p><br />
+</p>
+<p>To extract the results, use:</p>
+<pre><code># default use gives results only for the last variable in the design formula (in this case &#39;TG/DMSO&#39;)
+dds_res &lt;- results(dds)
+
+# complex use to extract the specified contrast: (DO NOT RUN THIS!)
+resultsName(dds)
+dds_res &lt;- results(dds, contrast)</code></pre>
+<p>it gives you the <strong>log2 fold changes</strong> and the
+<strong>adjusted p-values</strong> for the specified contrasts (the
+estimates are of the logarithmic fold change log2(treated/untreated). In
+our case it will AMIL/DMSO and TG/DMSO.</p>
+<blockquote>
+<p><strong>Task 9:</strong> Please run the results() function on the dds
+object:</p>
+</blockquote>
+<pre class="r"><code>dds_res &lt;- results(dds_clean)
+dds_res</code></pre>
+<pre><code>## log2 fold change (MLE): condition TG vs DMSO 
+## Wald test p-value: condition TG vs DMSO 
+## DataFrame with 27351 rows and 6 columns
+##                   baseMean log2FoldChange     lfcSE      stat      pvalue
+##                  &lt;numeric&gt;      &lt;numeric&gt; &lt;numeric&gt; &lt;numeric&gt;   &lt;numeric&gt;
+## ENSG00000000419 2285.01560       0.317449 0.1790600  1.772863 7.62514e-02
+## ENSG00000000457  775.42002       0.334962 0.0873551  3.834486 1.25827e-04
+## ENSG00000000460 1300.43696       0.963262 0.0939353 10.254526 1.12928e-24
+## ENSG00000000938    2.45443      -0.325046 0.7933991 -0.409688 6.82035e-01
+## ENSG00000000971 1626.92877       0.309394 0.1271819  2.432686 1.49873e-02
+## ...                    ...            ...       ...       ...         ...
+## ENSG00000273486  40.217168      0.0672792  0.204936  0.328295    0.742689
+## ENSG00000273487   0.162242      0.5041349  3.950877  0.127601    0.898465
+## ENSG00000273488  13.780769      0.4674107  0.375660  1.244237    0.213412
+## ENSG00000273489   1.064893     -1.1261063  1.341504 -0.839436    0.401225
+## ENSG00000273492   0.856644      0.9590379  1.652038  0.580518    0.561565
+##                        padj
+##                   &lt;numeric&gt;
+## ENSG00000000419 1.59065e-01
+## ENSG00000000457 5.89362e-04
+## ENSG00000000460 2.57159e-23
+## ENSG00000000938 7.98272e-01
+## ENSG00000000971 4.10210e-02
+## ...                     ...
+## ENSG00000273486    0.840324
+## ENSG00000273487          NA
+## ENSG00000273488    0.356482
+## ENSG00000273489    0.565373
+## ENSG00000273492    0.707107</code></pre>
+<ul>
+<li>baseMean: mean of normalized counts for all samples</li>
+<li><strong>log2FoldChange: log2 fold change</strong></li>
+<li>lfcSE: standard error</li>
+<li>stat: Wald statistic</li>
+<li>pvalue: Wald test p-value</li>
+<li><strong>padj: BH adjusted p-values</strong></li>
+</ul>
+<p><br />
+</p>
+<blockquote>
+<p><strong>Discussion:</strong> What are the NA values in the ‘padj’
+column?</p>
+</blockquote>
+<p><br />
+<br />
+</p>
+<ul>
+<li>how many genes do we get with padj &lt; 0.05?</li>
+</ul>
+<pre class="r"><code>table(dds_res$padj &lt; 0.05)</code></pre>
+<pre><code>## 
+## FALSE  TRUE 
+## 14035  8532</code></pre>
+<ul>
+<li>sort the list to have at the top the genes with the lowest padj
+values:</li>
+</ul>
+<pre class="r"><code>dds_res.1 &lt;- subset(dds_res, padj &lt; 0.1)                 # find all rows that have a padj &lt; 0.1; helps to remove the NAs and insignificant values
+dds_res_ordered &lt;- dds_res.1[order(dds_res.1$padj),]     # sort the subset</code></pre>
+<p><br />
+<br />
+<br />
+</p>
+</div>
+<div id="exporting-results-and-further-analyses---15-min"
+class="section level2">
+<h2>6. Exporting results and further analyses - 15 min</h2>
+<p><br />
+</p>
+<ul>
+<li><p>why export data?
+<img src="images/analysis_tools.png" width="70%" style="display: block; margin: auto;" /></p></li>
+<li><p>you can save your results in a ‘tsv’ file:</p></li>
+</ul>
+<blockquote>
+<p><strong>Task 9:</strong> Please find the write.csv function and use
+it to export your data:</p>
+</blockquote>
+<pre class="r"><code># change the location of the saved file!!
+#wfile=&quot;../misc/results.tsv&quot;      # location of data file
+#write.table(dds_res_ordered, file=wfile, col.names=T, row.names = T, sep = &quot;\t&quot;, quote=F)  #tab-sep
+#write.csv(dds_res_ordered, file=wfile, row.names=TRUE)                                      #comma-sep</code></pre>
+<p><br />
+</p>
+<ul>
+<li>use the exported data for downstream analysis:
+<ul>
+<li>shiny apps on MPI-IE website:</li>
+</ul></li>
+</ul>
+<p><img src="images/shiny_apps.png" width="80%" style="display: block; margin: auto;" /></p>
+<ul>
+<li>ClusterProfiler:</li>
+</ul>
+<p><img src="images/gene2functions.png" width="80%" style="display: block; margin: auto;" /></p>
+<ul>
+<li>Ingenuity Pathway Analysis (IPA): tool to help interprete and
+analyze omics data (e.g. functional enrichment of DEGs)</li>
+</ul>
+<p><img src="images/ipa_example.jpg" width="60%" style="display: block; margin: auto;" /></p>
+<blockquote>
+<p><strong>Task 10:</strong> Please reorder factors with ‘AMIL’ as
+baseline, for next day’s analysis - 2 min</p>
+</blockquote>
+</div>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3,h4",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
