@@ -14,9 +14,9 @@ navbar:
     - text: "Day 1"
       icon: fa-battery-quarter
       href: 'day01.html'
-    #- text: "Day 2"
-    #  icon: fa-battery-half
-    #  href: 'day02.html'
+    - text: "Day 2"
+      icon: fa-battery-half
+      href: 'day02.html'
     - text: "Day 3"
       icon: fa-battery-three-quarters
       href: "day03.html"
