@@ -1,10 +1,14 @@
 ---
 title: "DESeq2 Analysis with R: Part 03"
+author: "Bioinfo-Core @ MPI-IE"
+date: "`r date() `"
 output:
   html_document:
+    theme: cosmo
+    highlight: textmate
     code_folding: hide
     toc: true
-    toc_depth: 2
+    toc_depth: 1
     toc_float: true
     df_print: paged
 ---
