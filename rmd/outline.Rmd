@@ -37,15 +37,22 @@ In case you need to still need these libaries, this code chunk below can be used
 # Bioconductor
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-BiocManager::install("DESeq2")
-BiocManager::install("EnsDb.Hsapiens.v75")
+if (!require("DESeq2", quietly = TRUE))
+    BiocManager::install("DESeq2")
+if (!require("EnsDb.Hsapiens.v75", quietly = TRUE))
+    BiocManager::install("EnsDb.Hsapiens.v75")
 
 # CRAN
-install.packages("tidyverse")
-install.packages("pheatmap")
-install.packages("ggrepel")
-install.packages("UpSetR")
-install.packages("ashr")
+if (!require("tidyverse", quietly = TRUE))
+    install.packages("tidyverse")
+if (!require("pheatmap", quietly = TRUE))
+    install.packages("pheatmap")
+if (!require("ggrepel", quietly = TRUE))
+    install.packages("ggrepel")
+if (!require("UpSetR", quietly = TRUE))
+    install.packages("UpSetR")
+if (!require("ashr", quietly = TRUE))
+    install.packages("ashr")
 ```
 
 ***
