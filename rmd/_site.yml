@@ -25,7 +25,7 @@ navbar:
       href: "day04.html"
     - text: "summary"
       href: "summary.html"
-      icon: ambulance
+      icon: fa-truck-medical
 
 output:
   html_document:

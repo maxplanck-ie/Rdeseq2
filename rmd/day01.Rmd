@@ -13,28 +13,29 @@ output:
     df_print: paged
 ---
 
+***
+
 # Preparation (60 min)
 
-## Get Story (2 min)
-Purpose: https://pubmed.ncbi.nlm.nih.gov/28790111/
+## Story. (2 min)
 
-Goal for this tutorial:   
-Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in two cancer (multiple myeloma) cell lines with different mutations (BM: p53mut, JJ: del(17p)).
+The story we'll work with is a 'drug repurposing' effort to use an old diuretic drug as a cancer treatment.
+[Amiloride to treat multiple myeloma](https://pubmed.ncbi.nlm.nih.gov/28790111/)
+
+In this study, RNA-seq data is available to compare amiloride to the state-of-the-art drug (TG003) in two cancer (multiple myeloma) cell lines with different mutations (BM: p53mut, JJ: del(17p)).
 
 ***
 
-## Get Tools (15 min)
+## Tools. (15 min)
 
 **Warmup Tasks**:
 
-1. Start a new session in https://workbench.ie-freiburg.mpg.de, or on your local computer.
+1. Start a new session in [workbench](https://workbench.ie-freiburg.mpg.de), or on your local computer.
 2. In workbench we'll be working with R version 4.1.3
 3. Create a new R-project, e.g. DESeq2_Course
 4. Open a new notebook: e.g. DESeq2_notebook
 
 <br> 
-
-**Reminder**: Difference between *Console*, *Scripts* or *Notebooks*.
 
 **Recommendation**: Please use Notebooks throughout the course (and beyond).
 
@@ -72,8 +73,6 @@ library(tidyverse)
 library(pheatmap)
 ```
 
-**Reminder** Installation of these packages was carried out in Part_00!
-
 **Notice**: Loading new packages enables new functionalities for a given R-session. 
 
 This may result in multiple (sometimes redundant) functions with the same name: e.g. sd()
@@ -92,20 +91,17 @@ to obtain a so-called *count matrix*. Data received in-house (given that it's a 
 
 It contains the number of reads that have been mapped to each gene and for each sample.
 
+
 <br><br>
 
 ![**Count matrix**. Image from github.com/hbctraining ](images/day1_countmatrix.png)
 
 ***
 
-In principle, you can download the published data for our tutorial from GEO 
+In principle, you can download the published data for our tutorial from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077)
 
-- https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077 
+For this course, we have already prepared (all!) the data in a convenient format.
 
-For this course, we have already prepared the data in a convenient format here: 
-
-- github: https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_counts.tsv
-- local: /data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv
 
 **Notice**: It is good style to put data into a separate directory (e.g. data/)
 
@@ -153,10 +149,7 @@ Metadata (=data about data); typically contains important information on the sam
 
 Often these are categorical data such as cell type, experimental condition or other batch assignments. But it could also be quantitative data (e.g. age).
 
-Often the metadata is hidden in the paper (or in the filename). This is bad practise - make sure to have a proper sample sheet. Metadata is just as important as data. Here is the prepared file for this introduction:
-
-- github: https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_meta.tsv
-- local: /data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv
+Often the metadata is hidden in the paper (or in the filename). This is bad practise - make sure to have a proper sample sheet. Metadata is just as important as data.
 
 > **Task**: Read the metadata into an R-object "metadata". Inspect the data frame - which data types are included?
 Make sure that the rownames of the metadata are valid sample names.

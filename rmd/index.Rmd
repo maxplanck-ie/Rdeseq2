@@ -2,11 +2,15 @@
 title: "DESeq2 Analysis with R: Description"
 author: "Bioinfo-Core @ MPI-IE"
 date: "`r date() `"
-urlcolor: blue
 output:
   html_document:
-  pdf_document:
-    toc: false
+    theme: cosmo
+    highlight: textmate
+    code_folding: hide
+    toc: true
+    toc_depth: 1
+    toc_float: true
+    df_print: paged
 ---
 
 # Goals: 

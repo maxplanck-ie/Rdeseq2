@@ -27,11 +27,11 @@
  - [ ] harmonize style / custom css ?
 
 ## outline
- - [ ] GUI recap
- - [ ] rmd vs script explanation
+ - [x] GUI recap
+ - [x] rmd vs script explanation
  
 ## day 1
-  - [ ] get data -> or shared volume if workbench, else download link zip (github?)
+  - [ ] get data -> or shared volume if workbench, else download link zip (github?)?
 
 ## day 2
   - [ ] relative path to data folder
