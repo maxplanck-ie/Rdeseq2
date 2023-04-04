@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 01</h1>
 <h4 class="author">Thomas Manke @ MPI-IE</h4>
-<h4 class="date">Tue Apr 4 07:08:46 2023</h4>
+<h4 class="date">Tue Apr 4 11:41:29 2023</h4>
 
 </div>
 
@@ -406,54 +406,50 @@ div.tocify {
 <hr />
 <div id="preparation-60-min" class="section level1">
 <h1>Preparation (60 min)</h1>
-<div id="story.-2-min" class="section level2">
-<h2>Story. (2 min)</h2>
+<div id="story-2-min" class="section level2">
+<h2>1. Story (2 min)</h2>
 <p>The story we’ll work with is a ‘drug repurposing’ effort to use an
-old diuretic drug as a cancer treatment. <a
+old diuretic drug as a cancer treatment: <br> <a
 href="https://pubmed.ncbi.nlm.nih.gov/28790111/">Amiloride to treat
 multiple myeloma</a></p>
-<p>In this study, RNA-seq data is available to compare amiloride to the
+<p>In this study, RNA-seq data is available to compare amiloride to a
 state-of-the-art drug (TG003) in two cancer (multiple myeloma) cell
-lines with different mutations (BM: p53mut, JJ: del(17p)).</p>
-<hr />
+lines with different mutations (BM: p53mut, JJ: del(17p)). <br> ***</p>
 </div>
-<div id="tools.-15-min" class="section level2">
-<h2>Tools. (15 min)</h2>
-<p><strong>Warmup Tasks</strong>:</p>
-<ol style="list-style-type: decimal">
-<li>Start a new session in <a
+<div id="tools-15-min" class="section level2">
+<h2>2. Tools (15 min)</h2>
+<blockquote>
+<p><strong>Task</strong>: Start a new session in <a
 href="https://workbench.ie-freiburg.mpg.de">workbench</a>, or on your
-local computer.</li>
-<li>In workbench we’ll be working with R version 4.1.3</li>
-<li>Create a new R-project, e.g. DESeq2_Course</li>
-<li>Open a new notebook: e.g. DESeq2_notebook</li>
-</ol>
-<p><br></p>
-<p><strong>Recommendation</strong>: Please use Notebooks throughout the
-course (and beyond).</p>
+local computer. Note that we will be working with R version 4.1.3.
+<strong>Task</strong>: Create a new R-project, e.g. DESeq2_Course
+<strong>Task</strong>: Open a new notebook: e.g. DESeq2_notebook</p>
+</blockquote>
+<p><strong>Recommendation</strong> We advice you to use Notebooks
+throughout the course (and beyond), as it is straight forward to keep
+your notes (documentation) and code together in one place.</p>
 <blockquote>
 <p><strong>Poll 1.1</strong>: How do you get information about the
 current R-version and loaded packages?</p>
 </blockquote>
-<p><br><br></p>
-<div id="install-packages" class="section level3">
-<h3>Install Packages</h3>
-<p><strong>Reminder</strong>: Many useful functions are already
-available with R: <em>base packages</em>.</p>
-<p>Many analysis tools come with software packages that will need to be
-installed before use.</p>
+<p><br></p>
+<div id="a.-packages" class="section level3">
+<h3>a. Packages</h3>
+<p>Many useful functions are already available with R: <em>base
+packages</em>. Most analysis tools come with software packages that will
+need to be installed before use.</p>
 <p>For R, two of the most common and reliable package repositories
-are</p>
+are:</p>
 <ul>
 <li><strong>CRAN</strong> <a href="https://cran.r-project.org/"
 class="uri">https://cran.r-project.org/</a></li>
 <li><strong>Bioconductor</strong> <a href="https://bioconductor.org/"
 class="uri">https://bioconductor.org/</a></li>
 </ul>
-<p><strong>Notice</strong>:</p>
+<p><strong>Reminder</strong></p>
 <ol style="list-style-type: decimal">
 <li>All packages come for a <strong>specific R-version</strong>. This
-tutorial uses R version 4.0.3.</li>
+tutorial uses R version 4.1.3.</li>
 <li>All packages have specific <strong>package version</strong>
 (e.g. DESeq2 is version 1.30.1), and can come from different sources
 (CRAN, Bioconductor, github, …).</li>
@@ -463,8 +459,8 @@ that should also be installed</li>
 to be done only once.</li>
 </ol>
 </div>
-<div id="load-packages" class="section level3">
-<h3>Load Packages</h3>
+<div id="b.-load-packages" class="section level3">
+<h3>b. Load packages</h3>
 <blockquote>
 <p><strong>Task</strong>: Load the following packages: DESeq2,
 tidyverse, pheatmap</p>
@@ -476,7 +472,7 @@ tidyverse, pheatmap</p>
 <pre class="r"><code>library(DESeq2)
 library(tidyverse)
 library(pheatmap)</code></pre>
-<p><strong>Notice</strong>: Loading new packages enables new
+<p><strong>Reminder</strong>: Loading new packages enables new
 functionalities for a given R-session.</p>
 <p>This may result in multiple (sometimes redundant) functions with the
 same name: e.g. sd()</p>
@@ -489,56 +485,60 @@ packages in your R session.</p>
 </div>
 </div>
 <div id="get-data-40-min" class="section level2">
-<h2>Get Data (40 min)</h2>
+<h2>3. Get Data (40 min)</h2>
 <p>We assume that the sequencing data has already been processed (QC,
 mapping, counting) to obtain a so-called <em>count matrix</em>. Data
 received in-house (given that it’s a model organism) will have count
-matrices generated that you can start with immediately.</p>
-<p>It contains the number of reads that have been mapped to each gene
-and for each sample.</p>
-<p><br><br></p>
+matrices generated that you can start with immediately. A count matrix
+contains the number of reads that have been mapped to each gene, for
+each sample.</p>
+<p><br></p>
 <div class="figure">
 <img src="images/day1_countmatrix.png" alt="" />
-<p class="caption"><strong>Count matrix</strong>. Image from
-github.com/hbctraining</p>
+<p class="caption">Example of a <strong>count matrix</strong>. Image
+from github.com/hbctraining</p>
 </div>
 <hr />
 <p>In principle, you can download the published data for our tutorial
 from <a
-href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077">GEO</a></p>
-<p>For this course, we have already prepared (all!) the data in a
-convenient format.</p>
-<p><strong>Notice</strong>: It is good style to put data into a separate
-directory (e.g. data/)</p>
-<div id="import-data" class="section level3">
-<h3>Import Data</h3>
+href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077">GEO</a>,
+and many published papers will (or should) have a GEO / SRA / data
+accession code available. For this course, we have already prepared the
+data that will be used in in a convenient format.</p>
+<p><strong>Recommendation</strong>: It is good style to put data into a
+separate directory (e.g. data/).</p>
+<div id="a.-import-data" class="section level3">
+<h3>a. Import Data</h3>
 <p>Data can come in various formats. Here we have prepared the data as
 tab-separated file with header information.</p>
 <blockquote>
 <p><strong>Task</strong>: Read the data e.g. using read_tsv()</p>
 </blockquote>
-<pre class="r"><code>dfile &lt;- &quot;../data/myeloma/myeloma_counts.tsv&quot;      # location of data file
-data &lt;- read_tsv(file=dfile)    # diagnostic: problemes(data)</code></pre>
-<p><strong>Discussion</strong> Inspect the data structure. What are the
-variables? How many samples are in the data ?</p>
+<pre class="r"><code>dfile &lt;- &quot;../data/myeloma/myeloma_counts.tsv&quot;
+data &lt;- read_tsv(file=dfile)</code></pre>
+<p>Take some time to inspect the data structure. What are the variables?
+How many samples are in the data ?</p>
 <pre class="r"><code>data %&gt;% head()</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":["gene_id"],"name":[1],"type":["chr"],"align":["left"]},{"label":["JJ_CTRL_1"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_3"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_1"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_2"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_3"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_1"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_2"],"name":[9],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_3"],"name":[10],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_1"],"name":[11],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_2"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_3"],"name":[13],"type":["dbl"],"align":["right"]},{"label":["BM_TG_1"],"name":[14],"type":["dbl"],"align":["right"]},{"label":["BM_TG_2"],"name":[15],"type":["dbl"],"align":["right"]},{"label":["BM_TG_3"],"name":[16],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_1"],"name":[17],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_2"],"name":[18],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_3"],"name":[19],"type":["dbl"],"align":["right"]}],"data":[{"1":"ENSG00000000003","2":"0","3":"0","4":"0","5":"0","6":"0","7":"0","8":"0","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","19":"0"},{"1":"ENSG00000000005","2":"0","3":"0","4":"0","5":"0","6":"0","7":"0","8":"0","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","19":"0"},{"1":"ENSG00000000419","2":"1637","3":"1792","4":"2368","5":"2365","6":"4808","7":"2098","8":"1664","9":"1878","10":"1367","11":"1155","12":"3020","13":"3834","14":"2461","15":"1962","16":"2417","17":"1601","18":"3110","19":"2129"},{"1":"ENSG00000000457","2":"453","3":"614","4":"854","5":"623","6":"585","7":"431","8":"687","9":"869","10":"619","11":"512","12":"953","13":"1049","14":"845","15":"757","16":"859","17":"823","18":"1342","19":"904"},{"1":"ENSG00000000460","2":"719","3":"961","4":"1280","5":"937","6":"1247","7":"852","8":"884","9":"1058","10":"616","11":"840","12":"1320","13":"1161","14":"1944","15":"1528","16":"2106","17":"1350","18":"2569","19":"1654"},{"1":"ENSG00000000938","2":"2","3":"3","4":"6","5":"0","6":"0","7":"0","8":"1","9":"4","10":"1","11":"3","12":"3","13":"5","14":"5","15":"1","16":"3","17":"2","18":"2","19":"3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
+<p>If the <code>%&gt;%</code> symbol is confusing, one could interprete
+<code>data %&gt;% head()</code> as ‘Take data and forward it into
+head()’</p>
 <blockquote>
 <p><strong>Poll 1.3</strong>: What is the median expression count in
 sample “BM_CTRL_3”?</p>
 </blockquote>
-<blockquote>
-<p>**Notice: Some functions that could be of help: summary (baseR), pull
-(tidyverse)</p>
-</blockquote>
+<p><strong>Recommendation</strong>: Some functions that could be of
+help: summary (baseR), pull (tidyverse)</p>
+<p>Don’t worry if the syntax is confusing at first. It takes time and
+practice to familiarize yourself.</p>
 <pre class="r"><code>data %&gt;% summary
 data %&gt;% pull(&quot;BM_CTRL_3&quot;) %&gt;% median()</code></pre>
-<p><strong>Discussion</strong>: Where are the gene names, and which
-convention is chosen for them?</p>
+<p>Where are the gene names, and which convention is chosen for
+them?</p>
 <blockquote>
 <p><strong>Task</strong>: Ensure that the rownames of the count data are
 gene names.</p>
@@ -546,21 +546,24 @@ gene names.</p>
 <pre class="r"><code># dplyr
 data &lt;- data %&gt;% column_to_rownames(&quot;gene_id&quot;)  # gene_id -&gt; rownames and removes gene_id
 
+# magrittr with a &#39;reassignment pipe!&#39;
+# library(magrittr)
+#data %&lt;&gt;% column_to_rownames(&quot;gene_id&quot;)
+
 # base-R
 # rownames(data)    # check: may already be defined during read
 # rownames(data) &lt;- data$gene_id
 # data$gene_id   &lt;- NULL</code></pre>
 </div>
-<div id="import-metadata" class="section level3">
-<h3>Import Metadata</h3>
+<div id="b.-import-metadata" class="section level3">
+<h3>b. Import Metadata</h3>
 <p>Metadata (=data about data); typically contains important information
-on the samples and their origin.</p>
-<p>Often these are categorical data such as cell type, experimental
-condition or other batch assignments. But it could also be quantitative
-data (e.g. age).</p>
-<p>Often the metadata is hidden in the paper (or in the filename). This
-is bad practise - make sure to have a proper sample sheet. Metadata is
-just as important as data.</p>
+on the samples and their origin. Often these are categorical data such
+as cell type, experimental condition or other batch assignments. But it
+could also be quantitative data (e.g. age, weight, …). Often the
+metadata is hidden in the paper (or in the filenames). This is bad
+practise - make sure to have a proper ‘samplesheet’. Metadata is just as
+important as data.</p>
 <blockquote>
 <p><strong>Task</strong>: Read the metadata into an R-object “metadata”.
 Inspect the data frame - which data types are included? Make sure that
@@ -586,7 +589,6 @@ metadata &lt;- read_tsv(file=mfile)</code></pre>
 <blockquote>
 <p><strong>Poll 1.4</strong>: What is a factor?</p>
 </blockquote>
-<p><br><br><br></p>
 <blockquote>
 <p><strong>Task</strong> Convert the character variables “condition” and
 “celltype” into factors.</p>
@@ -594,7 +596,6 @@ metadata &lt;- read_tsv(file=mfile)</code></pre>
 <pre class="r"><code># convert text strings to categorical variable (characters --&gt; factors)
 metadata$condition &lt;- as.factor(metadata$condition)
 metadata$celltype  &lt;- as.factor(metadata$celltype)</code></pre>
-<p><strong>Discussion</strong>: Is there any metadata for genes?</p>
 <hr />
 </div>
 </div>
@@ -609,14 +610,14 @@ metadata$celltype  &lt;- as.factor(metadata$celltype)</code></pre>
 (<span class="math inline">\(y\)</span>) which depends on the vector of
 samples (<span class="math inline">\(x\)</span>)</p>
 <blockquote>
-<p><strong>Task (optional)</strong>: Extract the 42nd gene in the data
+<p><strong>Tasks (optional)</strong>: Extract the 42nd gene in the data
 matrix and plot it against all samples</p>
 </blockquote>
 <pre class="r"><code>boxplot(data[42,], xlab=&quot;sample&quot;, ylab=&quot;count&quot;, names=FALSE) # base-R (ggplot below)
 abline(h=rowMeans(data[42,]), col=&quot;red&quot;, lty=2)</code></pre>
 <p><img src="day01_files/figure-html/gene_plot-1.png" width="672" /></p>
-<div id="hope" class="section level3">
-<h3>Hope</h3>
+<div id="hope" class="section level2">
+<h2>1. Hope</h2>
 <p>Counts (<span class="math inline">\(y\)</span>) could be predicted
 (and controlled) given sufficient sample information <span
 class="math inline">\(x\)</span></p>
@@ -628,18 +629,16 @@ y_i = f(x_i) = \mu + \beta x_i ~~~~~~~~~ (i = 1\ldots n) \\ \\
 class="math inline">\(n\)</span> in our example?</p>
 </blockquote>
 </div>
-<div id="goal" class="section level3">
-<h3>Goal</h3>
+<div id="goal" class="section level2">
+<h2>2. Goal</h2>
 <p>Model the counts (<span class="math inline">\(y_i\)</span>) as a
 function of sample <span class="math inline">\(x_i\)</span> + noise
 factor (<span class="math inline">\(\epsilon_i\)</span>)</p>
 <p><span class="math display">\[
 y_i = \mu + \beta x_i + \epsilon_i
 \]</span></p>
-<p><strong>Discussion</strong>: What should <span
-class="math inline">\(x\)</span> be?
-<br><br><br><br><br><br><br><br><br></p>
-<p><strong>Notice</strong>: The researcher needs to decide <em>which
+<p>What should <span class="math inline">\(x\)</span> be?</p>
+<p><strong>Reminder</strong>: The researcher needs to decide <em>which
 factors</em> should be included in the model:</p>
 <ul>
 <li>none: all samples have their own values</li>
@@ -655,31 +654,26 @@ factors</em> should be included in the model:</p>
 ggplot(gene, aes(x=condition, y=count, col=condition)) + 
   geom_point(size=3)  #plot against condition</code></pre>
 <p><img src="day01_files/figure-html/gene_plot_factors-1.png" width="672" /></p>
-<pre class="r"><code># compare DESeq2 functionality
-# plotCounts(dds, gene=&quot;ENSG00000003509&quot;, col=metadata$condition)</code></pre>
 </div>
-<div id="the-r-syntax-y-sim-x" class="section level3">
-<h3>The R-syntax: <span class="math inline">\(Y \sim X\)</span></h3>
+<div id="the-r-syntax-y-sim-x" class="section level2">
+<h2>3. The R-syntax: <span class="math inline">\(Y \sim X\)</span></h2>
 <p>Define your design:</p>
 <pre class="r"><code># here: X = condition
 my_design &lt;- ~ condition  # notice the tilde *not* minus</code></pre>
-<blockquote>
-<p><strong>Discussion</strong>: Which other variables could be used to
-define the design?</p>
-</blockquote>
-<p><br><br><br><br></p>
-<p><strong>Notice 1</strong>: The variables need to correspond to
+<p><strong>Reminder</strong>: The variables need to correspond to
 columns in the metadata.</p>
-<p><strong>Notice 2</strong>: More complicated designs are possible and
+<p><strong>Reminder</strong>: More complicated designs are possible and
 often necessary (<span class="math inline">\(\to\)</span> day 2 and
 3)</p>
 <hr />
 </div>
-<div id="interlude-model-matrix-5-min-day-3" class="section level2">
-<h2>Interlude: Model Matrix (5 min) –&gt; Day 3</h2>
-<p><strong>Discussion</strong>: How to convert sample factor
-(e.g. condition) into something numerical?</p>
-<p><strong>Idea</strong>: binary encoding of categorical variable <span
+</div>
+<div id="interlude-15-min" class="section level1">
+<h1>Interlude (15 min)</h1>
+<div id="the-model-matrix" class="section level2">
+<h2>1. The model matrix</h2>
+<p>How do we convert a factor (e.g. condition) into something numerical
+? Use binary encoding of categorical variable <span
 class="math inline">\(x\)</span> (switch on and of contributions)</p>
 <p><span class="math inline">\(x\)</span>=(“Cond1”, “Cond2”, “Cond3”)
 <span class="math inline">\(\longrightarrow \left( \begin{array}{ccc}
@@ -691,35 +685,32 @@ y_i = \mu + \beta x_i \longrightarrow \beta_0 X_{0i} + \beta_1 X_{1i} +
 \]</span></p>
 <p>(c.f. linear regression <span class="math inline">\(\to\)</span>
 multivariate linear regression)</p>
-<p><strong>Upshot</strong>: A factorial design can be translated into a
-(binary) <em>model matrix</em></p>
+<p>A factorial design can be translated into a (binary) <em>model
+matrix</em></p>
 <pre class="r"><code>MM &lt;- model.matrix(my_design, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)</code></pre>
 <p><img src="day01_files/figure-html/model_matrix-1.png" width="672" /></p>
 <blockquote>
-<p><strong>Tasks</strong></p>
+<p><strong>Tasks</strong>: Include an additional factor (+ celltype) and
+observe the design matrix <strong>Tasks</strong>: Bonus: include an
+interaction term (+ condition:celltype) and discuss its
+interpretation</p>
 </blockquote>
-<ul>
-<li>Include an additional factor (+ celltype) and observe the design
-matrix</li>
-<li>Bonus: include an interaction term (+ condition:celltype) and
-discuss its interpretation</li>
-</ul>
+<pre class="r"><code>MM &lt;- model.matrix(~ condition*celltype, data=metadata)
+pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)</code></pre>
+<p><img src="day01_files/figure-html/model_matrix_interaction-1.png" width="672" /></p>
 <hr />
 </div>
-<div id="interlude-experimental-design-10-min" class="section level2">
-<h2>Interlude: Experimental Design (10 min)</h2>
-<p><a
-href="https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md"
-class="uri">https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md</a>
-(50min)</p>
+<div id="experimental-design" class="section level2">
+<h2>2. Experimental design</h2>
+<p>A more elaborate (highly recommended) tutorial can be found <a
+href="https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md">here</a></p>
 <div class="figure">
 <img src="images/day1_expdesign.jpg" alt="" />
 <p class="caption"><strong>A typical experiment</strong></p>
 </div>
-<p><br><br><br></p>
-<div id="the-problem-more-factors" class="section level3">
-<h3>The problem: more factors!</h3>
+<div id="a.-the-problem-more-factors" class="section level3">
+<h3>a. The problem: more factors!</h3>
 <p>Usually there are other factors in addition to a simple
 treatment:</p>
 <ul>
@@ -731,7 +722,7 @@ effects (genotype * treatment)</li>
 <p>… all contribute to total variability and limit our ability to detect
 treatment-related differences <span class="math inline">\(\to\)</span>
 account for them as much as possible !</p>
-<p><br><br></p>
+<p><br></p>
 <blockquote>
 <p><strong>Poll 1.6</strong> You are planning an experiment with 3
 treatment levels <span class="math inline">\((X_1, X_2, X_3)\)</span>
@@ -782,8 +773,7 @@ your samples to different treatments?</p>
 </tr>
 </tbody>
 </table>
-<p><strong>Practical Notice</strong>:<br />
-Some <em>nuisance factors</em> (e.g. batches) may be known and
+<p>Some <em>nuisance factors</em> (e.g. batches) may be known and
 measurable, but are not of primary interest - they should be included as
 metadata and in the model.</p>
 <p><span class="math display">\[
@@ -791,14 +781,13 @@ y_i = \mu + \beta x_i + \gamma z_i + \epsilon_i \\ ~~\\
 \mbox{R syntax:} ~~~Y \sim X + Z
 \]</span></p>
 <pre class="r"><code>my_alt_design &lt;- ~ celltype + condition</code></pre>
-<p><strong>Repeat</strong>: The choice of factors rests with the
+<p><strong>Reminder</strong>: The choice of factors rests with the
 researcher.</p>
 <div class="figure">
 <img src="images/day1_myelomafactors.jpg" alt="" />
 <p class="caption"><strong>Factor Choices</strong>.</p>
 </div>
 <hr />
-<p><br><br></p>
 </div>
 </div>
 </div>
@@ -813,39 +802,11 @@ combines data, metadata and the design formula in one single object</p>
 </blockquote>
 <pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_design)</code></pre>
 <pre><code>## converting counts to integer mode</code></pre>
-<div id="interlude-alternatives-5-min" class="section level3">
-<h3>Interlude: Alternatives (5 min)</h3>
-<p>There are various tools (HTSeq, Salmon) to produce count matrices
-(each with their own specific output formats). Several other convenience
-functions exist to read them as DESeqDataSet objects</p>
-<pre class="r"><code># Alternative 1: HTSeq object
-fm &lt;- &quot;../data/sampleTable2.csv&quot;              # file with data links and metadata
-sampleTable &lt;- read.csv(fm, header=FALSE)
-colnames(sampleTable)=c(&quot;name&quot;,&quot;filename&quot;, &quot;condition&quot;,&quot;celltype&quot;)   # specifications for DESeqDataSetFromHTSeqCount
-
-# categorical variables --&gt; &quot;factors&quot;
-sampleTable$condition &lt;- as.factor(sampleTable$condition)
-sampleTable$celltype  &lt;- as.factor(sampleTable$celltype)
-dds &lt;- DESeqDataSetFromHTSeqCount(sampleTable, directory = &quot;.&quot;, design = my_design)
-
-# Alternative 2: txi object
-#txi &lt;- tximport(files, type=&quot;salmon&quot;, tx2gene=t2g, countsFromAbundance = &quot;lengthScaledTPM&quot;)
-#dds &lt;- DESeqDataSetFromTximport(txi, colData = sample.table, design = my_desig)
-
-
-# Alternative 3: Existing Data sets: just specify design
-#library(&quot;airway&quot;)
-#data(&quot;airway&quot;)
-#DESeqDataSet(airway, design = ~ cell + dex)
-
-# Alternative 4: Synthetic Data Generation (two conditions)
-# dds &lt;- makeExampleDESeqDataSet(n = 1000, m = 6, betaSD = 2)</code></pre>
-</div>
 </div>
 <div id="data-exploration-40-min" class="section level1">
 <h1>Data Exploration (40 min)</h1>
-<div id="show-me-the-raw-data-15-min" class="section level2">
-<h2>Show me the (raw) data! (15 min)</h2>
+<div id="show-me-the-raw-data" class="section level2">
+<h2>1. Show me the (raw) data!</h2>
 <ul>
 <li>Data Structure</li>
 <li>Data Entries</li>
@@ -853,15 +814,16 @@ dds &lt;- DESeqDataSetFromHTSeqCount(sampleTable, directory = &quot;.&quot;, des
 <li>Correlations</li>
 </ul>
 <blockquote>
-<p><strong>Task 1</strong>: Inspect the data structures and dimensions
-of objects dds and extract the count matrix M (Hint: &gt; ?counts)</p>
+<p><strong>Tasks</strong>: Inspect the data structures and dimensions of
+objects dds and extract the count matrix M (Hint: &gt; ?counts)</p>
 </blockquote>
 <blockquote>
-<p><strong>Task 2</strong>: Extract the first 10 rows (genes) from count
+<p><strong>Tasks</strong>: Extract the first 10 rows (genes) from count
 matrix and safe as new data object -&gt; Mr &lt;- (for further use)</p>
 </blockquote>
 <blockquote>
-<p><strong>Bonus</strong>: Extract 10 randomly sampled genes.</p>
+<p><strong>Tasks (optional)</strong>: Extract 10 randomly sampled
+genes.</p>
 </blockquote>
 <pre class="r"><code>dds                         # dds object --&gt; inspect: str(dds), dim(dds)</code></pre>
 <pre><code>## class: DESeqDataSet 
@@ -910,10 +872,10 @@ matrix and safe as new data object -&gt; Mr &lt;- (for further use)</p>
 ## ENSG00000001167    3274    2785    3610    1889    3467    2404</code></pre>
 <pre class="r"><code>#Mr &lt;- M %&gt;% data.frame() %&gt;% sample_n(10)           # random rows</code></pre>
 </div>
-<div id="visualize-15-min" class="section level2">
-<h2>Visualize (15 min)</h2>
+<div id="visualize" class="section level2">
+<h2>2. Visualize</h2>
 <blockquote>
-<p><strong>Task</strong>: Create heatmap for the first view genes in Mr
+<p><strong>Tasks</strong>: Create heatmap for the first view genes in Mr
 (?pheatmap). How would you add metadata as below?</p>
 </blockquote>
 <pre class="r"><code>pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, main=&quot;First glimpse&quot;)</code></pre>
@@ -923,20 +885,20 @@ ann &lt;- data.frame(colData(dds))
 pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, annotation=ann, main=&quot;Data + Metadata&quot;)</code></pre>
 <p><img src="day01_files/figure-html/visual_explore-2.png" width="672" /></p>
 <blockquote>
-<p><strong>Task</strong>: understand the object “ann” and suggest how to
-add sequence depth as additional annotation column</p>
+<p><strong>Tasks</strong>: understand the object “ann” and suggest how
+to add sequence depth as additional annotation column</p>
 </blockquote>
-<pre class="r"><code>ann$seq_depth &lt;- colSums(counts(dds))/1e6    # sequencing depth in millions </code></pre>
+<pre class="r"><code>ann$seq_depth &lt;- counts(dds) %&gt;% colSums()/1e6    # sequencing depth in millions </code></pre>
 </div>
 <div id="genome-wide-correlations" class="section level2">
-<h2>genome-wide correlations</h2>
+<h2>3. genome-wide correlations</h2>
 <p><strong>Question</strong>: How to calculate the sample-sample
 correlation matrix?</p>
 <pre class="r"><code>C &lt;- cor(M)       # get sample-sample correlations: other correlations?
 pheatmap(C, annotation = ann)</code></pre>
 <p><img src="day01_files/figure-html/correlations-1.png" width="672" /></p>
-<div id="interlude-customizing-colors-5-min" class="section level3">
-<h3>Interlude: Customizing Colors (5 min)</h3>
+<div id="a.-interlude-customizing-colors-5-min" class="section level3">
+<h3>a. Interlude: Customizing Colors (5 min)</h3>
 <p>Often we need to adjust colours or ensure consistency across a
 project. Use &gt; library(RColorBrewer) for systematic and educated
 choices.</p>
@@ -957,12 +919,10 @@ pheatmap(C, annotation = ann, annotation_colors = my_colors)</code></pre>
 # pheatmap(C, annotation = ann, annotation_colors = my_colors, color=blue_colors) </code></pre>
 </div>
 </div>
-<div id="simple-transformation-10-min" class="section level2">
-<h2>Simple transformation (10 min)</h2>
-<p><a
-href="https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/03_DGE_QC_analysis.html"
-class="uri">https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/03_DGE_QC_analysis.html</a>
-(80min)</p>
+<div id="simple-transformation" class="section level2">
+<h2>4. Simple transformation</h2>
+<p>A more elaborate (highly recommended) tutorial can be found <a
+href="https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/03_DGE_QC_analysis.html">here</a></p>
 <blockquote>
 <p><strong>Task</strong> Look at the quantiles and means of the first 3
 samples and create a boxplot</p>
@@ -975,16 +935,14 @@ samples and create a boxplot</p>
 ##  3rd Qu.:    11.0   3rd Qu.:    14.0   3rd Qu.:    18.0  
 ##  Max.   :285379.0   Max.   :320929.0   Max.   :372028.0</code></pre>
 <p><img src="day01_files/figure-html/summary-1.png" width="672" /></p>
-<p><strong>Discussion</strong>: What is the problem - What could we do
-about it ?</p>
+<p>What is the problem and what could we do about it ?</p>
 <pre class="r"><code>myred &lt;- rgb(1,0,0,0.5)
 myblue &lt;- rgb(0,0,1,0.5)
 hist(log(M[,1]),100, col=myred)
 hist(log(M[,3]),100, col=myblue, add=TRUE)</code></pre>
 <p><img src="day01_files/figure-html/log_norm-1.png" width="672" /></p>
-<p><strong>Discussion</strong>: What happened to zero counts ? What may
-be the source of remaining discrepancy ?</p>
-<p><br><br><br><br><br><br><br><br><br></p>
+<p>What happened to zero counts ? What may be the source of remaining
+discrepancy ?</p>
 <ul>
 <li><strong>Transformation</strong>: make distributions more
 pleasing<br />
@@ -993,27 +951,20 @@ pleasing<br />
 </ul>
 </div>
 <div id="sample-sample-correlations" class="section level2">
-<h2>Sample-Sample Correlations</h2>
+<h2>5. Sample-Sample Correlations</h2>
 <p>Compare the genome-wide correlations before and after
 transformation</p>
 <pre class="r"><code>Mt &lt;- log2(M + 1)      # simple log-transform; (why + 1 ?)
 pheatmap(cor(Mt), annotation = ann, annotation_colors = my_colors)</code></pre>
-<p><img src="day01_files/figure-html/explore_corr-1.png" width="672" /></p>
-<p><strong>Discussion</strong>: Notice the overall high correlations?
-How would you explore this further</p>
-<p><br><br><br><br></p>
+<p><img src="day01_files/figure-html/explore_corr-1.png" width="672" />
+Notice the overall high correlations? How would you explore this
+further</p>
 <pre class="r"><code># correlation coeff. is only a single number
 smoothScatter(Mt[,1], Mt[,5])</code></pre>
 <p><img src="day01_files/figure-html/smoothScatter-1.png" width="672" /></p>
-<blockquote>
-<p><strong>Task</strong>: Compare this to an untransformed
-scatterplot.</p>
-</blockquote>
-<p><strong>Upshot</strong>: transformations are important for data
-exploration !</p>
 </div>
-<div id="pca-plot-10-min" class="section level2">
-<h2>PCA plot (10 min)</h2>
+<div id="pca-plot" class="section level2">
+<h2>6. PCA plot</h2>
 <p>PCA aims to project samples from a high-dimensional space (M=20k+
 genes) to a lower dimension (D=2). Similar to correlation analysis, the
 main purpose is to identify distinct and similar samples.</p>
@@ -1022,9 +973,8 @@ main purpose is to identify distinct and similar samples.</p>
 nt &lt;- 500     # set number of most variable genes
 
 # get top variable genes (rows)
-top &lt;- order(rowVars(Mt), decreasing = TRUE)[1:nt]  # calculate variance for each row and sort
-
-pca &lt;- prcomp(t(Mt[top,]), scale=TRUE)      # perform PCA
+top &lt;-  Mt %&gt;% rowVars() %&gt;% order(decreasing=TRUE) %&gt;% head(nt)  # calculate variance for each row and sort
+pca &lt;- Mt[top,] %&gt;% t() %&gt;% prcomp(scale=TRUE)      # perform PCA
 
 # pca-object contains transformed coordinates for each sample 
 # pca$x:  number of genes --&gt; 2
@@ -1045,7 +995,7 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
   scale_colour_manual(values=cn_col)</code></pre>
 <p><img src="day01_files/figure-html/PCA_manual-1.png" width="672" /></p>
 <blockquote>
-<p><strong>Tasks / Homework</strong></p>
+<p><strong>Homework</strong></p>
 </blockquote>
 <ol style="list-style-type: decimal">
 <li>Observe and interprete the PCA plot.</li>
@@ -1122,7 +1072,7 @@ $(document).ready(function ()  {
 
     // establish options
     var options = {
-      selectors: "h1",
+      selectors: "h1,h2,h3",
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {
