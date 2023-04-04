@@ -371,7 +371,7 @@ div.tocify {
 </li>
 <li>
   <a href="summary.html">
-    <span class=" ambulance"></span>
+    <span class="fa fa-truck-medical"></span>
      
     summary
   </a>
@@ -398,23 +398,46 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: outline</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Fri Mar 31 09:05:45 2023</h4>
+<h4 class="date">Tue Apr 4 07:13:45 2023</h4>
 
 </div>
 
 
-<div id="prerequistites" class="section level1">
-<h1>Prerequistites</h1>
-<ul>
-<li>R introduction: data formats, functions, help, plotting, work with
-packages</li>
-<li>Account for <a
-href="https://workbench.ie-freiburg.mpg.de">workbench</a> or your own
-local R/Rstudio installation.</li>
-<li>Patience</li>
-</ul>
-<p>Note that this course will be based on R version 4.1.3, Bioconductor
-version 3.14.</p>
+<hr />
+<div id="libraries" class="section level1">
+<h1>Libraries</h1>
+<p>We will use a couple of libraries in this course. We have to make
+sure these are installed. These installations can take a while. So it’s
+best to tackle this first.</p>
+<p>You can check which packages need to be installed:</p>
+<pre class="r"><code>library(&quot;DESeq2&quot;)
+library(&quot;tidyverse&quot;)
+library(&quot;pheatmap&quot;)
+library(&quot;ggrepel&quot;)
+library(&quot;EnsDb.Hsapiens.v75&quot;)
+library(&quot;UpSetR&quot;)
+library(&quot;ashr&quot;)</code></pre>
+<p>In case you need to still need these libaries, this code chunk below
+can be used as an example.</p>
+<pre class="r"><code># Bioconductor
+if (!require(&quot;BiocManager&quot;, quietly = TRUE))
+    install.packages(&quot;BiocManager&quot;)
+if (!require(&quot;DESeq2&quot;, quietly = TRUE))
+    BiocManager::install(&quot;DESeq2&quot;)
+if (!require(&quot;EnsDb.Hsapiens.v75&quot;, quietly = TRUE))
+    BiocManager::install(&quot;EnsDb.Hsapiens.v75&quot;)
+
+# CRAN
+if (!require(&quot;tidyverse&quot;, quietly = TRUE))
+    install.packages(&quot;tidyverse&quot;)
+if (!require(&quot;pheatmap&quot;, quietly = TRUE))
+    install.packages(&quot;pheatmap&quot;)
+if (!require(&quot;ggrepel&quot;, quietly = TRUE))
+    install.packages(&quot;ggrepel&quot;)
+if (!require(&quot;UpSetR&quot;, quietly = TRUE))
+    install.packages(&quot;UpSetR&quot;)
+if (!require(&quot;ashr&quot;, quietly = TRUE))
+    install.packages(&quot;ashr&quot;)</code></pre>
 <hr />
 </div>
 <div id="what-you-will-hopefully-learn" class="section level1">
@@ -446,7 +469,7 @@ influenced by those tutorials:</p>
 <ul>
 <li><a
 href="https://hbctraining.github.io/DGE_workshop_salmon_online/">Harvard
-Chan bioinformatics core’s</a> DGE workshop using Salmon counts</li>
+Chan bioinformatics core’s DGE workshop using Salmon counts</a></li>
 <li><a
 href="http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html">DESeq2
 vignette</a></li>
@@ -500,13 +523,20 @@ class="section level2">
 </div>
 <div id="recap" class="section level1">
 <h1>Recap</h1>
-<div id="rstudio-gui" class="section level2">
-<h2>1. Rstudio GUI</h2>
+<p>The Rstudio GUI.</p>
+<div class="figure">
+<img src="images/outline_script.png" alt="" />
+<p class="caption">An Rscript in the Rstudio GUI</p>
 </div>
-<div id="notebooks-versus-scripts" class="section level2">
-<h2>2. notebooks versus scripts</h2>
+<div class="figure">
+<img src="images/outline_book.png" alt="" />
+<p class="caption">An R notebook in the Rstudio GUI</p>
+</div>
+<blockquote>
+<p><strong>Poll 0.1</strong>: How will you keep track of the code,
+course material and notes during this course ?</p>
+</blockquote>
 <hr />
-</div>
 </div>
 
 

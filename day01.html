@@ -371,7 +371,7 @@ div.tocify {
 </li>
 <li>
   <a href="summary.html">
-    <span class=" ambulance"></span>
+    <span class="fa fa-truck-medical"></span>
      
     summary
   </a>
@@ -398,38 +398,37 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 01</h1>
 <h4 class="author">Thomas Manke @ MPI-IE</h4>
-<h4 class="date">Fri Mar 31 09:02:11 2023</h4>
+<h4 class="date">Tue Apr 4 07:08:46 2023</h4>
 
 </div>
 
 
+<hr />
 <div id="preparation-60-min" class="section level1">
 <h1>Preparation (60 min)</h1>
-<div id="get-story-2-min" class="section level2">
-<h2>Get Story (2 min)</h2>
-<p>Purpose: <a href="https://pubmed.ncbi.nlm.nih.gov/28790111/"
-class="uri">https://pubmed.ncbi.nlm.nih.gov/28790111/</a></p>
-<p>Goal for this tutorial:<br />
-Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in
-two cancer (multiple myeloma) cell lines with different mutations (BM:
-p53mut, JJ: del(17p)).</p>
+<div id="story.-2-min" class="section level2">
+<h2>Story. (2 min)</h2>
+<p>The story we’ll work with is a ‘drug repurposing’ effort to use an
+old diuretic drug as a cancer treatment. <a
+href="https://pubmed.ncbi.nlm.nih.gov/28790111/">Amiloride to treat
+multiple myeloma</a></p>
+<p>In this study, RNA-seq data is available to compare amiloride to the
+state-of-the-art drug (TG003) in two cancer (multiple myeloma) cell
+lines with different mutations (BM: p53mut, JJ: del(17p)).</p>
 <hr />
 </div>
-<div id="get-tools-15-min" class="section level2">
-<h2>Get Tools (15 min)</h2>
+<div id="tools.-15-min" class="section level2">
+<h2>Tools. (15 min)</h2>
 <p><strong>Warmup Tasks</strong>:</p>
 <ol style="list-style-type: decimal">
 <li>Start a new session in <a
-href="https://workbench.ie-freiburg.mpg.de"
-class="uri">https://workbench.ie-freiburg.mpg.de</a>, or on your local
-computer.</li>
+href="https://workbench.ie-freiburg.mpg.de">workbench</a>, or on your
+local computer.</li>
 <li>In workbench we’ll be working with R version 4.1.3</li>
 <li>Create a new R-project, e.g. DESeq2_Course</li>
 <li>Open a new notebook: e.g. DESeq2_notebook</li>
 </ol>
 <p><br></p>
-<p><strong>Reminder</strong>: Difference between <em>Console</em>,
-<em>Scripts</em> or <em>Notebooks</em>.</p>
 <p><strong>Recommendation</strong>: Please use Notebooks throughout the
 course (and beyond).</p>
 <blockquote>
@@ -477,8 +476,6 @@ tidyverse, pheatmap</p>
 <pre class="r"><code>library(DESeq2)
 library(tidyverse)
 library(pheatmap)</code></pre>
-<p><strong>Reminder</strong> Installation of these packages was carried
-out in Part_00!</p>
 <p><strong>Notice</strong>: Loading new packages enables new
 functionalities for a given R-session.</p>
 <p>This may result in multiple (sometimes redundant) functions with the
@@ -507,21 +504,10 @@ github.com/hbctraining</p>
 </div>
 <hr />
 <p>In principle, you can download the published data for our tutorial
-from GEO</p>
-<ul>
-<li><a
-href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077"
-class="uri">https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077</a></li>
-</ul>
-<p>For this course, we have already prepared the data in a convenient
-format here:</p>
-<ul>
-<li>github: <a
-href="https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_counts.tsv"
-class="uri">https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_counts.tsv</a></li>
-<li>local:
-/data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv</li>
-</ul>
+from <a
+href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077">GEO</a></p>
+<p>For this course, we have already prepared (all!) the data in a
+convenient format.</p>
 <p><strong>Notice</strong>: It is good style to put data into a separate
 directory (e.g. data/)</p>
 <div id="import-data" class="section level3">
@@ -574,15 +560,7 @@ condition or other batch assignments. But it could also be quantitative
 data (e.g. age).</p>
 <p>Often the metadata is hidden in the paper (or in the filename). This
 is bad practise - make sure to have a proper sample sheet. Metadata is
-just as important as data. Here is the prepared file for this
-introduction:</p>
-<ul>
-<li>github: <a
-href="https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_meta.tsv"
-class="uri">https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_meta.tsv</a></li>
-<li>local:
-/data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv</li>
-</ul>
+just as important as data.</p>
 <blockquote>
 <p><strong>Task</strong>: Read the metadata into an R-object “metadata”.
 Inspect the data frame - which data types are included? Make sure that
