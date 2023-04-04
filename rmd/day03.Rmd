@@ -8,10 +8,11 @@ output:
     highlight: textmate
     code_folding: hide
     toc: true
-    toc_depth: 1
+    toc_depth: 3
     toc_float: true
     df_print: paged
 ---
+
 # Goals:
 * Different steps of a differential gene expression analysis
   * multi-factor design
@@ -24,9 +25,7 @@ output:
   * LRT vs. Wald test
   * Biological interpretation
 
-```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
-# add libraries
-suppressPackageStartupMessages({
+```{r load libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
 library("DESeq2")
 library("tidyverse")
 library("ggrepel")
@@ -34,21 +33,17 @@ library("pheatmap")
 library("EnsDb.Hsapiens.v75")
 library("UpSetR")
 library("ashr")
-})
 ```
 
 ```{r read_data, message=FALSE, warning=FALSE}
 # Get the data directory
-data_dir <- "../data/myeloma/"
-
-# Read count matrix
-dfile <- paste0(data_dir, "myeloma_counts.tsv")
-data <- read_tsv(file=dfile)    
+dfile <- "../data/myeloma/myeloma_counts.tsv"
+data <- read_tsv(file=dfile)
 data <- data %>% column_to_rownames("gene_id") 
 
 # Read samplesheet , detects conditions, generate the formula
-mfile <- paste0(data_dir, "myeloma_meta.tsv")
-metadata <- read_tsv(file=mfile)  
+mfile <- "../data/myeloma/myeloma_meta.tsv"
+metadata <- read_tsv(file=mfile)
 metadata <- metadata %>% column_to_rownames("sample") 
 
 metadata$condition <- as.factor(metadata$condition)
@@ -60,21 +55,16 @@ metadata
 all(rownames(metadata) == colnames(data))
 ```
 
-# 1. Building a deseq data set with a multi-factor design:
-## factors and designs:
-A design formula takes all sources of variation to control for. The first factor is considered as "the factor of interest" to test for during the differential expression testing.
+# 1. Creating a DDS object. (30 minutes)
+## a. factors and design
+A design formula takes all sources of variation to control for (remember day 1).
+The first factor is considered as "the factor of interest" to test for during the differential expression testing.
 
 DESeq2 uses the design as a model for each gene, and fits a normalized count based on that. 
 
-### The simplest case:
- * one factor with two levels
- 
-```{r Only used to make the figure}
-# The intercept is log2 of the mean normalized counts for the group that is the reference level for all factor variables.
+## b. design examples
 
-# metadata$celltype <- factor(metadata$celltype, levels = c ('JJ', 'BM'))
-```
-
+A single factor with two levels.
 
 |samples |celltype<factor> |
 |:-------|:-----|
@@ -82,6 +72,12 @@ DESeq2 uses the design as a model for each gene, and fits a normalized count bas
 |sample2 |JJ |
 |sample3 |BM |
 |sample4 |BM |
+
+```{r simplefactordesign}
+dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~celltype)
+dds <- DESeq(dds)
+resultsNames(dds)
+```
 
 Design:
 
@@ -94,10 +90,7 @@ Each coefficient shows a difference (LFC).
 
     [1] "Intercept" (beta0)             "celltype_BM_vs_JJ" (beta1)
 
-
-```{r, echo=FALSE, out.width = '50%', fig.align="center"}
-knitr::include_graphics(c("images/day3_case1.png"))
-```
+![A simple design including celltype ](images/day3_case1.png)
 
 This can be shown by dummy variables:
 
@@ -108,12 +101,14 @@ This can be shown by dummy variables:
 |sample3 |1 | 1 |
 |sample4 |1 | 1 |
 
-null hypothesis:
+Null hypothesis:
 
+    BM vs JJ (AMIL)
     beta1 = 0
 
-### A complex case:
- * One factor with more than two levels
+***
+
+A single factor with more then two levels.
 
 |samples |condition<factor> |
 |:-------|:-----|
@@ -124,18 +119,24 @@ null hypothesis:
 |sample5 |TG |
 |sample6 |TG |
 
+> **Tasks:** Recreate the dds object, now with a design that incorporates 'condition' (alone!)
+
+> **Poll 3.1** What coefficients do we get when we specify condition alone as a design?
+
+```{r simplefactordesign condition}
+dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~condition)
+dds <- DESeq(dds)
+resultsNames(dds)
+```
+
+Design:
       ~1+condition
       = beta0 + beta1 * DMSO + beta2 * TG
       beta0 = Intercept
       beta1 = condition_DMSO_vs_AMIL
       beta2 = condition_TG_vs_AMIL
-Coefficients:
 
-      [1] "Intercept"              "condition_DMSO_vs_AMIL" "condition_TG_vs_AMIL"
-
-```{r, echo=FALSE, out.width = '80%', fig.align="center"}
-knitr::include_graphics(c("images/day3_case3.png"))
-```
+![A simple design including condition ](images/day3_case2.png)
 
 Model matrix:
 
@@ -159,7 +160,10 @@ Null hypothesis:
     DMSO vs TG
     beta1 - beta2 = 0
 
-### More complex case:
+***
+
+What about celltype and condition?
+
   * Two factors, with interaction
 
 |samples |celltype<factor> | condition<factor> |
@@ -179,10 +183,6 @@ Null hypothesis:
 
 The formula for the model includes all sources of variation in the data. Thus, it should contain the celltype, condition and the difference as the effect of celltype on the condition (celltype:condtion)
 
-```{r, echo=FALSE, out.width = '80%', fig.align="center"}
-knitr::include_graphics(c("images/day3_case3.png"))
-```
-
 Design:
 
     ~1 + celltype + condition + celltype:condition
@@ -194,6 +194,9 @@ Design:
       beta3 = condition_TG_vs_AMIL
       beta4 = celltypeBM.conditionDMSO
       beta5 = celltypeBM.conditionTG
+
+
+![A full design including celltype and condition ](images/day3_case3.png)
 
 Null hypothesis:
 
@@ -211,52 +214,42 @@ Null hypothesis:
 
     Interaction:
     beta5 = 0
-    
+   
+**Reminder**: The levels of your factors define which 'baseline' will be used, and thus what coefficients you will have!
 
 * Multi-factor design with increasing complexity are nicely explained in these [slides](https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing)
 
+## c. Recap
 
+### Build object
 ```{r build the matrix, message=FALSE, warning=FALSE}
 my_design <- as.formula(~celltype + condition + celltype:condition)
 # my_design <- ~celltype*condition   # identical alternative
 
 dds <- DESeq2::DESeqDataSetFromMatrix(countData = data, colData = metadata, design = my_design)
 
-
 # filtering as in day 1 and 2
 dds <- dds[, -c(1,7)]                   # sample filtering
-dds <- dds[rowSums(counts(dds)) > 1, ]  # gene filtering
-
-dim(dds)
+dds <- dds[counts(dds) %>% rowSums() > 1, ]  # gene filtering
 ```
 
-
-## Estimate size factors (recap)
+### Size factors
 DESeq2 automatically estimates the size factors when performing the differential expression analysis. However, if `estimateSizeFactors()` is called, then DESeq2 will use these values.
 To normalize the count data, DESeq2 calculates size factors for each sample using the "median of ratios" method.
 
 ```{r estimate size factors, message=FALSE, warning=FALSE}
 dds <- estimateSizeFactors(dds)
-# sizeFactors(dds)
 ```
 
-> **Poll 3.1**:
-> What is the relation between the size factors and the sequencing depth of a sample?
+> **Poll 3.2** What is the relation between the size factors and the sequencing depth of a sample?
 
 ```{r colsums, message=FALSE, warning=FALSE, eval=FALSE}
 seq_depth <- colSums(counts(dds))
 plot( sizeFactors(dds),  seq_depth)
-
-# Larger size factors correspond to the samples with higher sequencing depth. To generate the normalized counts we need to divide the counts by the size factors. This accounts for the differences in sequencing depth between samples.
-```
-
-```{r norm colsums, message=FALSE, warning=FALSE}
-# compare the raw sum with the normalised ones:
-# colSums(counts(dds, normalized=T))
 ```
 
 
-## Estimate dispersion (recap)
+### Dispersion estimation
 DESeq2 uses a measure of variation called dispersion, which accounts for a gene’s variance and mean expression level. Dispersion is calculated by `Var = μ + α*μ^2`, where `α` = dispersion, `Var` = variance, and `μ` = mean
 ```{r estimate dispersions, message=FALSE, warning=FALSE}
 dds <- estimateDispersions(dds)
@@ -264,71 +257,89 @@ dds <- estimateDispersions(dds)
 
 ```{r Visualise dispersions, message=FALSE, warning=FALSE}
 # Visualise dispersion
-# plotDispEsts(dds)
+plotDispEsts(dds)
 ```
 
-## Run deseq analysis (recap)
+### Get all the steps for free!
 ```{r deseq analysis, message=FALSE, warning=FALSE}
 dds <- DESeq(dds)
 ```
-# 2. Steps to generate pairwise comparisons 
+# 2. Get some actual results ! (30 min)
 
 ## Wald test
 By default DESeq2 uses the Wald test to identify genes that are differentially expressed between two groups of samples. This is done through the following steps:
   
   * A regression model fits to each gene (glm.nb),
-  * Each gene model coefficient (LFC) is estimated using maximum likelihood,
+  * Each gene model coefficient (LFC) is estimated using a maximum likelihood estimation,
   * The shrunken estimate of LFC is divided by its standard error, resulting in a z-statistic,
   * z-statistic is compared to a standard normal distribution to compute the p-values,
   * P values are adjusted for multiple testing using the procedure of Benjamini and Hochberg.
-  
-```{r}
-# The Wald test allows testing of individual coefficients, or contrasts of coefficients, without the need to fit a reduced model as with the likelihood ratio test
-```
 
-
-```{r extract coef of a gene}
-# coef(dds)['ENSG00000173535',]
-```
-
-
-
+Raw P-value distribution
 ```{r pvalue, eval=TRUE, message=FALSE, warning=FALSE}
-    # P-value distribution
-    res <- results(dds)
-    # print(mcols(res, use.names=TRUE))
-    res.df <- res %>% data.frame()
-    print(ggplot(res.df) +
+    res.df <- results(dds) %>% data.frame() %>% drop_na
+    ggplot(res.df) +
         geom_histogram(aes(res.df$pvalue, fill = "a"), colour = "grey20", alpha = 0.5, stat = "bin") +
         xlab("p-value") +
         # geom_histogram(aes(res.df$padj, fill = "b"), colour = "grey20", alpha = 0.5, stat = "bin") +
         scale_fill_manual(name = "group", values = c("a" = "steelblue"), labels = "p-value") +
         geom_vline(xintercept = 0.05, colour = "red")
-    )
 ```
 
-## Make a pairwise comparison (using contrast)
-Contrasts can be given as a list of 2 character vectors:
-the names of the fold changes for the level of ineterest, and the names of the fold changes for the base level.
+Adjusted P-value distribution
+```{r pvalue, eval=TRUE, message=FALSE, warning=FALSE}
+    ggplot(res.df) +
+        geom_histogram(aes(res.df$padj, fill = "a"), colour = "grey20", alpha = 0.5, stat = "bin") +
+        xlab("adj p-value") +
+        # geom_histogram(aes(res.df$padj, fill = "b"), colour = "grey20", alpha = 0.5, stat = "bin") +
+        scale_fill_manual(name = "group", values = c("a" = "steelblue"), labels = "padj") +
+        geom_vline(xintercept = 0.05, colour = "red")
+```
+
+A frequently asked question is: 'Why is my padj 'NA' but my p-values are significant ? It's my favorite gene!'
+
+There are three reasons to set p-values to NA (From the [DESeq2 vignette](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pvaluesNA))
+   * within a row, all samples have zero counts
+   * a row contains a sample with an extreme count outlier.
+   * A row is filtered by automatic filtering
+
+```{r showres}
+head(res.df)
+```
+We have called results here, but what did we actually compare ?
+
+**Reminder**: 
+
+If 'results' is run without specifying 'contrast' or 'name', it will return the comparison of the last level of the last variable in the design formula over the first level of this variable.
+For example, for a simple two-group comparison, this would return the log2 fold changes of the second group over the first group (the reference level).
+
+Remember now our coefficients:
+```{r showcoeff}
+resultsNames(dds)
+```
+
+## Contrasts and results
+
+Contrasts are used in our results call to get a specific pairwise comparison.
+If there is only two factor levels, There is no need to  specify contrasts, DESeq2 will choose the base factor level based on the alphabetical order of the levels.
+
+Contrasts can be specified in three different ways:
+
+  * a character vector with three elements. c("celltype", "JJ", "BM") (last level == baseline!)
+  * A list of 2 character vectors. list(coef1, coef2) (last coef == baseline!)
+  * A numerical vector with an element for each coef c(0,0,0,1,0,0)
+
+Let's start with the first option.
+
 ```{r contrast, message=FALSE, warning=FALSE}
 resultsNames(dds) # to see what names to use
 contrast <- c("celltype", "JJ", "BM")
-#contrast <- list(resultsNames(dds)[1], resultsNames(dds)[2])
-```
-
-If there is only two factor levels, There is no need to  specify contrasts, DESeq2 will choose the base factor level based on the alphabetical order of the levels.
-
-## Results
-```{r result, message=FALSE, warning=FALSE}
 res <- results(dds, contrast = contrast, alpha = 0.05)
-```
-
-```{r view res, message=FALSE, warning=FALSE}
-# What type of object is the results?
 class(res)
 # What is in the results?
-res %>% data.frame() %>% head()
+res %>% data.frame() %>% head() %>% drop_na()
 ```
+
 Columns of results dataframe:
 
   * baseMean: mean of normalized counts for all samples
@@ -343,25 +354,24 @@ Columns of results dataframe:
 
   * padj: BH adjusted p-values
 
-The padj column represents the p-value adjusted for multiple testing, and is the most important column of the results! The default method for multiple test correction in DESeq2 is an implementation of the Benjamini-Hochberg false discovery rate (FDR).
-
-If a gene contains a sample with an extreme count outlier then the p-value and adjusted p-value will be set to NA.
-
-### Plot of the mean normalized counts vs log10(p values)
 ```{r plot norm_count vs p values}
-plot(res$baseMean+1, -log10(res$pvalue),
+plot(res$baseMean+1, -log10(res$padj),
      log="x", xlab="mean of normalized counts",
      ylab=expression(-log[10](pvalue)),
      ylim=c(0,30),
      cex=.4, col=rgb(0,0,0,.3))
-
 ```
 
-## Shrinkage method
-
-```{r}
-# shrinkage: It looks at the largest fold changes that are not due to low counts and uses these to inform a prior distribution. So the large fold changes from genes with lots of statistical information are not shrunk, while the imprecise fold changes are shrunk. This allows you to compare all estimated LFC across experiments, for example, which is not really feasible without the use of a prior.
+```{r plot l2fc vs p values}
+plot(res$log2FoldChange, -log10(res$padj),
+     log="x", xlab="mean of normalized counts",
+     ylab=expression(-log[10](pvalue)),
+     ylim=c(0,30),
+     cex=.4, col=rgb(0,0,0,.3))
 ```
+
+
+## Shrinking
 
 To generate more accurate log2 foldchange (LFC) estimates, DESeq2 allows for the shrinkage of the LFC estimates toward zero when the information for a gene is low, which could include:
 
@@ -373,29 +383,28 @@ LFC shrinkage generates a more accurate estimate.  It looks at the largest fold 
 ```{r shrink, message=FALSE, warning=FALSE}
 # which coef to use?
 resultsNames(dds)
-res_shrink <- lfcShrink(dds, coef="celltype_JJ_vs_BM", type="apeglm")
+res_shrink <- lfcShrink(dds, contrast=contrast, type="ashr")
 ```
-To get the coef. names check resultsNames(dds)
 
+Note that there are three 'built-in' methods for shrinking:
+ 
+ - ashr
+ - apeglm -> works *only* with coefficients ! (might have to relevel)
+ - normal -> works *only* with design that have no interaction
+
+The specifics about these methods is beyond the scope of this course.
+
+**Recommendation**: ashr works for most (if not all) setups, including contrasts.
 
 ```{r MA plot, message=FALSE, warning=FALSE}
 # MA plot
 plotMA(res, ylim=c(-2,2))
 plotMA(res_shrink, ylim=c(-2,2))
 ```
-
-### summary
-
-    1. Check the shrunk result with padj values being < 0.05 (use summary)
-    2. Filter the shrunk result for this cut off
-    3. Sort the output based on the padj values
-```{r summary, message=FALSE, warning=FALSE}
-summary(res_shrink, alpha = 0.05)
-cutoff <- 0.05
-res_sig <- subset(res_shrink, padj<cutoff)
-res_sig_sorted = res_sig[order(res_sig$padj), ]
-head(res_sig_sorted)
-```
+***
+# Break (10 min)
+***
+# Biological interpretation (60 min)
 
 ## Visualisation
   Several ways to visualise the DESeq2 outputs:
@@ -482,20 +491,18 @@ Columns relevant to the LRT test:
 * padj: BH adjusted p-values
 
 ```{r detect lrt sig genes, message=FALSE, warning=FALSE}
-# padj < 0.05
 sig_res_lrt <- res_lrt %>%
                data.frame() %>%
                rownames_to_column(var="gene") %>%
-               as_tibble() %>%
-               dplyr::filter(padj < 0.05)
+               drop_na() %>%
+               filter(padj < 0.05)
 head(sig_res_lrt)
 # Get sig gene lists
 sig_lrt_genes <- sig_res_lrt %>%
                 pull(gene)
-
 length(sig_lrt_genes)
-
 ```
+
 ```{r heatmap of sig_lrt_genes}
 normalized_counts <- counts(dds, normalized=T)
 norm_lrt_sig <- subset(normalized_counts, row.names(normalized_counts) %in% sig_lrt_genes)
@@ -510,19 +517,15 @@ pheatmap(norm_lrt_sig,
          height = 20)
 ```
 
-
-# 3. Biological interpretation
-## Introduction
+## Back to square one.
 
 We now have an idea on how we can extract pair-wise comparisons from a multi-factor DESeq2 analysis,
 and we got a primer on comparisons beyond pair-wise comparisons. What now ?
 Let's try to extract something biologically meaningful from the data.
 
-Remember that all the data + metadata + design are now available in the DESeq object (dds):
+Remember that all the data + metadata + design are available in our DESeq object (dds)
 
-```{r designPrinter, message=FALSE, warning=FALSE}
-attributes(dds)
-```
+**Reminder**: ```attributes(dds)```
 
 ... our factors:
 
@@ -536,10 +539,11 @@ colData(dds)$condition
 design(dds)
 ```
 
-<!-- > **Poll 3.2**: -->
-<!-- > Is there a difference between specifying ~celltype*condition and ~celltype + condition + celltype:condition ? -->
+> **Poll 3.3**: Is there a difference in specifying ~celltype*condition and ~celltype + condition + celltype:condition ?
 
-To move on, remember that this is in essence a drug repurposing study.
+
+**Reminder**:
+This is in essence a drug repurposing study.
 
 A couple of other relevant notes:
 
@@ -560,9 +564,9 @@ resultsNames(dds)
 Note:
 contrasts can be specified in a number of ways.
 
-1. Character vector with three elements: c(factor1, level1, level2) ! Mind the base of factor2, factor3, ... , factor N!  
-2. A list with 2 coefficients (remember resultsNames(dds)) list(coef1, coef2)  
-3. A numeric vector with a value for each coefficient: c(0,0,0,1,0,1)
+1. Character vector with three elements: c(factor1, level1, level2) !
+2. A list with 2 coefficients
+3. A numeric vector with a value for each coefficient
 
 Extract TG vs AMIL:
 
@@ -576,13 +580,6 @@ head( data.frame(TGvAMIL) )
 TGvAMIL <- lfcShrink(dds, contrast = c(0,0,0,1,0,0), type="ashr")
 head( data.frame(TGvAMIL) )
 ```
-
-Cave!
-If we want to use shrinking, be careful with the apegml method as lfcShrink method doesn't support all forms of contrasts.
-ashr-method is a bit more versatile.
-
-> **Poll 3.3**:
-> We now have TG vs AMIL results, but are these under the BM or JJ condition ??
 
 > **Poll 3.4**:
 > Given our contrast c('condition', 'TG', 'AMIL'), what would a (significant) positive foldchange correspond to ?
@@ -659,8 +656,7 @@ TGvAMIL (for BM cells).
 TGvAMIL_JJ (for JJ cells).
 
 
-> **Task**:
-> Treat both result objects as such that we have we get (1) a dataframe that (2) has genes with baseMean 0 removed and, (3) rows with 'NA' filtered out and (4) sorted (ascending) by adjusted p-value. If you are feeling brave, make sure this dataframe has an additional column ("gene_symbol") that contains the gene name. A true R-superhero will wrap these operations in a single function.
+> **Task**: Treat both result objects as such that we have we get (1) a dataframe that (2) has genes with baseMean 0 removed and, (3) rows with 'NA' filtered out and (4) sorted (ascending) by adjusted p-value. If you are feeling brave, make sure this dataframe has an additional column ("gene_symbol") that contains the gene name. A true R-superhero will wrap these operations in a single function.
 
 
 ```{r parseResults, message=FALSE, warning=FALSE}

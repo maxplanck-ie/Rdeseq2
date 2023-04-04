@@ -34,6 +34,7 @@
   - [ ] fix layout + images
   - [ ] link to internal genes2function shiny
   - [ ] polls
+  - [ ] get rid of knitr graphics and include directly as in day1/day3
 
 
 ## day 3
