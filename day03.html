@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Tue Apr 4 11:43:12 2023</h4>
+<h4 class="date">Tue Apr 4 15:00:18 2023</h4>
 
 </div>
 
@@ -421,27 +421,21 @@ genes</li>
 <li>Biological interpretation</li>
 </ul></li>
 </ul>
-<pre class="r"><code># add libraries
-suppressPackageStartupMessages({
-library(&quot;DESeq2&quot;)
+<pre class="r"><code>library(&quot;DESeq2&quot;)
 library(&quot;tidyverse&quot;)
 library(&quot;ggrepel&quot;)
 library(&quot;pheatmap&quot;)
 library(&quot;EnsDb.Hsapiens.v75&quot;)
 library(&quot;UpSetR&quot;)
-library(&quot;ashr&quot;)
-})</code></pre>
+library(&quot;ashr&quot;)</code></pre>
 <pre class="r"><code># Get the data directory
-data_dir &lt;- &quot;../data/myeloma/&quot;
-
-# Read count matrix
-dfile &lt;- paste0(data_dir, &quot;myeloma_counts.tsv&quot;)
-data &lt;- read_tsv(file=dfile)    
+dfile &lt;- &quot;../data/myeloma/myeloma_counts.tsv&quot;
+data &lt;- read_tsv(file=dfile)
 data &lt;- data %&gt;% column_to_rownames(&quot;gene_id&quot;) 
 
 # Read samplesheet , detects conditions, generate the formula
-mfile &lt;- paste0(data_dir, &quot;myeloma_meta.tsv&quot;)
-metadata &lt;- read_tsv(file=mfile)  
+mfile &lt;- &quot;../data/myeloma/myeloma_meta.tsv&quot;
+metadata &lt;- read_tsv(file=mfile)
 metadata &lt;- metadata %&gt;% column_to_rownames(&quot;sample&quot;) 
 
 metadata$condition &lt;- as.factor(metadata$condition)
@@ -457,24 +451,19 @@ metadata</code></pre>
 all(rownames(metadata) == colnames(data))</code></pre>
 <pre><code>## [1] TRUE</code></pre>
 </div>
-<div id="building-a-deseq-data-set-with-a-multi-factor-design"
-class="section level1">
-<h1>1. Building a deseq data set with a multi-factor design:</h1>
-<div id="factors-and-designs" class="section level2">
-<h2>factors and designs:</h2>
-<p>A design formula takes all sources of variation to control for. The
-first factor is considered as “the factor of interest” to test for
-during the differential expression testing.</p>
+<div id="creating-a-dds-object.-30-minutes" class="section level1">
+<h1>1. Creating a DDS object. (30 minutes)</h1>
+<div id="a.-factors-and-design" class="section level2">
+<h2>a. factors and design</h2>
+<p>A design formula takes all sources of variation to control for
+(remember day 1). The first factor is considered as “the factor of
+interest” to test for during the differential expression testing.</p>
 <p>DESeq2 uses the design as a model for each gene, and fits a
 normalized count based on that.</p>
-<div id="the-simplest-case" class="section level3">
-<h3>The simplest case:</h3>
-<ul>
-<li>one factor with two levels</li>
-</ul>
-<pre class="r"><code># The intercept is log2 of the mean normalized counts for the group that is the reference level for all factor variables.
-
-# metadata$celltype &lt;- factor(metadata$celltype, levels = c (&#39;JJ&#39;, &#39;BM&#39;))</code></pre>
+</div>
+<div id="b.-design-examples" class="section level2">
+<h2>b. design examples</h2>
+<p>A single factor with two levels.</p>
 <table>
 <thead>
 <tr class="header">
@@ -501,6 +490,22 @@ normalized count based on that.</p>
 </tr>
 </tbody>
 </table>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~celltype)</code></pre>
+<pre><code>## converting counts to integer mode</code></pre>
+<pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
+<pre><code>## estimating size factors</code></pre>
+<pre><code>## estimating dispersions</code></pre>
+<pre><code>## gene-wise dispersion estimates</code></pre>
+<pre><code>## mean-dispersion relationship</code></pre>
+<pre><code>## final dispersion estimates</code></pre>
+<pre><code>## fitting model and testing</code></pre>
+<pre><code>## -- replacing outliers and refitting for 1248 genes
+## -- DESeq argument &#39;minReplicatesForReplace&#39; = 7 
+## -- original counts are preserved in counts(dds)</code></pre>
+<pre><code>## estimating dispersions</code></pre>
+<pre><code>## fitting model and testing</code></pre>
+<pre class="r"><code>resultsNames(dds)</code></pre>
+<pre><code>## [1] &quot;Intercept&quot;         &quot;celltype_JJ_vs_BM&quot;</code></pre>
 <p>Design:</p>
 <pre><code>  ~1+celltype (or ~celltype)
   = beta0 + beta1 * BM</code></pre>
@@ -508,7 +513,10 @@ normalized count based on that.</p>
 the effect of “BM” (i.e. differences between BM vs. JJ).</p>
 <p>Each coefficient shows a difference (LFC).</p>
 <pre><code>[1] &quot;Intercept&quot; (beta0)             &quot;celltype_BM_vs_JJ&quot; (beta1)</code></pre>
-<p><img src="images/day3_case1.png" width="50%" style="display: block; margin: auto;" /></p>
+<div class="figure">
+<img src="images/day3_case1.png" alt="" />
+<p class="caption">A simple design including celltype</p>
+</div>
 <p>This can be shown by dummy variables:</p>
 <table>
 <thead>
@@ -541,14 +549,11 @@ the effect of “BM” (i.e. differences between BM vs. JJ).</p>
 </tr>
 </tbody>
 </table>
-<p>null hypothesis:</p>
-<pre><code>beta1 = 0</code></pre>
-</div>
-<div id="a-complex-case" class="section level3">
-<h3>A complex case:</h3>
-<ul>
-<li>One factor with more than two levels</li>
-</ul>
+<p>Null hypothesis:</p>
+<pre><code>BM vs JJ (AMIL)
+beta1 = 0</code></pre>
+<hr />
+<p>A single factor with more then two levels.</p>
 <table>
 <thead>
 <tr class="header">
@@ -583,14 +588,32 @@ the effect of “BM” (i.e. differences between BM vs. JJ).</p>
 </tr>
 </tbody>
 </table>
-<pre><code>  ~1+condition
-  = beta0 + beta1 * DMSO + beta2 * TG
-  beta0 = Intercept
-  beta1 = condition_DMSO_vs_AMIL
-  beta2 = condition_TG_vs_AMIL</code></pre>
-<p>Coefficients:</p>
-<pre><code>  [1] &quot;Intercept&quot;              &quot;condition_DMSO_vs_AMIL&quot; &quot;condition_TG_vs_AMIL&quot;</code></pre>
-<p><img src="images/day3_case3.png" width="80%" style="display: block; margin: auto;" /></p>
+<blockquote>
+<p><strong>Tasks:</strong> Recreate the dds object, now with a design
+that incorporates ‘condition’ (alone!)</p>
+</blockquote>
+<blockquote>
+<p><strong>Poll 3.1</strong> What coefficients do we get when we specify
+condition alone as a design?</p>
+</blockquote>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~condition)</code></pre>
+<pre><code>## converting counts to integer mode</code></pre>
+<pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
+<pre><code>## estimating size factors</code></pre>
+<pre><code>## estimating dispersions</code></pre>
+<pre><code>## gene-wise dispersion estimates</code></pre>
+<pre><code>## mean-dispersion relationship</code></pre>
+<pre><code>## final dispersion estimates</code></pre>
+<pre><code>## fitting model and testing</code></pre>
+<pre class="r"><code>resultsNames(dds)</code></pre>
+<pre><code>## [1] &quot;Intercept&quot;              &quot;condition_DMSO_vs_AMIL&quot; &quot;condition_TG_vs_AMIL&quot;</code></pre>
+<p>Design: ~1+condition = beta0 + beta1 * DMSO + beta2 * TG beta0 =
+Intercept beta1 = condition_DMSO_vs_AMIL beta2 =
+condition_TG_vs_AMIL</p>
+<div class="figure">
+<img src="images/day3_case2.png" alt="" />
+<p class="caption">A simple design including condition</p>
+</div>
 <p>Model matrix:</p>
 <table>
 <thead>
@@ -649,9 +672,8 @@ beta2 = 0
 
 DMSO vs TG
 beta1 - beta2 = 0</code></pre>
-</div>
-<div id="more-complex-case" class="section level3">
-<h3>More complex case:</h3>
+<hr />
+<p>What about celltype and condition?</p>
 <ul>
 <li>Two factors, with interaction</li>
 </ul>
@@ -729,7 +751,6 @@ beta1 - beta2 = 0</code></pre>
 <p>The formula for the model includes all sources of variation in the
 data. Thus, it should contain the celltype, condition and the difference
 as the effect of celltype on the condition (celltype:condtion)</p>
-<p><img src="images/day3_case3.png" width="80%" style="display: block; margin: auto;" /></p>
 <p>Design:</p>
 <pre><code>~1 + celltype + condition + celltype:condition
 = beta0 + beta1 * BM + beta2 * DMSO + beta3 * TG + beta4 * BM.DMSO + beta4 * BM.TG
@@ -740,6 +761,10 @@ as the effect of celltype on the condition (celltype:condtion)</p>
   beta3 = condition_TG_vs_AMIL
   beta4 = celltypeBM.conditionDMSO
   beta5 = celltypeBM.conditionTG</code></pre>
+<div class="figure">
+<img src="images/day3_case3.png" alt="" />
+<p class="caption">A full design including celltype and condition</p>
+</div>
 <p>Null hypothesis:</p>
 <pre><code>BM vs JJ (AMIL)
 beta1 = 0
@@ -755,62 +780,61 @@ beta2 + beta3 = 0
 
 Interaction:
 beta5 = 0</code></pre>
+<p><strong>Reminder</strong>: The levels of your factors define which
+‘baseline’ will be used, and thus what coefficients you will have!</p>
 <ul>
 <li>Multi-factor design with increasing complexity are nicely explained
 in these <a
 href="https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing">slides</a></li>
 </ul>
+</div>
+<div id="c.-recap" class="section level2">
+<h2>c. Recap</h2>
+<div id="build-object" class="section level3">
+<h3>Build object</h3>
 <pre class="r"><code>my_design &lt;- as.formula(~celltype + condition + celltype:condition)
 # my_design &lt;- ~celltype*condition   # identical alternative
 
 dds &lt;- DESeq2::DESeqDataSetFromMatrix(countData = data, colData = metadata, design = my_design)
 
-
 # filtering as in day 1 and 2
 dds &lt;- dds[, -c(1,7)]                   # sample filtering
-dds &lt;- dds[rowSums(counts(dds)) &gt; 1, ]  # gene filtering
-
-dim(dds)</code></pre>
-<pre><code>## [1] 27351    16</code></pre>
+dds &lt;- dds[counts(dds) %&gt;% rowSums() &gt; 1, ]  # gene filtering</code></pre>
 </div>
-</div>
-<div id="estimate-size-factors-recap" class="section level2">
-<h2>Estimate size factors (recap)</h2>
+<div id="size-factors" class="section level3">
+<h3>Size factors</h3>
 <p>DESeq2 automatically estimates the size factors when performing the
 differential expression analysis. However, if
 <code>estimateSizeFactors()</code> is called, then DESeq2 will use these
 values. To normalize the count data, DESeq2 calculates size factors for
 each sample using the “median of ratios” method.</p>
-<pre class="r"><code>dds &lt;- estimateSizeFactors(dds)
-# sizeFactors(dds)</code></pre>
+<pre class="r"><code>dds &lt;- estimateSizeFactors(dds)</code></pre>
 <blockquote>
-<p><strong>Poll 3.1</strong>: What is the relation between the size
+<p><strong>Poll 3.2</strong> What is the relation between the size
 factors and the sequencing depth of a sample?</p>
 </blockquote>
 <pre class="r"><code>seq_depth &lt;- colSums(counts(dds))
-plot( sizeFactors(dds),  seq_depth)
-
-# Larger size factors correspond to the samples with higher sequencing depth. To generate the normalized counts we need to divide the counts by the size factors. This accounts for the differences in sequencing depth between samples.</code></pre>
-<pre class="r"><code># compare the raw sum with the normalised ones:
-# colSums(counts(dds, normalized=T))</code></pre>
+plot( sizeFactors(dds),  seq_depth)</code></pre>
 </div>
-<div id="estimate-dispersion-recap" class="section level2">
-<h2>Estimate dispersion (recap)</h2>
+<div id="dispersion-estimation" class="section level3">
+<h3>Dispersion estimation</h3>
 <p>DESeq2 uses a measure of variation called dispersion, which accounts
 for a gene’s variance and mean expression level. Dispersion is
 calculated by <code>Var = μ + α*μ^2</code>, where <code>α</code> =
 dispersion, <code>Var</code> = variance, and <code>μ</code> = mean</p>
 <pre class="r"><code>dds &lt;- estimateDispersions(dds)</code></pre>
 <pre class="r"><code># Visualise dispersion
-# plotDispEsts(dds)</code></pre>
+plotDispEsts(dds)</code></pre>
+<p><img src="day03_files/figure-html/Visualise%20dispersions-1.png" width="672" /></p>
 </div>
-<div id="run-deseq-analysis-recap" class="section level2">
-<h2>Run deseq analysis (recap)</h2>
+<div id="get-all-the-steps-for-free" class="section level3">
+<h3>Get all the steps for free!</h3>
 <pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
 </div>
 </div>
-<div id="steps-to-generate-pairwise-comparisons" class="section level1">
-<h1>2. Steps to generate pairwise comparisons</h1>
+</div>
+<div id="get-some-actual-results-30-min" class="section level1">
+<h1>2. Get some actual results ! (30 min)</h1>
 <div id="wald-test" class="section level2">
 <h2>Wald test</h2>
 <p>By default DESeq2 uses the Wald test to identify genes that are
@@ -818,8 +842,8 @@ differentially expressed between two groups of samples. This is done
 through the following steps:</p>
 <ul>
 <li>A regression model fits to each gene (glm.nb),</li>
-<li>Each gene model coefficient (LFC) is estimated using maximum
-likelihood,</li>
+<li>Each gene model coefficient (LFC) is estimated using a maximum
+likelihood estimation,</li>
 <li>The shrunken estimate of LFC is divided by its standard error,
 resulting in a z-statistic,</li>
 <li>z-statistic is compared to a standard normal distribution to compute
@@ -827,47 +851,76 @@ the p-values,</li>
 <li>P values are adjusted for multiple testing using the procedure of
 Benjamini and Hochberg.</li>
 </ul>
-<pre class="r"><code># The Wald test allows testing of individual coefficients, or contrasts of coefficients, without the need to fit a reduced model as with the likelihood ratio test</code></pre>
-<pre class="r"><code># coef(dds)[&#39;ENSG00000173535&#39;,]</code></pre>
-<pre class="r"><code>    # P-value distribution
-    res &lt;- results(dds)
-    # print(mcols(res, use.names=TRUE))
-    res.df &lt;- res %&gt;% data.frame()
-    print(ggplot(res.df) +
+<p>Raw P-value distribution</p>
+<pre class="r"><code>    res.df &lt;- results(dds) %&gt;% data.frame() %&gt;% drop_na
+    ggplot(res.df) +
         geom_histogram(aes(res.df$pvalue, fill = &quot;a&quot;), colour = &quot;grey20&quot;, alpha = 0.5, stat = &quot;bin&quot;) +
         xlab(&quot;p-value&quot;) +
         # geom_histogram(aes(res.df$padj, fill = &quot;b&quot;), colour = &quot;grey20&quot;, alpha = 0.5, stat = &quot;bin&quot;) +
         scale_fill_manual(name = &quot;group&quot;, values = c(&quot;a&quot; = &quot;steelblue&quot;), labels = &quot;p-value&quot;) +
-        geom_vline(xintercept = 0.05, colour = &quot;red&quot;)
-    )</code></pre>
+        geom_vline(xintercept = 0.05, colour = &quot;red&quot;)</code></pre>
 <p><img src="day03_files/figure-html/pvalue-1.png" width="672" /></p>
+<p>Adjusted P-value distribution</p>
+<pre class="r"><code>    ggplot(res.df) +
+        geom_histogram(aes(res.df$padj, fill = &quot;a&quot;), colour = &quot;grey20&quot;, alpha = 0.5, stat = &quot;bin&quot;) +
+        xlab(&quot;adj p-value&quot;) +
+        # geom_histogram(aes(res.df$padj, fill = &quot;b&quot;), colour = &quot;grey20&quot;, alpha = 0.5, stat = &quot;bin&quot;) +
+        scale_fill_manual(name = &quot;group&quot;, values = c(&quot;a&quot; = &quot;steelblue&quot;), labels = &quot;padj&quot;) +
+        geom_vline(xintercept = 0.05, colour = &quot;red&quot;)</code></pre>
+<p><img src="day03_files/figure-html/adjpvalue-1.png" width="672" /></p>
+<p>A frequently asked question is: ‘Why is my padj ’NA’ but my p-values
+are significant ? It’s my favorite gene!’</p>
+<p>There are three reasons to set p-values to NA (From the <a
+href="https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pvaluesNA">DESeq2
+vignette</a>) * within a row, all samples have zero counts * a row
+contains a sample with an extreme count outlier. * A row is filtered by
+automatic filtering</p>
+<pre class="r"><code>head(res.df)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"2285.015595","2":"0.2361191","3":"0.2769812","4":"0.8524732","5":"3.939515e-01","6":"5.767269e-01","_rn_":"ENSG00000000419"},{"1":"775.420019","2":"-0.2831426","3":"0.1339399","4":"-2.1139519","5":"3.451937e-02","6":"8.110421e-02","_rn_":"ENSG00000000457"},{"1":"1300.436964","2":"-0.1636797","3":"0.1566099","4":"-1.0451427","5":"2.959570e-01","6":"4.715645e-01","_rn_":"ENSG00000000460"},{"1":"2.454431","2":"-4.6057612","3":"1.8436144","4":"-2.4982238","5":"1.248174e-02","6":"3.343809e-02","_rn_":"ENSG00000000938"},{"1":"1626.928772","2":"-0.2326115","3":"1.1090479","4":"-0.2097398","5":"8.338707e-01","6":"9.158617e-01","_rn_":"ENSG00000000971"},{"1":"992.805073","2":"1.6289399","3":"0.1839380","4":"8.8559201","5":"8.299632e-19","6":"2.583544e-17","_rn_":"ENSG00000001036"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
 </div>
-<div id="make-a-pairwise-comparison-using-contrast"
-class="section level2">
-<h2>Make a pairwise comparison (using contrast)</h2>
-<p>Contrasts can be given as a list of 2 character vectors: the names of
-the fold changes for the level of ineterest, and the names of the fold
-changes for the base level.</p>
+<p>We have called results here, but what did we actually compare ?</p>
+<p><strong>Reminder</strong>:</p>
+<p>If ‘results’ is run without specifying ‘contrast’ or ‘name’, it will
+return the comparison of the last level of the last variable in the
+design formula over the first level of this variable. For example, for a
+simple two-group comparison, this would return the log2 fold changes of
+the second group over the first group (the reference level).</p>
+<p>Remember now our coefficients:</p>
+<pre class="r"><code>resultsNames(dds)</code></pre>
+<pre><code>## [1] &quot;Intercept&quot;                &quot;celltype_JJ_vs_BM&quot;       
+## [3] &quot;condition_DMSO_vs_AMIL&quot;   &quot;condition_TG_vs_AMIL&quot;    
+## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
+</div>
+<div id="contrasts-and-results" class="section level2">
+<h2>Contrasts and results</h2>
+<p>Contrasts are used in our results call to get a specific pairwise
+comparison. If there is only two factor levels, There is no need to
+specify contrasts, DESeq2 will choose the base factor level based on the
+alphabetical order of the levels.</p>
+<p>Contrasts can be specified in three different ways:</p>
+<ul>
+<li>a character vector with three elements. c(“celltype”, “JJ”, “BM”)
+(last level == baseline!)</li>
+<li>A list of 2 character vectors. list(coef1, coef2) (last coef ==
+baseline!)</li>
+<li>A numerical vector with an element for each coef c(0,0,0,1,0,0)</li>
+</ul>
+<p>Let’s start with the first option.</p>
 <pre class="r"><code>resultsNames(dds) # to see what names to use</code></pre>
 <pre><code>## [1] &quot;Intercept&quot;                &quot;celltype_JJ_vs_BM&quot;       
 ## [3] &quot;condition_DMSO_vs_AMIL&quot;   &quot;condition_TG_vs_AMIL&quot;    
 ## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
 <pre class="r"><code>contrast &lt;- c(&quot;celltype&quot;, &quot;JJ&quot;, &quot;BM&quot;)
-#contrast &lt;- list(resultsNames(dds)[1], resultsNames(dds)[2])</code></pre>
-<p>If there is only two factor levels, There is no need to specify
-contrasts, DESeq2 will choose the base factor level based on the
-alphabetical order of the levels.</p>
-</div>
-<div id="results" class="section level2">
-<h2>Results</h2>
-<pre class="r"><code>res &lt;- results(dds, contrast = contrast, alpha = 0.05)</code></pre>
-<pre class="r"><code># What type of object is the results?
+res &lt;- results(dds, contrast = contrast, alpha = 0.05)
 class(res)</code></pre>
 <pre><code>## [1] &quot;DESeqResults&quot;
 ## attr(,&quot;package&quot;)
 ## [1] &quot;DESeq2&quot;</code></pre>
 <pre class="r"><code># What is in the results?
-res %&gt;% data.frame() %&gt;% head()</code></pre>
+res %&gt;% data.frame() %&gt;% head() %&gt;% drop_na()</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"2285.015595","2":"-0.1526134","3":"0.19572860","4":"-0.7797197","5":"4.355559e-01","6":"4.967264e-01","_rn_":"ENSG00000000419"},{"1":"775.420019","2":"0.6971900","3":"0.09633194","4":"7.2373706","5":"4.574670e-13","6":"1.364468e-12","_rn_":"ENSG00000000457"},{"1":"1300.436964","2":"0.2512201","3":"0.11204515","4":"2.2421330","5":"2.495278e-02","6":"3.646637e-02","_rn_":"ENSG00000000460"},{"1":"2.454431","2":"4.4148605","3":"1.49117971","4":"2.9606495","5":"3.069911e-03","6":"4.991162e-03","_rn_":"ENSG00000000938"},{"1":"1626.928772","2":"11.7115612","3":"0.83767189","4":"13.9810842","5":"2.033662e-44","6":"1.661695e-43","_rn_":"ENSG00000000971"},{"1":"992.805073","2":"3.5926963","3":"0.10594383","4":"33.9113299","5":"4.535284e-252","6":"7.493217e-250","_rn_":"ENSG00000001036"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
@@ -882,26 +935,23 @@ res %&gt;% data.frame() %&gt;% head()</code></pre>
 <li><p>pvalue: Wald test p-value</p></li>
 <li><p>padj: BH adjusted p-values</p></li>
 </ul>
-<p>The padj column represents the p-value adjusted for multiple testing,
-and is the most important column of the results! The default method for
-multiple test correction in DESeq2 is an implementation of the
-Benjamini-Hochberg false discovery rate (FDR).</p>
-<p>If a gene contains a sample with an extreme count outlier then the
-p-value and adjusted p-value will be set to NA.</p>
-<div id="plot-of-the-mean-normalized-counts-vs-log10p-values"
-class="section level3">
-<h3>Plot of the mean normalized counts vs log10(p values)</h3>
-<pre class="r"><code>plot(res$baseMean+1, -log10(res$pvalue),
+<pre class="r"><code>plot(res$baseMean+1, -log10(res$padj),
      log=&quot;x&quot;, xlab=&quot;mean of normalized counts&quot;,
      ylab=expression(-log[10](pvalue)),
      ylim=c(0,30),
      cex=.4, col=rgb(0,0,0,.3))</code></pre>
 <p><img src="day03_files/figure-html/plot%20norm_count%20vs%20p%20values-1.png" width="672" /></p>
+<pre class="r"><code>plot(res$log2FoldChange, -log10(res$padj),
+     log=&quot;x&quot;, xlab=&quot;mean of normalized counts&quot;,
+     ylab=expression(-log[10](pvalue)),
+     ylim=c(0,30),
+     cex=.4, col=rgb(0,0,0,.3))</code></pre>
+<pre><code>## Warning in xy.coords(x, y, xlabel, ylabel, log): 12537 x values &lt;= 0 omitted
+## from logarithmic plot</code></pre>
+<p><img src="day03_files/figure-html/plot%20l2fc%20vs%20p%20values-1.png" width="672" /></p>
 </div>
-</div>
-<div id="shrinkage-method" class="section level2">
-<h2>Shrinkage method</h2>
-<pre class="r"><code># shrinkage: It looks at the largest fold changes that are not due to low counts and uses these to inform a prior distribution. So the large fold changes from genes with lots of statistical information are not shrunk, while the imprecise fold changes are shrunk. This allows you to compare all estimated LFC across experiments, for example, which is not really feasible without the use of a prior.</code></pre>
+<div id="shrinking" class="section level2">
+<h2>Shrinking</h2>
 <p>To generate more accurate log2 foldchange (LFC) estimates, DESeq2
 allows for the shrinkage of the LFC estimates toward zero when the
 information for a gene is low, which could include:</p>
@@ -919,45 +969,26 @@ resultsNames(dds)</code></pre>
 <pre><code>## [1] &quot;Intercept&quot;                &quot;celltype_JJ_vs_BM&quot;       
 ## [3] &quot;condition_DMSO_vs_AMIL&quot;   &quot;condition_TG_vs_AMIL&quot;    
 ## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
-<pre class="r"><code>res_shrink &lt;- lfcShrink(dds, coef=&quot;celltype_JJ_vs_BM&quot;, type=&quot;apeglm&quot;)</code></pre>
-<p>To get the coef. names check resultsNames(dds)</p>
+<pre class="r"><code>res_shrink &lt;- lfcShrink(dds, contrast=contrast, type=&quot;ashr&quot;)</code></pre>
+<p>Note that there are three ‘built-in’ methods for shrinking:</p>
+<ul>
+<li>ashr</li>
+<li>apeglm -&gt; works <em>only</em> with coefficients ! (might have to
+relevel)</li>
+<li>normal -&gt; works <em>only</em> with design that have no
+interaction</li>
+</ul>
+<p>The specifics about these methods is beyond the scope of this
+course.</p>
+<p><strong>Recommendation</strong>: ashr works for most (if not all)
+setups, including contrasts.</p>
 <pre class="r"><code># MA plot
 plotMA(res, ylim=c(-2,2))</code></pre>
 <p><img src="day03_files/figure-html/MA%20plot-1.png" width="672" /></p>
 <pre class="r"><code>plotMA(res_shrink, ylim=c(-2,2))</code></pre>
-<p><img src="day03_files/figure-html/MA%20plot-2.png" width="672" /></p>
-<div id="summary" class="section level3">
-<h3>summary</h3>
-<pre><code>1. Check the shrunk result with padj values being &lt; 0.05 (use summary)
-2. Filter the shrunk result for this cut off
-3. Sort the output based on the padj values</code></pre>
-<pre class="r"><code>summary(res_shrink, alpha = 0.05)</code></pre>
-<pre><code>## 
-## out of 27351 with nonzero total read count
-## adjusted p-value &lt; 0.05
-## LFC &gt; 0 (up)       : 7673, 28%
-## LFC &lt; 0 (down)     : 7003, 26%
-## outliers [1]       : 4, 0.015%
-## low counts [2]     : 5833, 21%
-## (mean count &lt; 1)
-## [1] see &#39;cooksCutoff&#39; argument of ?results
-## [2] see &#39;independentFiltering&#39; argument of ?results</code></pre>
-<pre class="r"><code>cutoff &lt;- 0.05
-res_sig &lt;- subset(res_shrink, padj&lt;cutoff)
-res_sig_sorted = res_sig[order(res_sig$padj), ]
-head(res_sig_sorted)</code></pre>
-<pre><code>## log2 fold change (MAP): celltype JJ vs BM 
-## Wald test p-value: celltype JJ vs BM 
-## DataFrame with 6 rows and 5 columns
-##                  baseMean log2FoldChange     lfcSE    pvalue      padj
-##                 &lt;numeric&gt;      &lt;numeric&gt; &lt;numeric&gt; &lt;numeric&gt; &lt;numeric&gt;
-## ENSG00000008394   1911.16        3.77870 0.0844457         0         0
-## ENSG00000008517  24380.36        9.56760 0.1293366         0         0
-## ENSG00000013374   1499.51        4.09905 0.1086449         0         0
-## ENSG00000050405   1258.66        5.02686 0.1324018         0         0
-## ENSG00000081189   2451.32        7.07809 0.1647799         0         0
-## ENSG00000084207  15628.60       -6.98675 0.1078979         0         0</code></pre>
-</div>
+<p><img src="day03_files/figure-html/MA%20plot-2.png" width="672" />
+<strong><em> # Break (10 min) </em></strong> # Biological interpretation
+(60 min)</p>
 </div>
 <div id="visualisation" class="section level2">
 <h2>Visualisation</h2>
@@ -989,7 +1020,9 @@ ggplot(d, aes(x = celltype, y = count, color = celltype)) +
 filtered and sorted significant genes which you generated
 before.)</p></li>
 </ul>
-<pre class="r"><code>normalized_counts &lt;- counts(dds, normalized=T)
+<pre class="r"><code>res_sig &lt;- subset(res_shrink, padj&lt;0.05)
+res_sig_sorted = res_sig[order(res_sig$padj), ]
+normalized_counts &lt;- counts(dds, normalized=T)
 norm_sig &lt;- subset(normalized_counts, row.names(normalized_counts) %in% row.names(res_sig_sorted))
 pheatmap(norm_sig[1:20,],
          cluster_rows = T,
@@ -1068,22 +1101,20 @@ full model</li>
 generate a pvalue</li>
 <li>padj: BH adjusted p-values</li>
 </ul>
-<pre class="r"><code># padj &lt; 0.05
-sig_res_lrt &lt;- res_lrt %&gt;%
+<pre class="r"><code>sig_res_lrt &lt;- res_lrt %&gt;%
                data.frame() %&gt;%
                rownames_to_column(var=&quot;gene&quot;) %&gt;%
-               as_tibble() %&gt;%
+               drop_na() %&gt;%
                dplyr::filter(padj &lt; 0.05)
 head(sig_res_lrt)</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["gene"],"name":[1],"type":["chr"],"align":["left"]},{"label":["baseMean"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[7],"type":["dbl"],"align":["right"]}],"data":[{"1":"ENSG00000000938","2":"2.454431","3":"-4.6057612","4":"1.84361437","5":"7.88485","6":"1.940111e-02","7":"4.230365e-02"},{"1":"ENSG00000001036","2":"992.805073","3":"1.6289399","4":"0.18393797","5":"105.78804","6":"1.067626e-23","7":"3.632365e-22"},{"1":"ENSG00000001461","2":"1921.587265","3":"-0.7718358","4":"0.11799923","5":"51.55933","6":"6.368447e-12","7":"6.172079e-11"},{"1":"ENSG00000001497","2":"4220.876478","3":"-0.1234039","4":"0.12055614","5":"22.79787","6":"1.120744e-05","7":"4.630290e-05"},{"1":"ENSG00000001629","2":"2173.362590","3":"0.9150457","4":"0.08369348","5":"156.55933","6":"1.008260e-34","7":"8.538509e-33"},{"1":"ENSG00000002016","2":"532.617095","3":"0.4116655","4":"0.15015564","5":"11.86298","6":"2.654528e-03","7":"7.047127e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["gene"],"name":[1],"type":["chr"],"align":["left"]},{"label":["baseMean"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[7],"type":["dbl"],"align":["right"]}],"data":[{"1":"ENSG00000000938","2":"2.454431","3":"-4.6057612","4":"1.84361437","5":"7.88485","6":"1.940111e-02","7":"4.230365e-02","_rn_":"1"},{"1":"ENSG00000001036","2":"992.805073","3":"1.6289399","4":"0.18393797","5":"105.78804","6":"1.067626e-23","7":"3.632365e-22","_rn_":"2"},{"1":"ENSG00000001461","2":"1921.587265","3":"-0.7718358","4":"0.11799923","5":"51.55933","6":"6.368447e-12","7":"6.172079e-11","_rn_":"3"},{"1":"ENSG00000001497","2":"4220.876478","3":"-0.1234039","4":"0.12055614","5":"22.79787","6":"1.120744e-05","7":"4.630290e-05","_rn_":"4"},{"1":"ENSG00000001629","2":"2173.362590","3":"0.9150457","4":"0.08369348","5":"156.55933","6":"1.008260e-34","7":"8.538509e-33","_rn_":"5"},{"1":"ENSG00000002016","2":"532.617095","3":"0.4116655","4":"0.15015564","5":"11.86298","6":"2.654528e-03","7":"7.047127e-03","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code># Get sig gene lists
 sig_lrt_genes &lt;- sig_res_lrt %&gt;%
                 pull(gene)
-
 length(sig_lrt_genes)</code></pre>
 <pre><code>## [1] 9058</code></pre>
 <pre class="r"><code>normalized_counts &lt;- counts(dds, normalized=T)
@@ -1099,201 +1130,15 @@ pheatmap(norm_lrt_sig,
          height = 20)</code></pre>
 <p><img src="day03_files/figure-html/heatmap%20of%20sig_lrt_genes-1.png" width="672" /></p>
 </div>
-</div>
-<div id="biological-interpretation" class="section level1">
-<h1>3. Biological interpretation</h1>
-<div id="introduction" class="section level2">
-<h2>Introduction</h2>
+<div id="back-to-square-one." class="section level2">
+<h2>Back to square one.</h2>
 <p>We now have an idea on how we can extract pair-wise comparisons from
 a multi-factor DESeq2 analysis, and we got a primer on comparisons
 beyond pair-wise comparisons. What now ? Let’s try to extract something
 biologically meaningful from the data.</p>
-<p>Remember that all the data + metadata + design are now available in
-the DESeq object (dds):</p>
-<pre class="r"><code>attributes(dds)</code></pre>
-<pre><code>## $design
-## ~celltype + condition + celltype:condition
-## 
-## $dispersionFunction
-## function (q) 
-## coefs[1] + coefs[2]/q
-## &lt;bytecode: 0x564b667d4fe8&gt;
-## &lt;environment: 0x564b55288f70&gt;
-## attr(,&quot;coefficients&quot;)
-##  asymptDisp   extraPois 
-## 0.006465659 3.184242809 
-## attr(,&quot;fitType&quot;)
-## [1] &quot;parametric&quot;
-## attr(,&quot;varLogDispEsts&quot;)
-## [1] 0.8083225
-## attr(,&quot;dispPriorVar&quot;)
-## [1] 0.5869995
-## 
-## $rowRanges
-## GRangesList object of length 27351:
-## $ENSG00000000419
-## GRanges object with 0 ranges and 0 metadata columns:
-##    seqnames    ranges strand
-##       &lt;Rle&gt; &lt;IRanges&gt;  &lt;Rle&gt;
-##   -------
-##   seqinfo: no sequences
-## 
-## $ENSG00000000457
-## GRanges object with 0 ranges and 0 metadata columns:
-##    seqnames    ranges strand
-##       &lt;Rle&gt; &lt;IRanges&gt;  &lt;Rle&gt;
-##   -------
-##   seqinfo: no sequences
-## 
-## $ENSG00000000460
-## GRanges object with 0 ranges and 0 metadata columns:
-##    seqnames    ranges strand
-##       &lt;Rle&gt; &lt;IRanges&gt;  &lt;Rle&gt;
-##   -------
-##   seqinfo: no sequences
-## 
-## ...
-## &lt;27348 more elements&gt;
-## 
-## $colData
-## DataFrame with 16 rows and 3 columns
-##           celltype condition sizeFactor
-##           &lt;factor&gt;  &lt;factor&gt;  &lt;numeric&gt;
-## BM_CTRL_2       BM      DMSO   1.143355
-## BM_CTRL_3       BM      DMSO   1.417897
-## BM_AMIL_1       BM      AMIL   1.108171
-## BM_AMIL_2       BM      AMIL   1.252173
-## BM_AMIL_3       BM      AMIL   0.831752
-## ...            ...       ...        ...
-## BM_TG_2         BM        TG   0.907261
-## BM_TG_3         BM        TG   1.159623
-## JJ_TG_1         JJ        TG   0.771996
-## JJ_TG_2         JJ        TG   1.280049
-## JJ_TG_3         JJ        TG   0.910301
-## 
-## $assays
-## An object of class &quot;SimpleAssays&quot;
-## Slot &quot;data&quot;:
-## List of length 4
-## names(4): counts mu H cooks
-## 
-## 
-## $NAMES
-## `\001NULL\001`
-## 
-## $elementMetadata
-## DataFrame with 27351 rows and 0 columns
-## 
-## $metadata
-## $metadata$version
-## [1] &#39;1.34.0&#39;
-## 
-## 
-## $class
-## [1] &quot;DESeqDataSet&quot;
-## attr(,&quot;package&quot;)
-## [1] &quot;DESeq2&quot;
-## 
-## $betaPrior
-## [1] FALSE
-## 
-## $modelMatrixType
-## [1] &quot;standard&quot;
-## 
-## $betaPriorVar
-## [1] 1e+06 1e+06 1e+06 1e+06 1e+06 1e+06
-## 
-## $modelMatrix
-##           Intercept celltype_JJ_vs_BM condition_DMSO_vs_AMIL
-## BM_CTRL_2         1                 0                      1
-## BM_CTRL_3         1                 0                      1
-## BM_AMIL_1         1                 0                      0
-## BM_AMIL_2         1                 0                      0
-## BM_AMIL_3         1                 0                      0
-## JJ_CTRL_2         1                 1                      1
-## JJ_CTRL_3         1                 1                      1
-## JJ_AMIL_1         1                 1                      0
-## JJ_AMIL_2         1                 1                      0
-## JJ_AMIL_3         1                 1                      0
-## BM_TG_1           1                 0                      0
-## BM_TG_2           1                 0                      0
-## BM_TG_3           1                 0                      0
-## JJ_TG_1           1                 1                      0
-## JJ_TG_2           1                 1                      0
-## JJ_TG_3           1                 1                      0
-##           condition_TG_vs_AMIL celltypeJJ.conditionDMSO celltypeJJ.conditionTG
-## BM_CTRL_2                    0                        0                      0
-## BM_CTRL_3                    0                        0                      0
-## BM_AMIL_1                    0                        0                      0
-## BM_AMIL_2                    0                        0                      0
-## BM_AMIL_3                    0                        0                      0
-## JJ_CTRL_2                    0                        1                      0
-## JJ_CTRL_3                    0                        1                      0
-## JJ_AMIL_1                    0                        0                      0
-## JJ_AMIL_2                    0                        0                      0
-## JJ_AMIL_3                    0                        0                      0
-## BM_TG_1                      1                        0                      0
-## BM_TG_2                      1                        0                      0
-## BM_TG_3                      1                        0                      0
-## JJ_TG_1                      1                        0                      1
-## JJ_TG_2                      1                        0                      1
-## JJ_TG_3                      1                        0                      1
-## attr(,&quot;assign&quot;)
-## [1] 0 1 2 2 3 3
-## attr(,&quot;contrasts&quot;)
-## attr(,&quot;contrasts&quot;)$celltype
-## [1] &quot;contr.treatment&quot;
-## 
-## attr(,&quot;contrasts&quot;)$condition
-## [1] &quot;contr.treatment&quot;
-## 
-## 
-## $test
-## [1] &quot;Wald&quot;
-## 
-## $dispModelMatrix
-##           (Intercept) celltypeJJ conditionDMSO conditionTG
-## BM_CTRL_2           1          0             1           0
-## BM_CTRL_3           1          0             1           0
-## BM_AMIL_1           1          0             0           0
-## BM_AMIL_2           1          0             0           0
-## BM_AMIL_3           1          0             0           0
-## JJ_CTRL_2           1          1             1           0
-## JJ_CTRL_3           1          1             1           0
-## JJ_AMIL_1           1          1             0           0
-## JJ_AMIL_2           1          1             0           0
-## JJ_AMIL_3           1          1             0           0
-## BM_TG_1             1          0             0           1
-## BM_TG_2             1          0             0           1
-## BM_TG_3             1          0             0           1
-## JJ_TG_1             1          1             0           1
-## JJ_TG_2             1          1             0           1
-## JJ_TG_3             1          1             0           1
-##           celltypeJJ:conditionDMSO celltypeJJ:conditionTG
-## BM_CTRL_2                        0                      0
-## BM_CTRL_3                        0                      0
-## BM_AMIL_1                        0                      0
-## BM_AMIL_2                        0                      0
-## BM_AMIL_3                        0                      0
-## JJ_CTRL_2                        1                      0
-## JJ_CTRL_3                        1                      0
-## JJ_AMIL_1                        0                      0
-## JJ_AMIL_2                        0                      0
-## JJ_AMIL_3                        0                      0
-## BM_TG_1                          0                      0
-## BM_TG_2                          0                      0
-## BM_TG_3                          0                      0
-## JJ_TG_1                          0                      1
-## JJ_TG_2                          0                      1
-## JJ_TG_3                          0                      1
-## attr(,&quot;assign&quot;)
-## [1] 0 1 2 2 3 3
-## attr(,&quot;contrasts&quot;)
-## attr(,&quot;contrasts&quot;)$celltype
-## [1] &quot;contr.treatment&quot;
-## 
-## attr(,&quot;contrasts&quot;)$condition
-## [1] &quot;contr.treatment&quot;</code></pre>
+<p>Remember that all the data + metadata + design are available in our
+DESeq object (dds)</p>
+<p><strong>Reminder</strong>: <code>attributes(dds)</code></p>
 <p>… our factors:</p>
 <pre class="r"><code>colData(dds)$celltype</code></pre>
 <pre><code>##  [1] BM BM BM BM BM JJ JJ JJ JJ JJ BM BM BM JJ JJ JJ
@@ -1305,9 +1150,11 @@ the DESeq object (dds):</p>
 <p>… our design</p>
 <pre class="r"><code>design(dds)</code></pre>
 <pre><code>## ~celltype + condition + celltype:condition</code></pre>
-<!-- > **Poll 3.2**: -->
-<!-- > Is there a difference between specifying ~celltype*condition and ~celltype + condition + celltype:condition ? -->
-<p>To move on, remember that this is in essence a drug repurposing
+<blockquote>
+<p><strong>Poll 3.3</strong>: Is there a difference in specifying
+~celltype*condition and ~celltype + condition + celltype:condition ?</p>
+</blockquote>
+<p><strong>Reminder</strong>: This is in essence a drug repurposing
 study.</p>
 <p>A couple of other relevant notes:</p>
 <ul>
@@ -1331,14 +1178,10 @@ cells and TG treated cells.</p>
 ## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
 <p>Note: contrasts can be specified in a number of ways.</p>
 <ol style="list-style-type: decimal">
-<li>Character vector with three elements: c(factor1, level1, level2) !
-Mind the base of factor2, factor3, … , factor N!<br />
-</li>
-<li>A list with 2 coefficients (remember resultsNames(dds)) list(coef1,
-coef2)<br />
-</li>
-<li>A numeric vector with a value for each coefficient:
-c(0,0,0,1,0,1)</li>
+<li>Character vector with three elements: c(factor1, level1, level2)
+!</li>
+<li>A list with 2 coefficients</li>
+<li>A numeric vector with a value for each coefficient</li>
 </ol>
 <p>Extract TG vs AMIL:</p>
 <pre class="r"><code>TGvAMIL &lt;- lfcShrink(dds, contrast = c(&#39;condition&#39;, &#39;TG&#39;, &#39;AMIL&#39;), type=&quot;ashr&quot;)
@@ -1357,13 +1200,6 @@ head( data.frame(TGvAMIL) )</code></pre>
 {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"2285.015595","2":"-0.3770458","3":"0.19121426","4":"4.308939e-02","5":"7.179610e-02","_rn_":"ENSG00000000419"},{"1":"775.420019","2":"0.5861986","3":"0.09565698","4":"6.905639e-10","5":"2.346661e-09","_rn_":"ENSG00000000457"},{"1":"1300.436964","2":"0.8611169","3":"0.11017112","4":"3.101694e-15","5":"1.446757e-14","_rn_":"ENSG00000000460"},{"1":"2.454431","2":"2.0975766","3":"1.63771790","4":"8.146322e-03","5":"1.532493e-02","_rn_":"ENSG00000000938"},{"1":"1626.928772","2":"0.1826784","3":"0.73163570","4":"7.037643e-01","5":"7.995552e-01","_rn_":"ENSG00000000971"},{"1":"992.805073","2":"-1.9005389","3":"0.16206222","4":"3.968801e-33","5":"4.374413e-32","_rn_":"ENSG00000001036"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
-<p>Cave! If we want to use shrinking, be careful with the apegml method
-as lfcShrink method doesn’t support all forms of contrasts. ashr-method
-is a bit more versatile.</p>
-<blockquote>
-<p><strong>Poll 3.3</strong>: We now have TG vs AMIL results, but are
-these under the BM or JJ condition ??</p>
-</blockquote>
 <blockquote>
 <p><strong>Poll 3.4</strong>: Given our contrast c(‘condition’, ‘TG’,
 ‘AMIL’), what would a (significant) positive foldchange correspond to
@@ -1682,7 +1518,7 @@ $(document).ready(function ()  {
 
     // establish options
     var options = {
-      selectors: "h1",
+      selectors: "h1,h2,h3",
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {

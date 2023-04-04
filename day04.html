@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>deseq2 - applied</title>
+
+<script src="site_libs/header-attrs-2.21/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
+<script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+<link href="site_libs/font-awesome-6.2.1/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.2.1/css/v4-shims.min.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Rdeseq2 - RNA-seq analysis</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">
+    <span class="fa fa-home"></span>
+     
+    
+  </a>
+</li>
+<li>
+  <a href="outline.html">
+    <span class="fa fa-check"></span>
+     
+    outline
+  </a>
+</li>
+<li>
+  <a href="day01.html">
+    <span class="fa fa-battery-quarter"></span>
+     
+    Day 1
+  </a>
+</li>
+<li>
+  <a href="day02.html">
+    <span class="fa fa-battery-half"></span>
+     
+    Day 2
+  </a>
+</li>
+<li>
+  <a href="day03.html">
+    <span class="fa fa-battery-three-quarters"></span>
+     
+    Day 3
+  </a>
+</li>
+<li>
+  <a href="day04.html">
+    <span class="fa fa-battery-full"></span>
+     
+    Day 4
+  </a>
+</li>
+<li>
+  <a href="summary.html">
+    <span class="fa fa-truck-medical"></span>
+     
+    summary
+  </a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">deseq2 - applied</h1>
+
+</div>
+
+
+<div id="apply-what-was-learned-through-the-course."
+class="section level1">
+<h1>Apply what was learned through the course.</h1>
+<ul>
+<li>Initial QC and visualisation.</li>
+<li>Run the DESeq workflow</li>
+<li>Interpret some of the results.</li>
+</ul>
+<p>Dataset: MPPs</p>
+<p>with:</p>
+<blockquote>
+<p>data/mpp/mpp_counts.tsv</p>
+</blockquote>
+<blockquote>
+<p>data/mpp/mpp_meta.tsv</p>
+</blockquote>
+<p>Background:</p>
+<p>We are looking in murine bone marrow cells. More specifically, the
+stem- and multipotent progenitor cells. A (very expensive) experiment
+was set up, and there is RNA-seq data available three cellTypes:</p>
+<ul>
+<li>HSCs</li>
+<li>MPP1</li>
+<li>MPP2</li>
+</ul>
+<p>collected from both young and aged mice. You and your lab are eager
+to see:</p>
+<ul>
+<li>Did the experiment work ?</li>
+<li>What are the effects of aging on the different cell populations
+?</li>
+</ul>
+<p>Hint: a list of cell-cycle genes (KEGG) are available under:</p>
+<blockquote>
+<p>../data/genesets/KEGG_cellcycle.txt</p>
+</blockquote>
+<p><span style="color:red">Cave!: rownames in the count object are
+lowercase-capitalized, the KEGG_cellcycle ones are fully
+capitalized.</span></p>
+<blockquote>
+<p>Good luck and have fun!</p>
+</blockquote>
+</div>
+<div id="hands-on" class="section level1">
+<h1>Hands-on</h1>
+<p>Load some libraries.</p>
+<pre class="r"><code>library(&quot;DESeq2&quot;)
+library(&quot;dplyr&quot;)
+library(&quot;tibble&quot;)
+library(&quot;ggplot2&quot;)
+library(&quot;pheatmap&quot;)
+library(&quot;UpSetR&quot;)
+library(&quot;tidyverse&quot;)
+library(&quot;stringr&quot;)</code></pre>
+<p>Read in the data.</p>
+<pre class="r"><code>dfile &lt;- &quot;../data/mpp/mpp_counts.tsv&quot;
+data &lt;- read_tsv(file=dfile)
+data &lt;- data %&gt;% column_to_rownames(&quot;gene_id&quot;) 
+
+mfile &lt;- &quot;../data/mpp/mpp_meta.tsv&quot;
+metadata &lt;- read_tsv(file=mfile)
+metadata &lt;- metadata %&gt;% column_to_rownames(&quot;sample&quot;)
+metadata$condition &lt;- as.factor(metadata$condition)
+metadata$celltype  &lt;- as.factor(metadata$celltype)</code></pre>
+<p>Check our factors !</p>
+<pre class="r"><code>print(metadata$celltype)</code></pre>
+<pre><code>##  [1] HSC  HSC  MPP1 MPP1 MPP2 MPP2 HSC  HSC  MPP1 MPP1 MPP2 MPP2
+## Levels: HSC MPP1 MPP2</code></pre>
+<pre class="r"><code>print(metadata$condition)</code></pre>
+<pre><code>##  [1] Young Young Young Young Young Young Aged  Aged  Aged  Aged  Aged  Aged 
+## Levels: Aged Young</code></pre>
+<p>Relevel factors !</p>
+<pre class="r"><code>levels(metadata$condition) &lt;- c(&quot;Young&quot;,&quot;Aged&quot;)
+print(metadata$condition)</code></pre>
+<pre><code>##  [1] Aged  Aged  Aged  Aged  Aged  Aged  Young Young Young Young Young Young
+## Levels: Young Aged</code></pre>
+</div>
+<div id="build-deseq-object." class="section level1">
+<h1>Build DESeq object.</h1>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data,
+                              colData=metadata,
+                              design = ~celltype*condition
+                              )</code></pre>
+</div>
+<div id="plotpca" class="section level1">
+<h1>plotPCA</h1>
+<pre class="r"><code>plotPCA(rlog(dds, blind=TRUE),
+        intgroup=c(&quot;celltype&quot;, &quot;condition&quot;)
+        )</code></pre>
+<p><img src="day04_files/figure-html/PCA-1.png" width="672" /></p>
+</div>
+<div id="run-deseq2" class="section level1">
+<h1>run DESeq2</h1>
+<pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
+</div>
+<div id="plot-dispersion" class="section level1">
+<h1>plot dispersion</h1>
+<pre class="r"><code>plotDispEsts(dds)</code></pre>
+<p><img src="day04_files/figure-html/Dispersion-1.png" width="672" /></p>
+</div>
+<div id="lrt-for-age." class="section level1">
+<h1>LRT for age.</h1>
+<pre class="r"><code># which model are we interested in as reduced?
+dds_lrt &lt;- DESeq(dds, test=&quot;LRT&quot;, reduced = ~celltype)
+res_lrt &lt;- results(dds_lrt)</code></pre>
+</div>
+<div id="results." class="section level1">
+<h1>results.</h1>
+<pre class="r"><code>cleanDF &lt;- function(RESobj){
+  RESdf &lt;- data.frame(RESobj) %&gt;%
+    dplyr::filter(baseMean &gt; 0) %&gt;%
+    drop_na() %&gt;%
+    arrange(padj)
+  return(RESdf)
+}
+
+res_lrt_clean &lt;- cleanDF(res_lrt)
+head(res_lrt_clean)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"615.2634","2":"-1.2957460","3":"0.3189193","4":"1598.4909","5":"0.000000e+00","6":"0.000000e+00","_rn_":"Plscr2"},{"1":"1926.5734","2":"-0.6190288","3":"0.1357658","4":"1508.1144","5":"0.000000e+00","6":"0.000000e+00","_rn_":"Aldh1a1"},{"1":"2362.2599","2":"1.8713226","3":"0.1183958","4":"2758.2799","5":"0.000000e+00","6":"0.000000e+00","_rn_":"Selp"},{"1":"7909.5260","2":"-1.2467410","3":"0.1156898","4":"1020.8889","5":"5.292294e-221","6":"1.912238e-217","_rn_":"Klf2"},{"1":"1033.1603","2":"0.6987258","3":"0.1686037","4":"963.6251","5":"1.398990e-208","6":"4.043920e-205","_rn_":"Vldlr"},{"1":"574.9564","2":"0.8381942","3":"0.2411222","4":"870.4125","5":"2.315387e-188","6":"5.577382e-185","_rn_":"Hspa1b"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+<div id="look-at-the-25-genes-with-lowest-p-value."
+class="section level1">
+<h1>Look at the 25 genes with lowest p-value.</h1>
+<pre class="r"><code>pheatmap(
+  counts(dds, normalized=TRUE)[head( rownames(res_lrt_clean) , n=20),],
+  scale = &#39;row&#39;,
+  main=&#39;Age effect - LRT top 20&#39;,
+  labels_row = head(rownames(res_lrt_clean), n=20 )
+)</code></pre>
+<p><img src="day04_files/figure-html/heatmap_lrt-1.png" width="672" /></p>
+<pre class="r"><code>pheatmap(
+  counts(dds, normalized=TRUE)[rownames(res_lrt_clean[res_lrt_clean$padj &lt; 0.05,]),],
+  scale = &#39;row&#39;,
+  main=&#39;Age effect - LRT&#39;,
+  show_rownames = FALSE
+)</code></pre>
+<p><img src="day04_files/figure-html/heatmap_lrt_full-1.png" width="672" /></p>
+<pre class="r"><code># Get cell cycle genes.
+# Get the data directory
+data_dir &lt;- &quot;../data/genesets/&quot;
+
+# Read count matrix
+cellcycle &lt;- read.table(paste0(data_dir, &quot;KEGG_cellcycle.txt&quot;, sep=&#39;&#39;),
+                        header=FALSE)
+cellcycle &lt;- cellcycle$V1
+
+rownames(res_lrt_clean) &lt;- toupper(rownames(res_lrt_clean))
+res_lrt_clean_cycle &lt;- res_lrt_clean[cellcycle,] %&gt;% drop_na()
+
+pheatmap(
+  counts(dds, normalized=TRUE)[str_to_title(rownames(res_lrt_clean_cycle[res_lrt_clean_cycle$padj &lt; 0.05,])),],
+  scale = &#39;row&#39;,
+  main=&#39;cell cycle genes - LRT&#39;,
+  show_rownames = FALSE
+)</code></pre>
+<p><img src="day04_files/figure-html/cell%20cycle-1.png" width="672" /></p>
+<pre class="r"><code># Remember our base levels and our coefficients.
+print(resultsNames(dds))</code></pre>
+<pre><code>## [1] &quot;Intercept&quot;                  &quot;celltype_MPP1_vs_HSC&quot;      
+## [3] &quot;celltype_MPP2_vs_HSC&quot;       &quot;condition_Aged_vs_Young&quot;   
+## [5] &quot;celltypeMPP1.conditionAged&quot; &quot;celltypeMPP2.conditionAged&quot;</code></pre>
+<pre class="r"><code># Get our pair-wise comparisons. Note we immediately clean up our results.
+# Remember our matrix Trick!
+mod_mat &lt;- model.matrix(design(dds), colData(dds))
+
+HSC_young &lt;- colMeans(mod_mat[dds$celltype == &#39;HSC&#39; &amp; dds$condition == &quot;Young&quot;,])
+HSC_old &lt;- colMeans(mod_mat[dds$celltype == &#39;HSC&#39; &amp; dds$condition == &quot;Aged&quot;,])
+MPP1_young &lt;- colMeans(mod_mat[dds$celltype == &#39;MPP1&#39; &amp; dds$condition == &quot;Young&quot;,])
+MPP1_old &lt;- colMeans(mod_mat[dds$celltype == &#39;MPP1&#39; &amp; dds$condition == &quot;Aged&quot;,])
+MPP2_young &lt;- colMeans(mod_mat[dds$celltype == &#39;MPP2&#39; &amp; dds$condition == &quot;Young&quot;,])
+MPP2_old &lt;- colMeans(mod_mat[dds$celltype == &#39;MPP2&#39; &amp; dds$condition == &quot;Aged&quot;,])
+
+# The easiest to fetch is the age effect in HSC cells.
+ageEffect_HSC &lt;- cleanDF( lfcShrink(dds, contrast = HSC_old-HSC_young , type=&quot;ashr&quot;) )
+
+# Now let&#39;s get the age effect in MPP1 cells. (Which is the condition effect + our interaction term).
+ageEffect_MPP1 &lt;- cleanDF( lfcShrink(dds, contrast = MPP1_old-MPP1_young, type=&#39;ashr&#39;) )
+
+# Lastly, let&#39;s get the age effect in MPP1 cells.
+ageEffect_MPP2 &lt;- cleanDF( lfcShrink(dds, contrast = MPP2_old-MPP2_young, type=&#39;ashr&#39;) )</code></pre>
+<pre class="r"><code>pheatmap(
+  counts(dds, normalized=TRUE)[head( rownames(ageEffect_HSC), n=20), c(&quot;Young_HSC_1&quot;, &quot;Young_HSC_2&quot;,
+                                                                       &quot;Aged_HSC_1&quot;, &quot;Aged_HSC_2&quot;)],
+  scale = &#39;row&#39;,
+  main=&#39;age effect - HSCs&#39;,
+  show_rownames = TRUE,
+  annotation_row = ageEffect_HSC[c(1:20), c(&#39;log2FoldChange&#39;), drop=FALSE]
+  )</code></pre>
+<p><img src="day04_files/figure-html/LTHSC-1.png" width="672" /></p>
+<pre class="r"><code># cell cycle
+ageEffect_HSC_cycle &lt;- ageEffect_HSC
+rownames(ageEffect_HSC_cycle) &lt;- toupper(rownames(ageEffect_HSC) )
+ageEffect_HSC_cycle &lt;- ageEffect_HSC_cycle[cellcycle,] %&gt;% drop_na()
+
+pheatmap(
+  counts(dds, normalized=TRUE)[str_to_title(rownames(ageEffect_HSC_cycle[ageEffect_HSC_cycle$padj &lt; 0.05,])), c(&quot;Young_HSC_1&quot;, &quot;Young_HSC_2&quot;, &quot;Aged_HSC_1&quot;, &quot;Aged_HSC_2&quot;)],
+  scale = &#39;row&#39;,
+  main=&#39;cell cycle genes - HSC&#39;,
+  show_rownames = FALSE
+)</code></pre>
+<p><img src="day04_files/figure-html/LTHSC-2.png" width="672" /></p>
+<pre class="r"><code>pheatmap(
+  counts(dds, normalized=TRUE)[head( rownames(ageEffect_MPP1), n=20), c(&quot;Young_MPP1_1&quot;, &quot;Young_MPP1_2&quot;,
+                                                                       &quot;Aged_MPP1_1&quot;, &quot;Aged_MPP1_2&quot;)],
+  scale = &#39;row&#39;,
+  main=&#39;age effect - MPP1&#39;,
+  show_rownames = TRUE,
+  annotation_row = ageEffect_MPP1[c(1:20), c(&#39;log2FoldChange&#39;), drop=FALSE]
+  )</code></pre>
+<p><img src="day04_files/figure-html/MPP1-1.png" width="672" /></p>
+<pre class="r"><code># cell cycle
+ageEffect_MPP1_cycle &lt;- ageEffect_MPP1
+rownames(ageEffect_MPP1_cycle) &lt;- toupper(rownames(ageEffect_MPP1_cycle) )
+ageEffect_MPP1_cycle &lt;- ageEffect_MPP1_cycle[cellcycle,] %&gt;% drop_na()
+
+pheatmap(
+  counts(dds, normalized=TRUE)[str_to_title(rownames(ageEffect_MPP1_cycle[ageEffect_MPP1_cycle$padj &lt; 0.05,])), c(&quot;Young_MPP1_1&quot;, &quot;Young_MPP1_2&quot;, &quot;Aged_MPP1_1&quot;, &quot;Aged_MPP1_2&quot;)],
+  scale = &#39;row&#39;,
+  main=&#39;cell cycle genes - MPP1&#39;,
+  show_rownames = FALSE
+)</code></pre>
+<p><img src="day04_files/figure-html/MPP1-2.png" width="672" /></p>
+<pre class="r"><code>pheatmap(
+  counts(dds, normalized=TRUE)[head( rownames(ageEffect_MPP2), n=20), c(&quot;Young_MPP2_1&quot;, &quot;Young_MPP2_2&quot;,
+                                                                       &quot;Aged_MPP2_1&quot;, &quot;Aged_MPP2_2&quot;)],
+  scale = &#39;row&#39;,
+  main=&#39;age effect - MPP2&#39;,
+  show_rownames = TRUE,
+  annotation_row = ageEffect_MPP2[c(1:20), c(&#39;log2FoldChange&#39;), drop=FALSE]
+  )</code></pre>
+<p><img src="day04_files/figure-html/MPP2-1.png" width="672" /></p>
+<pre class="r"><code># cell cycle
+ageEffect_MPP2_cycle &lt;- ageEffect_MPP2
+rownames(ageEffect_MPP2_cycle) &lt;- toupper(rownames(ageEffect_MPP2_cycle) )
+ageEffect_MPP2_cycle &lt;- ageEffect_MPP2_cycle[cellcycle,] %&gt;% drop_na()
+
+pheatmap(
+  counts(dds, normalized=TRUE)[str_to_title(rownames(ageEffect_MPP2_cycle[ageEffect_MPP2_cycle$padj &lt; 0.05,])), c(&quot;Young_MPP2_1&quot;, &quot;Young_MPP2_2&quot;, &quot;Aged_MPP2_1&quot;, &quot;Aged_MPP2_2&quot;)],
+  scale = &#39;row&#39;,
+  main=&#39;cell cycle genes - MPP2&#39;,
+  show_rownames = FALSE
+)</code></pre>
+<p><img src="day04_files/figure-html/MPP2-2.png" width="672" /></p>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
