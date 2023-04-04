@@ -17,7 +17,7 @@ output:
 
 # Preparation (60 min)
 
-## 1. Story (2 min)
+## 1. Story
 
 The story we'll work with is a 'drug repurposing' effort to use an old diuretic drug as a cancer treatment:
 <br> 
@@ -27,7 +27,7 @@ In this study, RNA-seq data is available to compare amiloride to a state-of-the-
 <br> 
 ***
 
-## 2. Tools (15 min)
+## 2. Tools
 
 > **Task**: Start a new session in [workbench](https://workbench.ie-freiburg.mpg.de), or on your local computer. Note that we will be working with R version 4.1.3.
 > **Task**: Create a new R-project, e.g. DESeq2_Course
@@ -82,7 +82,7 @@ In case of doubt, use package name explicitly: e.g. stats::sd()
 
 ***
 
-## 3. Get Data (40 min)
+## 3. Get Data
 We assume that the sequencing data has already been processed  (QC, mapping, counting)
 to obtain a so-called *count matrix*. Data received in-house (given that it's a model organism) will have count matrices generated that you can start with immediately.
 A count matrix contains the number of reads that have been mapped to each gene, for each sample.
