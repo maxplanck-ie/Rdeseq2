@@ -287,7 +287,7 @@ Raw P-value distribution
 ```
 
 Adjusted P-value distribution
-```{r pvalue, eval=TRUE, message=FALSE, warning=FALSE}
+```{r adjpvalue, eval=TRUE, message=FALSE, warning=FALSE}
     ggplot(res.df) +
         geom_histogram(aes(res.df$padj, fill = "a"), colour = "grey20", alpha = 0.5, stat = "bin") +
         xlab("adj p-value") +
@@ -435,6 +435,8 @@ ggplot(d, aes(x = celltype, y = count, color = celltype)) +
       (Hint: You can use 'subset' to extract the top genes from the filtered and sorted significant genes which you generated before.)
 
 ```{r heatmap, message=FALSE, warning=FALSE}
+res_sig <- subset(res_shrink, padj<0.05)
+res_sig_sorted = res_sig[order(res_sig$padj), ]
 normalized_counts <- counts(dds, normalized=T)
 norm_sig <- subset(normalized_counts, row.names(normalized_counts) %in% row.names(res_sig_sorted))
 pheatmap(norm_sig[1:20,],
@@ -495,7 +497,7 @@ sig_res_lrt <- res_lrt %>%
                data.frame() %>%
                rownames_to_column(var="gene") %>%
                drop_na() %>%
-               filter(padj < 0.05)
+               dplyr::filter(padj < 0.05)
 head(sig_res_lrt)
 # Get sig gene lists
 sig_lrt_genes <- sig_res_lrt %>%

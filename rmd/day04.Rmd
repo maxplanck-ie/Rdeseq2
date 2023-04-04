@@ -56,7 +56,7 @@ library("tibble")
 library("ggplot2")
 library("pheatmap")
 library("UpSetR")
-library("tidyr")
+library("tidyverse")
 library("stringr")
 ```
 
@@ -160,7 +160,7 @@ pheatmap(
 ```{r cell cycle, message=FALSE, warning=FALSE}
 # Get cell cycle genes.
 # Get the data directory
-data_dir <- "/data/processing3/RdeseqCourse/Data/genesets/"
+data_dir <- "../data/genesets/"
 
 # Read count matrix
 cellcycle <- read.table(paste0(data_dir, "KEGG_cellcycle.txt", sep=''),
