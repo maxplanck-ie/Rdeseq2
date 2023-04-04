@@ -2,7 +2,7 @@
 
 ## final checklist
  - [x] index / description  
- - [ ] outline  
+ - [x] outline  
  - [ ] day1  
  - [ ] day2  
  - [ ] day3  
