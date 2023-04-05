@@ -1,0 +1,33 @@
+name: Rdeseq2
+output_dir: site
+include: ["images"]
+
+navbar:
+  title: "Rdeseq2 - RNA-seq analysis"
+  left:
+    - text: ""
+      icon: fa-home
+      href: index.html
+    - text: "outline"
+      icon: fa-check
+      href: outline.html
+    - text: "Day 1"
+      icon: fa-battery-quarter
+      href: 'day01.html'
+    - text: "Day 2"
+      icon: fa-battery-half
+      href: 'day02.html'
+    - text: "Day 3"
+      icon: fa-battery-three-quarters
+      href: "day03.html"
+    - text: "Day 4"
+      icon: fa-battery-full
+      href: "day04.html"
+    - text: "summary"
+      href: "summary.html"
+      icon: ambulance
+
+output:
+  html_document:
+    theme: cosmo
+    highlight: textmate

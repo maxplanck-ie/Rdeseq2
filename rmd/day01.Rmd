@@ -1,32 +1,34 @@
 ---
 title: "DESeq2 Analysis with R: Part 01"
-author: "Thomas Manke"
-#date: "`r date() `"
+author: "Thomas Manke @ MPI-IE"
+date: "`r date() `"
 output:
   html_document:
+    theme: cosmo
+    highlight: textmate
     code_folding: hide
     toc: true
-    toc_depth: 2
+    toc_depth: 1
     toc_float: true
     df_print: paged
 ---
+
 # Preparation (60 min)
 
 ## Get Story (2 min)
 Purpose: https://pubmed.ncbi.nlm.nih.gov/28790111/
 
 Goal for this tutorial:   
-Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in two cancer cell lines with different mutations (BM: p53mut, JJ: del(17p))
+Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in two cancer (multiple myeloma) cell lines with different mutations (BM: p53mut, JJ: del(17p)).
 
-<!-- Results: More deregulated genes in BM (5000) vs JJ (1000), but focus on alternative isoforms -->
 ***
 
 ## Get Tools (15 min)
 
 **Warmup Tasks**:
 
-1. Start Rstudio session @ rstudio.ie-freiburg.mpg.de
-2. Select R-version: 4.0.3
+1. Start a new session in https://workbench.ie-freiburg.mpg.de, or on your local computer.
+2. In workbench we'll be working with R version 4.1.3
 3. Create a new R-project, e.g. DESeq2_Course
 4. Open a new notebook: e.g. DESeq2_notebook
 
@@ -34,7 +36,7 @@ Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in two can
 
 **Reminder**: Difference between *Console*, *Scripts* or *Notebooks*.
 
-**Recommondation**: Please use Notebooks throughout the course (and beyond).
+**Recommendation**: Please use Notebooks throughout the course (and beyond).
 
 > **Poll 1.1**: 
 > How do you get information about the current R-version and loaded packages?
@@ -54,37 +56,23 @@ For R, two of the most common and reliable package repositories are
 **Notice**: 
 
 1. All packages come for a **specific R-version**. This tutorial uses R version 4.0.3.
-2. All packages have specific **package version** (e.g. DESeq2 is version 1.30.1)
+2. All packages have specific **package version** (e.g. DESeq2 is version 1.30.1), and can come from different sources (CRAN, Bioconductor, github, ...).
 3. Most packages have **dependencies** on other packages that should also be installed 
 4. Installation can be very **time consuming** but needs to be done only once. 
-
-> **Poll 1.2**: Who has successfully installed the following packages: DESeq2, tidyverse, pheatmap?
-
-
-
-```{r installation, eval=FALSE}
-# Do not run during course !
-BiocManager::install("DESeq2")
-install.packages("tidyverse")
-install.packages("pheatmap")
-```
-
-For the purpose of this course we have preinstalled a set of packages for the Rstudio server. 
-
-To access make sure you select R version 4.0.3 and set the libPaths as below.
-
-
 
 ### Load Packages
 
 > **Task**:  Load the following packages: DESeq2, tidyverse, pheatmap
 
+> **Poll 1.2**: Did you manage to load DESeq2, tidyverse & pheatmap ?
+
 ```{r load, message=FALSE}
-.libPaths("/data/processing3/RdeseqCourse/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library")  # thank you, Ward
 library(DESeq2)
 library(tidyverse)
 library(pheatmap)
 ```
+
+**Reminder** Installation of these packages was carried out in Part_00!
 
 **Notice**: Loading new packages enables new functionalities for a given R-session. 
 
@@ -100,13 +88,13 @@ In case of doubt, use package name explicitly: e.g. stats::sd()
 
 ## Get Data (40 min)
 We assume that the sequencing data has already been processed  (QC, mapping, counting)
-to obtain a so-called *count matrix*.  
+to obtain a so-called *count matrix*. Data received in-house (given that it's a model organism) will have count matrices generated that you can start with immediately.
 
 It contains the number of reads that have been mapped to each gene and for each sample.
 
 <br><br>
 
-![**Count matrix**. Image from github.com/hbctraining ](../images/count_matrix.png)
+![**Count matrix**. Image from github.com/hbctraining ](images/day1_countmatrix.png)
 
 ***
 
@@ -126,8 +114,8 @@ Data can come in various formats. Here we have prepared the data as tab-separate
 
 > **Task**: Read the data e.g. using read_tsv()
 
-```{r import_data}
-dfile <- "/data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv"      # location of data file
+```{r import_data, message=FALSE}
+dfile <- "../data/myeloma/myeloma_counts.tsv"      # location of data file
 data <- read_tsv(file=dfile)    # diagnostic: problemes(data)
 ```
 
@@ -138,6 +126,9 @@ data %>% head()
 ```
 
 > **Poll 1.3**: What is the median expression count in sample "BM_CTRL_3"? 
+
+> **Notice: Some functions that could be of help: summary (baseR), pull (tidyverse)
+
 ```{r poll3, eval=FALSE}
 data %>% summary
 data %>% pull("BM_CTRL_3") %>% median()
@@ -171,7 +162,7 @@ Often the metadata is hidden in the paper (or in the filename). This is bad prac
 Make sure that the rownames of the metadata are valid sample names.
 
 ```{r import_meta}
-mfile <- "/data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv"               # location of metadata file
+mfile <- "../data/myeloma/myeloma_meta.tsv"               # location of metadata file
 #metadata <- read.csv(file=mfile, header=TRUE, sep="\t")
 metadata <- read_tsv(file=mfile)
 metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
@@ -217,10 +208,6 @@ y_i = f(x_i) = \mu + \beta x_i ~~~~~~~~~ (i = 1\ldots n) \\ \\
 $$
 
 > **Poll 1.5**: What is $n$ in our example?
-
-1. number of genes
-2. number of samples
-3. total number of reads
 
 ### Goal
 Model the counts ($y_i$) as a function of sample $x_i$ + noise factor ($\epsilon_i$)
@@ -310,7 +297,7 @@ https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/ex
 
 
 
-![**A typical experiment** ](../images/ExpDesign.jpg)
+![**A typical experiment** ](images/day1_expdesign.jpg)
 
 <br><br><br>
 
@@ -328,7 +315,7 @@ Usually there are other factors in addition to a simple treatment:
 > **Poll 1.6** You are planning an experiment with 3 treatment levels $(X_1, X_2, X_3)$ and aim for 3 replicates each. Unfortunately, you can process at most 3 samples per day. So you'll need three days $(Z_1, Z_2, Z_3)$. How should you assign your samples to different treatments?
 
 
-![**Experimental Design - Poll** ](../images/ExpDesign_Poll.jpg)
+![**Experimental Design - Poll** ](images/day1_expdesign_poll.jpg)
 
 ### Sources of Variability
 
@@ -356,7 +343,7 @@ my_alt_design <- ~ celltype + condition
 
 **Repeat**: The choice of factors rests with the researcher.
 
-![**Factor Choices**.](../images/myeloma_factors.jpeg)
+![**Factor Choices**.](images/day1_myelomafactors.jpg)
 
 
 ***

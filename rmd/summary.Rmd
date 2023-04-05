@@ -1,30 +1,22 @@
 ---
-title: "DESeq2 Template"
-author: "MPI-IE Bioinfo-Core"
-#date: "`r date() `"
+title: "DESeq2 Analysis with R: outline"
+author: "Bioinfo-Core @ MPI-IE"
+date: "`r date() `"
 output:
   html_document:
     code_folding: hide
     toc: true
-    toc_depth: 2
+    toc_depth: 1
     toc_float: true
     df_print: paged
 ---
 
-This outline contains a template of a typical DESeq2 workflow - as discussed during the course.  For specific projects, the parts on data exploration, quality controls and filtering are frequently more iterative and require custom-made adoption.
+This outline contains a template of a typical DESeq2 workflow - as discussed during the course.  
+For specific projects, the parts on data exploration, quality controls and filtering are frequently more iterative and could require tweaking.
 
 
-# Installation 
-```{r installation, eval=FALSE}
-BiocManager::install("DESeq2")
-install.packages("tidyverse")
-install.packages("pheatmap")
-install.packages("ashr")
-```
-
-# Load Tools
+# Load Libraries
 ```{r load, message=FALSE}
-#.libPaths("/data/manke/processing/RdeseqEnv/R-4.0.3_Rcourse/lib64/R/library") 
 library(DESeq2)
 library(pheatmap)
 library(tidyverse)
@@ -50,11 +42,11 @@ my_volcano = function(res){
 
 # Data, Metadata and Design
 ```{r import}
-dfile <- "/data/processing3/RdeseqCourse/Data/mpp/mpp_counts.tsv"     
+dfile <- "../data/mpp/mpp_counts.tsv"     
 data <- read_tsv(dfile)
 data <- data %>% column_to_rownames("gene_id") 
 
-mfile <- "/data/processing3/RdeseqCourse/Data/mpp/mpp_meta.tsv"      
+mfile <- "../data/mpp/mpp_meta.tsv"      
 metadata <- read_tsv(mfile)
 metadata <- metadata %>% column_to_rownames("sample") 
 metadata$condition <- as.factor(metadata$condition)
@@ -141,7 +133,7 @@ pheatmap(A[top_genes,col_sel], main="Top DE Genes (rlog)", annotation=metadata)
 
 # write sorted results to file (add rowname as column)
 fn="results.tsv"                        # might need a more informative filename
-write_tsv(sorted_res %>% rownames_to_column("Gene"), file=fn, quote=FALSE)            
+write_tsv(sorted_res %>% rownames_to_column("Gene"), file=fn)            
 ```
 
 # SessionInfo

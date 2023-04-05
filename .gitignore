@@ -1,4 +1,6 @@
 *html
+rmd/*pdf
+rmd/site
 *Rdata
 *Rproj
 data/*gz
@@ -6,5 +8,3 @@ data/*gz
 .Rhistory
 rmd/.rstudio/
 .Ruserdata
-
-misc/results.tsv
