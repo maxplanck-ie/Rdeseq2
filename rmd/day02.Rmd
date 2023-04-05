@@ -241,7 +241,7 @@ Things are a bit more complicated in reality - an interative process.
 
 <center>
 
-![](images/workflow_DESeq2.png){width=80%}
+![DESeq2 workflow](images/part00_workflowdeseq2.png){width=80%}
 
 </center>
 
@@ -311,7 +311,7 @@ par(mfrow = c(1,1))
 
 <center>
 
-![](images/day2_factor_order_comparison.png){width=60%}
+![Factor order](images/day2_factor_order_comparison.png){width=60%}
 
 </center>
 
@@ -525,7 +525,7 @@ There are several steps to generating the DE results, and they are wrapped toget
 
 <center>
 
-![](images/day2_expression_model.png){width=80%}
+![Distributions](images/day2_expression_model.png){width=80%}
 
 </center>
 
@@ -601,10 +601,19 @@ par(op)
 
 \
  
-```{r, echo=FALSE, out.width = '60%', fig.align="center"}
-knitr::include_graphics("images/day2_coverage_depth.png")
-```
  
+<br>
+
+<center>
+
+![Coverage depth](images/day2_coverage_depth.png){width=80%}
+
+</center>
+
+<br>
+
+
+
 \
  
 - composition bias - e.g. if there are just a few highly expressed genes dominating in some of your samples
@@ -612,9 +621,16 @@ knitr::include_graphics("images/day2_coverage_depth.png")
 
 \
  
-```{r, echo=FALSE, out.width = '60%', fig.align="center", fig.cap="\\label{fig:figs}(ref: Kumar, 2018, BMC Genomics)"}
-knitr::include_graphics("images/day2_comp_bias.png")
-```
+<br>
+
+<center>
+
+![Compositional bias](images/day2_comp_bias.png){width=80%}
+
+</center>
+
+<br>
+ 
  
 \
 
@@ -654,9 +670,17 @@ NOTE: 'DESeq()' function estimates size factors automatically. But if you *run `
 
 Why can you do this in 2 different ways? So you can integrate various methods to compensate for sources of bias within the DESeq2 workflow (e.g. *cqn*, *EDASeq*, etc)
 
-```{r, echo=FALSE, out.width = '80%', fig.align="center"}
-knitr::include_graphics(c("images/day2_expl_size_factors.png"))
-```
+
+<br>
+
+<center>
+
+![Size factors](images/day2_expl_size_factors.png){width=80%}
+
+</center>
+
+<br>
+
 
 \ 
 
@@ -684,9 +708,17 @@ dds_clean <- estimateDispersions(dds_clean)
 \
 \
 
-```{r, echo=FALSE, out.width = '50%', fig.align="center"}
-knitr::include_graphics(c("images/day2_explain_dispersion.png"))
-```
+
+<br>
+
+<center>
+
+![Dispersion](images/day2_explain_dispersion.png){width=80%}
+
+</center>
+
+<br>
+
 
 \
 
@@ -703,9 +735,8 @@ Bad examples of dispersion plots:
 <br>
 
 <center>
-```{r, echo=FALSE, out.width = '60%', fig.align='center'}
-knitr::include_graphics("images/day2_initial_dispersion.png")
-```
+
+![Bad dispersion example](images/day2_initial_dispersion.png){width=80%}
 
 </center>
 
@@ -796,9 +827,17 @@ dds_res_ordered <- dds_res.1[order(dds_res.1$padj),]     # sort the subset
 
 
 - why export data?
-```{r, echo=FALSE, out.width = '70%', fig.align="center"}
-knitr::include_graphics(c("images/day2_analysis_tools.png"))
-```
+
+<br>
+
+<center>
+
+![Export data](images/day2_analysis_tools.png){width=80%}
+
+</center>
+
+<br>
+
 
 - you can save your results in a 'tsv' file:
 
@@ -815,22 +854,40 @@ write.table(dds_res_ordered, file="day2_results.tsv", col.names=T, row.names = T
 - use the exported data for downstream analysis: 
   - shiny apps on  MPI-IE website:
 
-```{r, echo=FALSE, out.width = '80%', fig.align="center"}
-knitr::include_graphics("images/day2_shiny_apps.png")
-```
+<br>
+
+<center>
+
+![Shiny apps](images/day2_shiny_apps.png){width=80%}
+
+</center>
+
+<br>
+
 
   - ClusterProfiler:
 
-```{r, echo=FALSE, out.width = '80%', fig.align="center"}
-knitr::include_graphics("images/day2_gene2functions.png")
-```
+<br>
+
+<center>
+
+![ClusterProfile](images/day2_gene2functions.png){width=80%}
+
+</center>
+
+<br>
  
   - Ingenuity Pathway Analysis (IPA): tool to help interprete and analyze omics data (e.g. functional enrichment of DEGs)
   
-```{r, echo=FALSE, out.width = '60%', fig.align="center"}
-knitr::include_graphics("images/day2_ipa_example.jpg")
-```
+<br>
 
+<center>
+
+![IPA](images/day2_ipa_example.jpg){width=80%}
+
+</center>
+
+<br>
 
 
 > **Task 10:** Please reorder factors with 'AMIL' as baseline, for next day's analysis - 2 min
