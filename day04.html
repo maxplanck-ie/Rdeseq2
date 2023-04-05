@@ -9,6 +9,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
+<meta name="author" content="Bioinfo-Core @ MPI-IE" />
 
 
 <title>deseq2 - applied</title>
@@ -396,6 +397,8 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">deseq2 - applied</h1>
+<h4 class="author">Bioinfo-Core @ MPI-IE</h4>
+<h4 class="date">Wed Apr 5 06:45:20 2023</h4>
 
 </div>
 
@@ -408,6 +411,9 @@ class="section level1">
 <li>Run the DESeq workflow</li>
 <li>Interpret some of the results.</li>
 </ul>
+</div>
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
 <p>Dataset: MPPs</p>
 <p>with:</p>
 <blockquote>
@@ -442,6 +448,7 @@ capitalized.</span></p>
 <blockquote>
 <p>Good luck and have fun!</p>
 </blockquote>
+<hr />
 </div>
 <div id="hands-on" class="section level1">
 <h1>Hands-on</h1>
@@ -476,38 +483,37 @@ metadata$celltype  &lt;- as.factor(metadata$celltype)</code></pre>
 print(metadata$condition)</code></pre>
 <pre><code>##  [1] Aged  Aged  Aged  Aged  Aged  Aged  Young Young Young Young Young Young
 ## Levels: Young Aged</code></pre>
-</div>
-<div id="build-deseq-object." class="section level1">
-<h1>Build DESeq object.</h1>
+<div id="build-deseq-object." class="section level2">
+<h2>1. Build DESeq object.</h2>
 <pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data,
                               colData=metadata,
                               design = ~celltype*condition
                               )</code></pre>
 </div>
-<div id="plotpca" class="section level1">
-<h1>plotPCA</h1>
+<div id="plotpca" class="section level2">
+<h2>2. plotPCA</h2>
 <pre class="r"><code>plotPCA(rlog(dds, blind=TRUE),
         intgroup=c(&quot;celltype&quot;, &quot;condition&quot;)
         )</code></pre>
 <p><img src="day04_files/figure-html/PCA-1.png" width="672" /></p>
 </div>
-<div id="run-deseq2" class="section level1">
-<h1>run DESeq2</h1>
+<div id="run-deseq2" class="section level2">
+<h2>3. run DESeq2</h2>
 <pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
 </div>
-<div id="plot-dispersion" class="section level1">
-<h1>plot dispersion</h1>
+<div id="plot-dispersion" class="section level2">
+<h2>4. plot dispersion</h2>
 <pre class="r"><code>plotDispEsts(dds)</code></pre>
 <p><img src="day04_files/figure-html/Dispersion-1.png" width="672" /></p>
 </div>
-<div id="lrt-for-age." class="section level1">
-<h1>LRT for age.</h1>
+<div id="lrt-for-age." class="section level2">
+<h2>5. LRT for age.</h2>
 <pre class="r"><code># which model are we interested in as reduced?
 dds_lrt &lt;- DESeq(dds, test=&quot;LRT&quot;, reduced = ~celltype)
 res_lrt &lt;- results(dds_lrt)</code></pre>
 </div>
-<div id="results." class="section level1">
-<h1>results.</h1>
+<div id="results." class="section level2">
+<h2>6. results.</h2>
 <pre class="r"><code>cleanDF &lt;- function(RESobj){
   RESdf &lt;- data.frame(RESobj) %&gt;%
     dplyr::filter(baseMean &gt; 0) %&gt;%
@@ -525,8 +531,8 @@ head(res_lrt_clean)</code></pre>
 </div>
 </div>
 <div id="look-at-the-25-genes-with-lowest-p-value."
-class="section level1">
-<h1>Look at the 25 genes with lowest p-value.</h1>
+class="section level2">
+<h2>7. Look at the 25 genes with lowest p-value.</h2>
 <pre class="r"><code>pheatmap(
   counts(dds, normalized=TRUE)[head( rownames(res_lrt_clean) , n=20),],
   scale = &#39;row&#39;,
@@ -648,6 +654,7 @@ pheatmap(
 )</code></pre>
 <p><img src="day04_files/figure-html/MPP2-2.png" width="672" /></p>
 </div>
+</div>
 
 
 
@@ -703,7 +710,7 @@ $(document).ready(function ()  {
 
     // establish options
     var options = {
-      selectors: "h1,h2",
+      selectors: "h1,h2,h3",
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {

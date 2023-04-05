@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Tue Apr 4 15:00:18 2023</h4>
+<h4 class="date">Wed Apr 5 06:42:34 2023</h4>
 
 </div>
 
@@ -452,17 +452,17 @@ all(rownames(metadata) == colnames(data))</code></pre>
 <pre><code>## [1] TRUE</code></pre>
 </div>
 <div id="creating-a-dds-object.-30-minutes" class="section level1">
-<h1>1. Creating a DDS object. (30 minutes)</h1>
-<div id="a.-factors-and-design" class="section level2">
-<h2>a. factors and design</h2>
+<h1>Creating a DDS object. (30 minutes)</h1>
+<div id="factors-and-design" class="section level2">
+<h2>1. factors and design</h2>
 <p>A design formula takes all sources of variation to control for
 (remember day 1). The first factor is considered as “the factor of
 interest” to test for during the differential expression testing.</p>
 <p>DESeq2 uses the design as a model for each gene, and fits a
 normalized count based on that.</p>
 </div>
-<div id="b.-design-examples" class="section level2">
-<h2>b. design examples</h2>
+<div id="design-examples" class="section level2">
+<h2>2. design examples</h2>
 <p>A single factor with two levels.</p>
 <table>
 <thead>
@@ -788,8 +788,8 @@ in these <a
 href="https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing">slides</a></li>
 </ul>
 </div>
-<div id="c.-recap" class="section level2">
-<h2>c. Recap</h2>
+<div id="recap" class="section level2">
+<h2>3. Recap</h2>
 <div id="build-object" class="section level3">
 <h3>Build object</h3>
 <pre class="r"><code>my_design &lt;- as.formula(~celltype + condition + celltype:condition)
@@ -833,10 +833,10 @@ plotDispEsts(dds)</code></pre>
 </div>
 </div>
 </div>
-<div id="get-some-actual-results-30-min" class="section level1">
-<h1>2. Get some actual results ! (30 min)</h1>
+<div id="get-some-actual-results-20-min" class="section level1">
+<h1>Get some actual results ! (20 min)</h1>
 <div id="wald-test" class="section level2">
-<h2>Wald test</h2>
+<h2>1. Wald test</h2>
 <p>By default DESeq2 uses the Wald test to identify genes that are
 differentially expressed between two groups of samples. This is done
 through the following steps:</p>
@@ -895,7 +895,7 @@ the second group over the first group (the reference level).</p>
 ## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
 </div>
 <div id="contrasts-and-results" class="section level2">
-<h2>Contrasts and results</h2>
+<h2>2. Contrasts and results</h2>
 <p>Contrasts are used in our results call to get a specific pairwise
 comparison. If there is only two factor levels, There is no need to
 specify contrasts, DESeq2 will choose the base factor level based on the
@@ -951,7 +951,7 @@ res %&gt;% data.frame() %&gt;% head() %&gt;% drop_na()</code></pre>
 <p><img src="day03_files/figure-html/plot%20l2fc%20vs%20p%20values-1.png" width="672" /></p>
 </div>
 <div id="shrinking" class="section level2">
-<h2>Shrinking</h2>
+<h2>3. Shrinking</h2>
 <p>To generate more accurate log2 foldchange (LFC) estimates, DESeq2
 allows for the shrinkage of the LFC estimates toward zero when the
 information for a gene is low, which could include:</p>
@@ -986,12 +986,18 @@ setups, including contrasts.</p>
 plotMA(res, ylim=c(-2,2))</code></pre>
 <p><img src="day03_files/figure-html/MA%20plot-1.png" width="672" /></p>
 <pre class="r"><code>plotMA(res_shrink, ylim=c(-2,2))</code></pre>
-<p><img src="day03_files/figure-html/MA%20plot-2.png" width="672" />
-<strong><em> # Break (10 min) </em></strong> # Biological interpretation
-(60 min)</p>
+<p><img src="day03_files/figure-html/MA%20plot-2.png" width="672" /></p>
+<hr />
 </div>
+</div>
+<div id="break-10-min" class="section level1">
+<h1>Break (10 min)</h1>
+<hr />
+</div>
+<div id="biological-interpretation-60-min" class="section level1">
+<h1>Biological interpretation (60 min)</h1>
 <div id="visualisation" class="section level2">
-<h2>Visualisation</h2>
+<h2>1. Visualisation</h2>
 <p>Several ways to visualise the DESeq2 outputs:</p>
 <ul>
 <li><p>Plot a single gene</p>
@@ -1056,7 +1062,7 @@ print(ggplot(res_shrink%&gt;% data.frame(), aes(log2FoldChange, -log(padj))) +
 <p><img src="day03_files/figure-html/volcano%20plot-1.png" width="672" /></p>
 </div>
 <div id="likelihood-ratio-test" class="section level2">
-<h2>Likelihood ratio test</h2>
+<h2>2. Likelihood ratio test</h2>
 <p>DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative
 to Wald test when evaluating expression change across more than two
 levels. Rather than evaluating whether a gene’s expression is up- or
@@ -1131,7 +1137,7 @@ pheatmap(norm_lrt_sig,
 <p><img src="day03_files/figure-html/heatmap%20of%20sig_lrt_genes-1.png" width="672" /></p>
 </div>
 <div id="back-to-square-one." class="section level2">
-<h2>Back to square one.</h2>
+<h2>3. Back to square one.</h2>
 <p>We now have an idea on how we can extract pair-wise comparisons from
 a multi-factor DESeq2 analysis, and we got a primer on comparisons
 beyond pair-wise comparisons. What now ? Let’s try to extract something
@@ -1168,7 +1174,7 @@ good candidate for repurposing in multiple myeloma.</li>
 </ul>
 </div>
 <div id="amiloride-vs-tg" class="section level2">
-<h2>amiloride vs TG</h2>
+<h2>4. amiloride vs TG</h2>
 <p>Let’s start by assessing the difference between amiloride treated
 cells and TG treated cells.</p>
 <p>Remember our coefficients:</p>
@@ -1270,7 +1276,7 @@ print(compl1 - compl2)</code></pre>
 ##                     -1.0                      0.0                     -0.5</code></pre>
 </div>
 <div id="clean-annotate" class="section level2">
-<h2>Clean &amp; Annotate</h2>
+<h2>5. Clean &amp; Annotate</h2>
 <p>One more ‘issue’ we need to tackle: we only have transcript IDs, not
 actual gene names. There are a couple of packages that take care of the
 conversion, and one of the most used is <a
@@ -1353,7 +1359,7 @@ upset(fromList(upsetList), order.by = &quot;freq&quot;)</code></pre>
 <p><img src="day03_files/figure-html/UpsetPlot-1.png" width="672" /></p>
 </div>
 <div id="apoptosis-spliceosome" class="section level2">
-<h2>Apoptosis &amp; Spliceosome</h2>
+<h2>6. Apoptosis &amp; Spliceosome</h2>
 <p>Finally, look at two specific geneSets. - genes involved in splicing
 - genes involved in apoptosis</p>
 <pre class="r"><code>data_dir &lt;- &quot;../data/genesets/&quot;
@@ -1407,7 +1413,7 @@ pheatmap(
 <p><img src="day03_files/figure-html/Pathways-2.png" width="672" /></p>
 </div>
 <div id="lrt" class="section level2">
-<h2>LRT</h2>
+<h2>7. LRT</h2>
 <p>Finally, let’s look at the treatment factor using LRT. For this we’ll
 use ~celltype as the reduced model.</p>
 <pre class="r"><code># which model are we interested in as reduced?
