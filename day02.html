@@ -398,6 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 02</h1>
 <h4 class="author">Mirela Balan</h4>
+<h4 class="date">Wed Apr 5 07:27:09 2023</h4>
 
 </div>
 
@@ -431,38 +432,40 @@ div.tocify {
 <p><code>dds &lt;- data + metadata + design</code></p>
 <p><br />
 </p>
-<pre class="r"><code>library(&quot;DESeq2&quot;)
+<pre class="r"><code>suppressPackageStartupMessages({
+library(&quot;tidyverse&quot;)
+library(&quot;DESeq2&quot;)
 library(&quot;pheatmap&quot;)
 library(&quot;ashr&quot;)
-library(&quot;tidyverse&quot;)</code></pre>
+})</code></pre>
 <ol start="2" style="list-style-type: lower-alpha">
 <li>Load data and metadata</li>
 </ol>
-<pre class="r"><code>#loading data and metadata (sample sheet) with tidyverse
+<pre class="r"><code>#loading data with tidyverse
 data &lt;- readr::read_tsv(&quot;../data/myeloma/myeloma_counts.tsv&quot;, col_types = cols(gene_id=&quot;c&quot;, .default= &quot;i&quot;), col_names=TRUE)
+data &lt;- column_to_rownames(data, var=&quot;gene_id&quot;)
 
+#loading metadata (sample sheet) with tidyverse
 metadata &lt;- readr::read_tsv(&quot;../data/myeloma/myeloma_meta.tsv&quot;, col_types = list(&quot;c&quot;, &quot;f&quot;, &quot;f&quot;), col_names=TRUE)
-
 # Same as:
 # metadata %&gt;% mutate(celltype = factor(celltype))
 # metadata %&gt;% mutate(condition = factor(condition))
 
-data &lt;- column_to_rownames(data, var=&quot;gene_id&quot;)
-metadata &lt;- column_to_rownames(metadata, var=&quot;sample&quot;)
+metadata &lt;- metadata %&gt;% column_to_rownames(&quot;sample&quot;)  # sample -&gt; rownames
 
 #preview your data and metadata
 data %&gt;% head()
 data %&gt;% dim()
 
 metadata %&gt;% head()
-metadata %&gt;% dim()</code></pre>
+metadata %&gt;% dim()
+
+#check if the col and rows are in the same order:
+all(rownames(metadata) == colnames(data))</code></pre>
 <ol start="3" style="list-style-type: lower-alpha">
 <li>Make design and create the DDS object</li>
 </ol>
-<pre class="r"><code>#check if the col and rows are in the same order:
-all(rownames(metadata) == colnames(data))
-
-#create design
+<pre class="r"><code>#create a more complex experimental design
 my_design &lt;- ~celltype + condition
 
 #make dds obj
@@ -592,7 +595,11 @@ res &lt;- results(dds)</code></pre>
 process.</p>
 <p><br></p>
 <center>
-<p><img src="images/workflow_DESeq2.png" style="width:80.0%" /></p>
+<div class="figure">
+<img src="images/part00_workflowdeseq2.png" style="width:80.0%"
+alt="" />
+<p class="caption">DESeq2 workflow</p>
+</div>
 </center>
 <p><br></p>
 <p><strong>Know your starting data and what you want to achieve with
@@ -683,8 +690,11 @@ end up with unexpected results!</li>
 </ul>
 <p><br></p>
 <center>
-<p><img src="images/factor_order_comparison.png"
-style="width:60.0%" /></p>
+<div class="figure">
+<img src="images/day2_factor_order_comparison.png" style="width:60.0%"
+alt="" />
+<p class="caption">Factor order</p>
+</div>
 </center>
 <p><br></p>
 <ul>
@@ -914,7 +924,11 @@ steps are estimations of:</p>
 <p><strong>Why is modeling needed?</strong></p>
 <p><br></p>
 <center>
-<p><img src="images/expression_model.png" style="width:80.0%" /></p>
+<div class="figure">
+<img src="images/day2_expression_model.png" style="width:80.0%"
+alt="" />
+<p class="caption">Distributions</p>
+</div>
 </center>
 <p><br></p>
 <p><br />
@@ -992,7 +1006,14 @@ genome</li>
 </ul>
 <p><br />
 </p>
-<p><img src="images/coverage_depth.png" width="60%" style="display: block; margin: auto;" /></p>
+<p><br></p>
+<center>
+<div class="figure">
+<img src="images/day2_coverage_depth.png" style="width:80.0%" alt="" />
+<p class="caption">Coverage depth</p>
+</div>
+</center>
+<p><br></p>
 <p><br />
 </p>
 <ul>
@@ -1002,12 +1023,14 @@ genes dominating in some of your samples</li>
 </ul>
 <p><br />
 </p>
-<div class="figure" style="text-align: center">
-<img src="images/comp_bias.png" alt="\label{fig:figs}(ref: Kumar, 2018, BMC Genomics)" width="60%" />
-<p class="caption">
-(ref: Kumar, 2018, BMC Genomics)
-</p>
+<p><br></p>
+<center>
+<div class="figure">
+<img src="images/day2_comp_bias.png" style="width:80.0%" alt="" />
+<p class="caption">Compositional bias</p>
 </div>
+</center>
+<p><br></p>
 <p><br />
 </p>
 <blockquote>
@@ -1046,7 +1069,15 @@ calculated values would be used instead.</p>
 <p>Why can you do this in 2 different ways? So you can integrate various
 methods to compensate for sources of bias within the DESeq2 workflow
 (e.g. <em>cqn</em>, <em>EDASeq</em>, etc)</p>
-<p><img src="images/expl_size_factors.png" width="80%" style="display: block; margin: auto;" /></p>
+<p><br></p>
+<center>
+<div class="figure">
+<img src="images/day2_expl_size_factors.png" style="width:80.0%"
+alt="" />
+<p class="caption">Size factors</p>
+</div>
+</center>
+<p><br></p>
 <p> </p>
 </div>
 <div id="dispersions---15-min" class="section level3">
@@ -1076,7 +1107,15 @@ using the following functions:
 <br />
 <br />
 </p>
-<p><img src="images/explain_dispersion.png" width="50%" style="display: block; margin: auto;" /></p>
+<p><br></p>
+<center>
+<div class="figure">
+<img src="images/day2_explain_dispersion.png" style="width:80.0%"
+alt="" />
+<p class="caption">Dispersion</p>
+</div>
+</center>
+<p><br></p>
 <p><br />
 </p>
 <ul>
@@ -1093,7 +1132,11 @@ dots)</p></li>
 <p>Bad examples of dispersion plots:</p>
 <p><br></p>
 <center>
-<p><img src="images/initial_dispersion.png" width="60%" style="display: block; margin: auto;" /></p>
+<div class="figure">
+<img src="images/day2_initial_dispersion.png" style="width:80.0%"
+alt="" />
+<p class="caption">Bad dispersion example</p>
+</div>
 </center>
 <p><br></p>
 <p><br />
@@ -1211,17 +1254,24 @@ class="section level2">
 <p><br />
 </p>
 <ul>
-<li><p>why export data?
-<img src="images/analysis_tools.png" width="70%" style="display: block; margin: auto;" /></p></li>
-<li><p>you can save your results in a ‘tsv’ file:</p></li>
+<li>why export data?</li>
+</ul>
+<p><br></p>
+<center>
+<div class="figure">
+<img src="images/day2_analysis_tools.png" style="width:80.0%" alt="" />
+<p class="caption">Export data</p>
+</div>
+</center>
+<p><br></p>
+<ul>
+<li>you can save your results in a ‘tsv’ file:</li>
 </ul>
 <blockquote>
-<p><strong>Task 9:</strong> Please find the write.csv function and use
-it to export your data:</p>
+<p><strong>Task 9:</strong> Please export your data as a tsv:</p>
 </blockquote>
 <pre class="r"><code># change the location of the saved file!!
-#wfile=&quot;../misc/results.tsv&quot;      # location of data file
-#write.table(dds_res_ordered, file=wfile, col.names=T, row.names = T, sep = &quot;\t&quot;, quote=F)  #tab-sep
+write.table(dds_res_ordered, file=&quot;day2_results.tsv&quot;, col.names=T, row.names = T, sep = &quot;\t&quot;, quote=F)  #tab-sep
 #write.csv(dds_res_ordered, file=wfile, row.names=TRUE)                                      #comma-sep</code></pre>
 <p><br />
 </p>
@@ -1231,16 +1281,37 @@ it to export your data:</p>
 <li>shiny apps on MPI-IE website:</li>
 </ul></li>
 </ul>
-<p><img src="images/shiny_apps.png" width="80%" style="display: block; margin: auto;" /></p>
+<p><br></p>
+<center>
+<div class="figure">
+<img src="images/day2_shiny_apps.png" style="width:80.0%" alt="" />
+<p class="caption">Shiny apps</p>
+</div>
+</center>
+<p><br></p>
 <ul>
 <li>ClusterProfiler:</li>
 </ul>
-<p><img src="images/gene2functions.png" width="80%" style="display: block; margin: auto;" /></p>
+<p><br></p>
+<center>
+<div class="figure">
+<img src="images/day2_gene2functions.png" style="width:80.0%" alt="" />
+<p class="caption">ClusterProfile</p>
+</div>
+</center>
+<p><br></p>
 <ul>
 <li>Ingenuity Pathway Analysis (IPA): tool to help interprete and
 analyze omics data (e.g. functional enrichment of DEGs)</li>
 </ul>
-<p><img src="images/ipa_example.jpg" width="60%" style="display: block; margin: auto;" /></p>
+<p><br></p>
+<center>
+<div class="figure">
+<img src="images/day2_ipa_example.jpg" style="width:80.0%" alt="" />
+<p class="caption">IPA</p>
+</div>
+</center>
+<p><br></p>
 <blockquote>
 <p><strong>Task 10:</strong> Please reorder factors with ‘AMIL’ as
 baseline, for next day’s analysis - 2 min</p>
