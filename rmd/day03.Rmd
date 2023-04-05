@@ -55,14 +55,14 @@ metadata
 all(rownames(metadata) == colnames(data))
 ```
 
-# 1. Creating a DDS object. (30 minutes)
-## a. factors and design
+# Creating a DDS object. (30 minutes)
+## 1. factors and design
 A design formula takes all sources of variation to control for (remember day 1).
 The first factor is considered as "the factor of interest" to test for during the differential expression testing.
 
 DESeq2 uses the design as a model for each gene, and fits a normalized count based on that. 
 
-## b. design examples
+## 2. design examples
 
 A single factor with two levels.
 
@@ -219,7 +219,7 @@ Null hypothesis:
 
 * Multi-factor design with increasing complexity are nicely explained in these [slides](https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing)
 
-## c. Recap
+## 3. Recap
 
 ### Build object
 ```{r build the matrix, message=FALSE, warning=FALSE}
@@ -264,9 +264,10 @@ plotDispEsts(dds)
 ```{r deseq analysis, message=FALSE, warning=FALSE}
 dds <- DESeq(dds)
 ```
-# 2. Get some actual results ! (30 min)
 
-## Wald test
+# Get some actual results ! (20 min)
+
+## 1. Wald test
 By default DESeq2 uses the Wald test to identify genes that are differentially expressed between two groups of samples. This is done through the following steps:
   
   * A regression model fits to each gene (glm.nb),
@@ -318,7 +319,7 @@ Remember now our coefficients:
 resultsNames(dds)
 ```
 
-## Contrasts and results
+## 2. Contrasts and results
 
 Contrasts are used in our results call to get a specific pairwise comparison.
 If there is only two factor levels, There is no need to  specify contrasts, DESeq2 will choose the base factor level based on the alphabetical order of the levels.
@@ -371,7 +372,7 @@ plot(res$log2FoldChange, -log10(res$padj),
 ```
 
 
-## Shrinking
+## 3. Shrinking
 
 To generate more accurate log2 foldchange (LFC) estimates, DESeq2 allows for the shrinkage of the LFC estimates toward zero when the information for a gene is low, which could include:
 
@@ -401,12 +402,14 @@ The specifics about these methods is beyond the scope of this course.
 plotMA(res, ylim=c(-2,2))
 plotMA(res_shrink, ylim=c(-2,2))
 ```
+
 ***
 # Break (10 min)
 ***
+
 # Biological interpretation (60 min)
 
-## Visualisation
+## 1. Visualisation
   Several ways to visualise the DESeq2 outputs:
   
   * Plot a single gene
@@ -473,7 +476,7 @@ print(ggplot(res_shrink%>% data.frame(), aes(log2FoldChange, -log(padj))) +
 ```
 
 
-## Likelihood ratio test
+## 2. Likelihood ratio test
 
 DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative to Wald test when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one class compared to another, it identifies genes which are changing in expression in any direction across the different factor levels. Therefore, there is no need for contrasts since we are not making a pair-wise comparison.
 
@@ -519,7 +522,7 @@ pheatmap(norm_lrt_sig,
          height = 20)
 ```
 
-## Back to square one.
+## 3. Back to square one.
 
 We now have an idea on how we can extract pair-wise comparisons from a multi-factor DESeq2 analysis,
 and we got a primer on comparisons beyond pair-wise comparisons. What now ?
@@ -554,7 +557,7 @@ A couple of other relevant notes:
  - TG003 is a drug commonly used in this disease (clk1 kinase inhibitor)
  - Amiloride is an old drug (diuretic) that is hypothesized to be a good candidate for repurposing in multiple myeloma.
 
-## amiloride vs TG
+## 4. amiloride vs TG
 
 Let's start by assessing the difference between amiloride treated cells and TG treated cells.
 
@@ -641,7 +644,7 @@ print(compl1 - compl2)
 ```
 
 
-## Clean & Annotate
+## 5. Clean & Annotate
 
 One more 'issue' we need to tackle: we only have transcript IDs, not actual gene names. There are a couple of packages that take care of the conversion, and one of the most used is [biomaRt](https://bioconductor.org/packages/release/bioc/html/biomaRt.html). For this course we won't rely on it, since it uses an API (and we'll probably get blocked). An alternative is the [org.Hs.eg.db](https://bioconductor.org/packages/release/data/annotation/html/org.Hs.eg.db.html) package, which keeps all needed files locally (note the Hs stands for Homo Sapiens, and thus can only be used for this matter. As you probably guessed, for most model organisms there is a package like this (mm, sp, ...) ). Since the data is processed with GRCh37, we will use the following database: "EnsDb.Hsapiens.v75". How to utilize these libraries differs from library to library, but is usually pretty well documented.
 
@@ -714,7 +717,7 @@ upsetList <- list(
 upset(fromList(upsetList), order.by = "freq")
 ```
 
-## Apoptosis & Spliceosome
+## 6. Apoptosis & Spliceosome
 
 Finally, look at two specific geneSets.
  - genes involved in splicing
@@ -772,7 +775,7 @@ pheatmap(
 ```
 
 
-## LRT
+## 7. LRT
 
 Finally, let's look at the treatment factor using LRT. For this we'll use ~celltype as the reduced model.
 
