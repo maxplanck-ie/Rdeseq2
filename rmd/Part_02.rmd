@@ -1,7 +1,7 @@
 ---
 title: "DESeq2 Analysis with R: Part 02"
 author: "Mirela Balan"
-date: "`r date() `"
+#date: "`r date() `"
 output:
   html_document:
     code_folding: hide
@@ -9,8 +9,6 @@ output:
     toc_depth: 4
     toc_float: true
     df_print: paged
-    theme: cosmo
-    highlight: textmate
 ---
 
 ## Goals:
@@ -41,30 +39,48 @@ output:
 
 \
 
-``` {r load_libraries}
-suppressPackageStartupMessages({
-library("tidyverse")
-library("DESeq2")
-library("pheatmap")
-library("ashr")
-})
+a) Load libraries - TO DELETE
+```{r paths_libraries, echo = TRUE, results = 'hide', message=FALSE}
+
+my_load_namespaces <- function(packagesToLoad=c(), coreLibraries=c()) {
+  # coreLibraries = not explicitly loaded, but required anyway (e.g. dependencies)
+  installed_pkgs <- installed.packages()
+  
+  if (! "BiocManager" %in% installed_pkgs) install.packages("BiocManager")
+  
+  lapply(c(coreLibraries, packagesToLoad),
+		 function(x) if (! x %in% installed_pkgs) BiocManager::install(x, ask = FALSE))
+  
+  lapply(packagesToLoad, function(pkg) {
+	suppressPackageStartupMessages(require(pkg, character.only = TRUE))
+  })
+  
+  TRUE
+}
+
+
+my_load_namespaces(c("DESeq2", "tidyverse", "pheatmap"), c())
 ```
 
 b) Load data and metadata
 
 ```{r load_data, message=FALSE, echo = TRUE, results = 'hide'}
+loc_wd <- "/data/manke/group/balan/courses/2023_Rcourse_DESeq2/Rdeseq2"
+loc_code <- paste0(loc_wd, "/rmd")
+setwd(loc_code)
 
-#loading data with tidyverse
-data <- readr::read_tsv("../data/myeloma/myeloma_counts.tsv", col_types = cols(gene_id="c", .default= "i"), col_names=TRUE)
-data <- column_to_rownames(data, var="gene_id")
 
-#loading metadata (sample sheet) with tidyverse
-metadata <- readr::read_tsv("../data/myeloma/myeloma_meta.tsv", col_types = list("c", "f", "f"), col_names=TRUE)
+#loading data and metadata (sample sheet) with tidyverse
+data <- readr::read_tsv(paste0(loc_wd, "/data/myeloma/myeloma_counts.tsv"), col_types = cols(gene_id="c", .default= "i"), col_names=TRUE)
+
+metadata <- readr::read_tsv(paste0(loc_wd, "/data/myeloma/myeloma_meta.tsv"), col_types = list("c", "f", "f"), col_names=TRUE)
+
 # Same as:
 # metadata %>% mutate(celltype = factor(celltype))
 # metadata %>% mutate(condition = factor(condition))
 
-metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
+data <- column_to_rownames(data, var="gene_id")
+metadata <- column_to_rownames(metadata, var="sample")
 
 #preview your data and metadata
 data %>% head()
@@ -72,18 +88,17 @@ data %>% dim()
 
 metadata %>% head()
 metadata %>% dim()
-
-#check if the col and rows are in the same order:
-all(rownames(metadata) == colnames(data))
 ```
-
 
 
 
 c) Make design and create the DDS object
 
 ```{r make_dds_obj, message=FALSE, echo = TRUE, results = 'hide'}
-#create a more complex experimental design
+#check if the col and rows are in the same order:
+all(rownames(metadata) == colnames(data))
+
+#create design
 my_design <- ~celltype + condition
 
 #make dds obj
@@ -100,7 +115,7 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_desig
 Previously you noticed that the PCA shows a problem with our data. 
 
 ```{r old_PCA, echo=FALSE, out.width = '60%', fig.align="center"}
-#plotPCA is the DESeq2 function to plot automatically your samples on a PCA. However, the images don't look too nice. So we use it to extract the values needed for plotting and then using them with ggplot to get a better PCA.
+#plotPCA is the DESeq2 function to plot automatically your samples on a PCA. However, the images don't look to nice. So we use it to extract the values needed for plotting and then using them with ggplot to get a better PCA.
 
 rld_PCA <- rlog(dds, blind = TRUE) %>% plotPCA(intgroup=c("condition", "celltype"), returnData=TRUE)
 
@@ -198,7 +213,7 @@ fdds_clean <- dds_clean[keep2, ]                     # most people keep the 'dds
 cat('genes before filter: ', nrow(fdds_clean), '\n')    # prints the number of rows you have after the filtering
 ```
 
-# Notice how many rows you have dropped. In this case you are left only with **`r round(nrow(fdds_clean) * 100 / nrow(dds), digits=2)` %** of the initial number of rows!
+Notice how many rows you have dropped. In this case you are left only with **`r round(nrow(fdds) * 100 / nrow(dds), digits=2)` %** of the initial number of rows!
 
 ```{r needed_for_fixing_code, echo = FALSE, results = 'hide', message=FALSE}
 dds_clean <-fdds_clean
@@ -241,7 +256,7 @@ Things are a bit more complicated in reality - an interative process.
 
 <center>
 
-![DESeq2 workflow](images/part00_workflowdeseq2.png){width=80%}
+![](../images/workflow_DESeq2.png){width=80%}
 
 </center>
 
@@ -311,7 +326,7 @@ par(mfrow = c(1,1))
 
 <center>
 
-![Factor order](images/day2_factor_order_comparison.png){width=60%}
+![](../images/factor_order_comparison.png){width=60%}
 
 </center>
 
@@ -525,7 +540,7 @@ There are several steps to generating the DE results, and they are wrapped toget
 
 <center>
 
-![Distributions](images/day2_expression_model.png){width=80%}
+![](../images/expression_model.png){width=80%}
 
 </center>
 
@@ -601,19 +616,10 @@ par(op)
 
 \
  
+```{r, echo=FALSE, out.width = '60%', fig.align="center"}
+knitr::include_graphics("../images/coverage_depth.png")
+```
  
-<br>
-
-<center>
-
-![Coverage depth](images/day2_coverage_depth.png){width=80%}
-
-</center>
-
-<br>
-
-
-
 \
  
 - composition bias - e.g. if there are just a few highly expressed genes dominating in some of your samples
@@ -621,16 +627,9 @@ par(op)
 
 \
  
-<br>
-
-<center>
-
-![Compositional bias](images/day2_comp_bias.png){width=80%}
-
-</center>
-
-<br>
- 
+```{r, echo=FALSE, out.width = '60%', fig.align="center", fig.cap="\\label{fig:figs}(ref: Kumar, 2018, BMC Genomics)"}
+knitr::include_graphics("../images/comp_bias.png")
+```
  
 \
 
@@ -670,17 +669,9 @@ NOTE: 'DESeq()' function estimates size factors automatically. But if you *run `
 
 Why can you do this in 2 different ways? So you can integrate various methods to compensate for sources of bias within the DESeq2 workflow (e.g. *cqn*, *EDASeq*, etc)
 
-
-<br>
-
-<center>
-
-![Size factors](images/day2_expl_size_factors.png){width=80%}
-
-</center>
-
-<br>
-
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics(c("../images/expl_size_factors.png"))
+```
 
 \ 
 
@@ -708,17 +699,9 @@ dds_clean <- estimateDispersions(dds_clean)
 \
 \
 
-
-<br>
-
-<center>
-
-![Dispersion](images/day2_explain_dispersion.png){width=80%}
-
-</center>
-
-<br>
-
+```{r, echo=FALSE, out.width = '50%', fig.align="center"}
+knitr::include_graphics(c("../images/explain_dispersion.png"))
+```
 
 \
 
@@ -735,8 +718,9 @@ Bad examples of dispersion plots:
 <br>
 
 <center>
-
-![Bad dispersion example](images/day2_initial_dispersion.png){width=80%}
+```{r, echo=FALSE, out.width = '60%', fig.align='center'}
+knitr::include_graphics("../images/initial_dispersion.png")
+```
 
 </center>
 
@@ -827,26 +811,19 @@ dds_res_ordered <- dds_res.1[order(dds_res.1$padj),]     # sort the subset
 
 
 - why export data?
-
-<br>
-
-<center>
-
-![Export data](images/day2_analysis_tools.png){width=80%}
-
-</center>
-
-<br>
-
+```{r, echo=FALSE, out.width = '70%', fig.align="center"}
+knitr::include_graphics(c("../images/analysis_tools.png"))
+```
 
 - you can save your results in a 'tsv' file:
 
-> **Task 9:** Please export your data as a tsv:
+> **Task 9:** Please find the write.csv function and use it to export your data:
 
 ```{r export_results}
 # change the location of the saved file!!
-write.table(dds_res_ordered, file="day2_results.tsv", col.names=T, row.names = T, sep = "\t", quote=F)  #tab-sep
-#write.csv(dds_res_ordered, file=wfile, row.names=TRUE)                                      #comma-sep
+wfile="../misc/results.tsv"      # location of data file
+#write.table(dds_res_ordered, file=wfile, col.names=T, row.names = T, sep = "\t", quote=F)  #tab-sep
+write.csv(dds_res_ordered, file=wfile, row.names=TRUE)                                      #comma-sep
 ```
 
 \
@@ -854,40 +831,22 @@ write.table(dds_res_ordered, file="day2_results.tsv", col.names=T, row.names = T
 - use the exported data for downstream analysis: 
   - shiny apps on  MPI-IE website:
 
-<br>
-
-<center>
-
-![Shiny apps](images/day2_shiny_apps.png){width=80%}
-
-</center>
-
-<br>
-
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics("../images/shiny_apps.png")
+```
 
   - ClusterProfiler:
 
-<br>
-
-<center>
-
-![ClusterProfile](images/day2_gene2functions.png){width=80%}
-
-</center>
-
-<br>
+```{r, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics("../images/gene2functions.png")
+```
  
   - Ingenuity Pathway Analysis (IPA): tool to help interprete and analyze omics data (e.g. functional enrichment of DEGs)
   
-<br>
+```{r, echo=FALSE, out.width = '60%', fig.align="center"}
+knitr::include_graphics("../images/ipa_example.jpg")
+```
 
-<center>
-
-![IPA](images/day2_ipa_example.jpg){width=80%}
-
-</center>
-
-<br>
 
 
 > **Task 10:** Please reorder factors with 'AMIL' as baseline, for next day's analysis - 2 min

@@ -25,8 +25,8 @@
  - [x] harmonize style / custom css ?
 
 ## day 2
-  - [ ] relative path to data folder
-  - [ ] consolidate code w/ day1
+  - [x] relative path to data folder
+  - [x] consolidate code w/ day1
   - [ ] rowsum filtering per 50% of samples, or rowsums > 10, or ?
   - [ ] rename images with day prefix
   - [ ] fix layout + images
@@ -36,4 +36,10 @@
 
 ## day 3
 
+<<<<<<< HEAD
+## day 4
+ - [ ] compile
+ - [ ] elaborate heatmaps + gene ontology
+=======
  - [ ] needs a but extra tidying.
+>>>>>>> 1b51b550e9e135f7a432d6791cfda43a769ba606
