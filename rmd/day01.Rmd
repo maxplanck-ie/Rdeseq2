@@ -8,59 +8,57 @@ output:
     highlight: textmate
     code_folding: hide
     toc: true
-    toc_depth: 1
+    toc_depth: 3
     toc_float: true
     df_print: paged
 ---
 
-# Preparation (60 min)
-
-## Get Story (2 min)
-Purpose: https://pubmed.ncbi.nlm.nih.gov/28790111/
-
-Goal for this tutorial:   
-Use RNA-seq to compare an old drug (amiloride) and a new drug (TG003) in two cancer (multiple myeloma) cell lines with different mutations (BM: p53mut, JJ: del(17p)).
-
 ***
 
-## Get Tools (15 min)
+# Preparation (60 min)
 
-**Warmup Tasks**:
+## 1. Story
 
-1. Start a new session in https://workbench.ie-freiburg.mpg.de, or on your local computer.
-2. In workbench we'll be working with R version 4.1.3
-3. Create a new R-project, e.g. DESeq2_Course
-4. Open a new notebook: e.g. DESeq2_notebook
-
+The story we'll work with is a 'drug repurposing' effort to use an old diuretic drug as a cancer treatment:
 <br> 
+[Amiloride to treat multiple myeloma](https://pubmed.ncbi.nlm.nih.gov/28790111/)
 
-**Reminder**: Difference between *Console*, *Scripts* or *Notebooks*.
+In this study, RNA-seq data is available to compare amiloride to a state-of-the-art drug (TG003) in two cancer (multiple myeloma) cell lines with different mutations (BM: p53mut, JJ: del(17p)).
+<br> 
+***
 
-**Recommendation**: Please use Notebooks throughout the course (and beyond).
+## 2. Tools
+
+> **Task**: Start a new session in [workbench](https://workbench.ie-freiburg.mpg.de), or on your local computer. Note that we will be working with R version 4.1.3.
+> **Task**: Create a new R-project, e.g. DESeq2_Course
+> **Task**: Open a new notebook: e.g. DESeq2_notebook
+
+**Recommendation** 
+We advice you to use Notebooks throughout the course (and beyond), as it is straight forward to keep your notes (documentation) and code together in one place.
 
 > **Poll 1.1**: 
 > How do you get information about the current R-version and loaded packages?
 
-<br><br>
+<br> 
 
-### Install Packages
-**Reminder**:  Many useful functions are already available with R: *base packages*.
+### a. Packages
 
-Many analysis tools come with software packages that will need to be installed before use.
+Many useful functions are already available with R: *base packages*.
+Most analysis tools come with software packages that will need to be installed before use.
 
-For R, two of the most common and reliable package repositories are
+For R, two of the most common and reliable package repositories are:
 
 - **CRAN** https://cran.r-project.org/
 - **Bioconductor** https://bioconductor.org/
 
-**Notice**: 
+**Reminder** 
 
-1. All packages come for a **specific R-version**. This tutorial uses R version 4.0.3.
+1. All packages come for a **specific R-version**. This tutorial uses R version 4.1.3.
 2. All packages have specific **package version** (e.g. DESeq2 is version 1.30.1), and can come from different sources (CRAN, Bioconductor, github, ...).
 3. Most packages have **dependencies** on other packages that should also be installed 
 4. Installation can be very **time consuming** but needs to be done only once. 
 
-### Load Packages
+### b. Load packages
 
 > **Task**:  Load the following packages: DESeq2, tidyverse, pheatmap
 
@@ -72,9 +70,7 @@ library(tidyverse)
 library(pheatmap)
 ```
 
-**Reminder** Installation of these packages was carried out in Part_00!
-
-**Notice**: Loading new packages enables new functionalities for a given R-session. 
+**Reminder**: Loading new packages enables new functionalities for a given R-session. 
 
 This may result in multiple (sometimes redundant) functions with the same name: e.g. sd()
 
@@ -86,55 +82,57 @@ In case of doubt, use package name explicitly: e.g. stats::sd()
 
 ***
 
-## Get Data (40 min)
+## 3. Get Data
 We assume that the sequencing data has already been processed  (QC, mapping, counting)
 to obtain a so-called *count matrix*. Data received in-house (given that it's a model organism) will have count matrices generated that you can start with immediately.
+A count matrix contains the number of reads that have been mapped to each gene, for each sample.
 
-It contains the number of reads that have been mapped to each gene and for each sample.
+<br>
 
-<br><br>
-
-![**Count matrix**. Image from github.com/hbctraining ](images/day1_countmatrix.png)
+![Example of a **count matrix**. Image from github.com/hbctraining ](images/day1_countmatrix.png)
 
 ***
 
-In principle, you can download the published data for our tutorial from GEO 
+In principle, you can download the published data for our tutorial from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077), and many published papers will (or should) have a GEO / SRA / data accession code available.
+For this course, we have already prepared the data that will be used in in a convenient format.
 
-- https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE95077 
 
-For this course, we have already prepared the data in a convenient format here: 
+**Recommendation**: It is good style to put data into a separate directory (e.g. data/).
 
-- github: https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_counts.tsv
-- local: /data/processing3/RdeseqCourse/Data/myeloma/myeloma_counts.tsv
-
-**Notice**: It is good style to put data into a separate directory (e.g. data/)
-
-### Import Data 
+### a. Import Data 
 Data can come in various formats. Here we have prepared the data as tab-separated file with header information.
 
 > **Task**: Read the data e.g. using read_tsv()
 
 ```{r import_data, message=FALSE}
-dfile <- "../data/myeloma/myeloma_counts.tsv"      # location of data file
-data <- read_tsv(file=dfile)    # diagnostic: problemes(data)
+dfile <- "../data/myeloma/myeloma_counts.tsv"
+data <- read_tsv(file=dfile)
 ```
 
-**Discussion** Inspect the data structure. What are the variables? How many samples are in the data ?
+Take some time to inspect the data structure. What are the variables? How many samples are in the data ?
 
 ```{r head_data}
 data %>% head()
 ```
 
+If the ```%>%``` symbol is confusing, one could interprete
+```data %>% head()```
+as
+'Take data and forward it into head()'
+
+
 > **Poll 1.3**: What is the median expression count in sample "BM_CTRL_3"? 
 
-> **Notice: Some functions that could be of help: summary (baseR), pull (tidyverse)
+**Recommendation**: Some functions that could be of help: summary (baseR), pull (tidyverse)
+
+Don't worry if the syntax is confusing at first. It takes time and practice to familiarize yourself.
 
 ```{r poll3, eval=FALSE}
 data %>% summary
 data %>% pull("BM_CTRL_3") %>% median()
 ```
 
-**Discussion**: Where are the gene names, and which convention is chosen for them?
+Where are the gene names, and which convention is chosen for them?
 
 > **Task**: Ensure that the rownames of the count data are gene names.
 
@@ -142,21 +140,22 @@ data %>% pull("BM_CTRL_3") %>% median()
 # dplyr
 data <- data %>% column_to_rownames("gene_id")  # gene_id -> rownames and removes gene_id
 
+# magrittr with a 'reassignment pipe!'
+# library(magrittr)
+#data %<>% column_to_rownames("gene_id")
+
 # base-R
 # rownames(data)    # check: may already be defined during read
 # rownames(data) <- data$gene_id
 # data$gene_id   <- NULL
 ```
 
-### Import Metadata
+### b. Import Metadata
+
 Metadata (=data about data); typically contains important information on the samples and their origin. 
-
-Often these are categorical data such as cell type, experimental condition or other batch assignments. But it could also be quantitative data (e.g. age).
-
-Often the metadata is hidden in the paper (or in the filename). This is bad practise - make sure to have a proper sample sheet. Metadata is just as important as data. Here is the prepared file for this introduction:
-
-- github: https://github.com/maxplanck-ie/Rdeseq2/raw/main/data/myeloma/myeloma_meta.tsv
-- local: /data/processing3/RdeseqCourse/Data/myeloma/myeloma_meta.tsv
+Often these are categorical data such as cell type, experimental condition or other batch assignments. But it could also be quantitative data (e.g. age, weight, ...).
+Often the metadata is hidden in the paper (or in the filenames). This is bad practise - make sure to have a proper 'samplesheet'.
+ Metadata is just as important as data.
 
 > **Task**: Read the metadata into an R-object "metadata". Inspect the data frame - which data types are included?
 Make sure that the rownames of the metadata are valid sample names.
@@ -174,8 +173,6 @@ metadata %>% head()
 
 > **Poll 1.4**: What is a factor?
 
-<br><br><br>
-
 > **Task**  Convert the character variables "condition" and "celltype" into factors. 
 
 ```{r make_factors}
@@ -184,8 +181,6 @@ metadata$condition <- as.factor(metadata$condition)
 metadata$celltype  <- as.factor(metadata$celltype)
 ```
 
-**Discussion**: Is there any metadata for genes?
-
 ***
 # Break (10 min)
 ***
@@ -193,14 +188,14 @@ metadata$celltype  <- as.factor(metadata$celltype)
 # Design (20 min)
 For each gene (=row), the data matrix contains a vector of counts ($y$) which depends on the vector of samples ($x$)
 
-> **Task (optional)**: Extract the 42nd gene in the data matrix and plot it against all samples
+> **Tasks (optional)**: Extract the 42nd gene in the data matrix and plot it against all samples
 
 ```{r gene_plot}
 boxplot(data[42,], xlab="sample", ylab="count", names=FALSE) # base-R (ggplot below)
 abline(h=rowMeans(data[42,]), col="red", lty=2)
 ```
 
-### Hope
+## 1. Hope
 Counts ($y$) could be predicted (and controlled) given sufficient sample information $x$
 
 $$
@@ -209,17 +204,16 @@ $$
 
 > **Poll 1.5**: What is $n$ in our example?
 
-### Goal
+## 2. Goal
 Model the counts ($y_i$) as a function of sample $x_i$ + noise factor ($\epsilon_i$)
 
 $$
 y_i = \mu + \beta x_i + \epsilon_i 
 $$
 
-**Discussion**: What should $x$ be? 
-<br><br><br><br><br><br><br><br><br>
+What should $x$ be? 
 
-**Notice**: The researcher needs to decide *which factors* should be included in the model:
+**Reminder**: The researcher needs to decide *which factors* should be included in the model:
 
 - none: all samples have their own values
 - quantitative variable: e.g. sequence depth
@@ -236,12 +230,10 @@ gene <- data %>%
 ggplot(gene, aes(x=condition, y=count, col=condition)) + 
   geom_point(size=3)  #plot against condition
 
-# compare DESeq2 functionality
-# plotCounts(dds, gene="ENSG00000003509", col=metadata$condition)
 ```
 
 
-### The R-syntax: $Y \sim X$
+## 3. The R-syntax: $Y \sim X$
 Define your design:
 
 ```{r design, echo=TRUE}
@@ -249,21 +241,17 @@ Define your design:
 my_design <- ~ condition  # notice the tilde *not* minus
 ```
 
-> **Discussion**: Which other variables could be used to define the design?
 
-<br><br><br><br>
+**Reminder**: The variables need to correspond to columns in the metadata.
 
-**Notice 1**: The variables need to correspond to columns in the metadata.
-
-**Notice 2**: More complicated designs are possible and often necessary ($\to$ day 2 and 3)
-
+**Reminder**: More complicated designs are possible and often necessary ($\to$ day 2 and 3)
 
 *** 
 
-## Interlude: Model Matrix (5 min) --> Day 3
-**Discussion**: How to convert sample factor (e.g. condition) into something numerical?
-
-**Idea**: binary encoding of categorical variable $x$ (switch on and of contributions)
+# Interlude (15 min)
+## 1. The model matrix
+How do we convert a factor (e.g. condition) into something numerical ?
+Use binary encoding of categorical variable $x$ (switch on and of contributions)
 
 $x$=("Cond1", "Cond2", "Cond3") $\longrightarrow \left( \begin{array}{ccc} X_0 & X_1 & X_2 \\ 1 & 0 &  0 \\ 1 & 1 & 0 \\ 1 & 0 & 1 \end{array}\right)$ 
 
@@ -274,34 +262,28 @@ $$
 (c.f. linear regression $\to$ multivariate linear regression)
 
 
-**Upshot**: A factorial design can be translated into a (binary) *model matrix*
+A factorial design can be translated into a (binary) *model matrix*
 
 ```{r model_matrix}
 MM <- model.matrix(my_design, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
 
-> **Tasks** 
+> **Tasks**: Include an additional factor (+ celltype) and observe the design matrix 
+> **Tasks**: Bonus: include an interaction term (+ condition:celltype) and discuss its interpretation
 
-- Include an additional factor (+ celltype) and observe the design matrix 
-- Bonus: include an interaction term (+ condition:celltype) and discuss its interpretation
-```{r model_matrix_interaction, eval=FALSE, echo=FALSE}
+```{r model_matrix_interaction}
 MM <- model.matrix(~ condition*celltype, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
 
 ***
-
-## Interlude: Experimental Design (10 min)
-https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md (50min)
-
-
+## 2. Experimental design
+A more elaborate (highly recommended) tutorial can be found [here](https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md)
 
 ![**A typical experiment** ](images/day1_expdesign.jpg)
 
-<br><br><br>
-
-### The problem: more factors!
+### a. The problem: more factors!
 Usually there are other factors in addition to a simple treatment:
 
 - known and interesting: multi-factorial design and interaction effects (genotype * treatment)
@@ -310,7 +292,7 @@ Usually there are other factors in addition to a simple treatment:
 
 ... all contribute to total variability and limit our ability to detect treatment-related differences $\to$ account for them as much as possible !
 
-<br><br>
+<br>
 
 > **Poll 1.6** You are planning an experiment with 3 treatment levels $(X_1, X_2, X_3)$ and aim for 3 replicates each. Unfortunately, you can process at most 3 samples per day. So you'll need three days $(Z_1, Z_2, Z_3)$. How should you assign your samples to different treatments?
 
@@ -328,9 +310,7 @@ Sample Preparation   | Estimate with batch controls (**blocking**)
 Unknown Confounders  | Reduce risk by **randomization** 
 Sequencing           | Control with sequencing depth (read sampling)
 Analysis             | Control software version and parameters
-
-
-**Practical Notice**:   
+ 
 Some *nuisance factors* (e.g. batches) may be known and measurable, but are not of primary interest - they should be included as metadata and in the model.
 
 $$
@@ -341,13 +321,12 @@ $$
 my_alt_design <- ~ celltype + condition
 ```
 
-**Repeat**: The choice of factors rests with the researcher.
+**Reminder**: The choice of factors rests with the researcher.
 
 ![**Factor Choices**.](images/day1_myelomafactors.jpg)
 
 
 ***
-<br><br>
 
 # Create DESeq2 object (5 min)
 Each software has their own data representation.
@@ -365,63 +344,32 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_desig
 ```
 
 
-
-### Interlude: Alternatives (5 min)
-There are various tools (HTSeq, Salmon) to produce count matrices (each with their own specific output formats).
-Several other convenience functions exist to read them as DESeqDataSet objects
-
-```{r alternative_dds, eval=FALSE}
-# Alternative 1: HTSeq object
-fm <- "../data/sampleTable2.csv"              # file with data links and metadata
-sampleTable <- read.csv(fm, header=FALSE)
-colnames(sampleTable)=c("name","filename", "condition","celltype")   # specifications for DESeqDataSetFromHTSeqCount
-
-# categorical variables --> "factors"
-sampleTable$condition <- as.factor(sampleTable$condition)
-sampleTable$celltype  <- as.factor(sampleTable$celltype)
-dds <- DESeqDataSetFromHTSeqCount(sampleTable, directory = ".", design = my_design)
-
-# Alternative 2: txi object
-#txi <- tximport(files, type="salmon", tx2gene=t2g, countsFromAbundance = "lengthScaledTPM")
-#dds <- DESeqDataSetFromTximport(txi, colData = sample.table, design = my_desig)
-
-
-# Alternative 3: Existing Data sets: just specify design
-#library("airway")
-#data("airway")
-#DESeqDataSet(airway, design = ~ cell + dex)
-
-# Alternative 4: Synthetic Data Generation (two conditions)
-# dds <- makeExampleDESeqDataSet(n = 1000, m = 6, betaSD = 2)
-```
-
-
 # Data Exploration (40 min)
 
-## Show me the (raw) data! (15 min)
+## 1. Show me the (raw) data!
 
 - Data Structure 
 - Data Entries 
 - Visualization
 - Correlations
 
-> **Task 1**: Inspect the data structures and dimensions of objects dds and extract the count matrix M 
+> **Tasks**: Inspect the data structures and dimensions of objects dds and extract the count matrix M 
 (Hint: > ?counts)
 
-> **Task 2**: Extract the first 10 rows (genes) from count matrix and safe as new data object -> Mr <- (for further use)
+> **Tasks**: Extract the first 10 rows (genes) from count matrix and safe as new data object -> Mr <- (for further use)
 
-> **Bonus**: Extract 10 randomly sampled genes.
+> **Tasks (optional)**: Extract 10 randomly sampled genes.
 
-```{r donwsample}
+```{r downsample}
 dds                         # dds object --> inspect: str(dds), dim(dds)
 M <- counts(dds)            # get gene-sample matrix
 ( Mr <- M %>% head(10) )                                 # just the first
 #Mr <- M %>% data.frame() %>% sample_n(10)           # random rows
 ```
 
-## Visualize (15 min)
+## 2. Visualize
 
-> **Task**: Create heatmap for the first view genes in Mr (?pheatmap). How would you add metadata as below?
+> **Tasks**: Create heatmap for the first view genes in Mr (?pheatmap). How would you add metadata as below?
 
 ```{r visual_explore}
 pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, main="First glimpse")
@@ -431,13 +379,13 @@ ann <- data.frame(colData(dds))
 pheatmap(Mr, cluster_rows=FALSE, cluster_cols=FALSE, annotation=ann, main="Data + Metadata")
 ```
 
-> **Task**: understand the object "ann" and suggest how to add sequence depth as additional annotation column
+> **Tasks**: understand the object "ann" and suggest how to add sequence depth as additional annotation column
 
 ```{r adding_annotations}
-ann$seq_depth <- colSums(counts(dds))/1e6    # sequencing depth in millions 
+ann$seq_depth <- counts(dds) %>% colSums()/1e6    # sequencing depth in millions 
 ```
 
-## genome-wide correlations
+## 3. genome-wide correlations
 
 **Question**: How to calculate the sample-sample correlation matrix?
 
@@ -446,7 +394,7 @@ C <- cor(M)       # get sample-sample correlations: other correlations?
 pheatmap(C, annotation = ann)
 ```
 
-### Interlude: Customizing Colors (5 min)
+### a. Interlude: Customizing Colors (5 min)
 
 Often we need to adjust colours or ensure consistency across a project.
 Use > library(RColorBrewer) for systematic and educated choices.
@@ -468,8 +416,8 @@ pheatmap(C, annotation = ann, annotation_colors = my_colors)
 # pheatmap(C, annotation = ann, annotation_colors = my_colors, color=blue_colors) 
 ```
 
-## Simple transformation (10 min)
-https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/03_DGE_QC_analysis.html (80min)
+## 4. Simple transformation
+A more elaborate (highly recommended) tutorial can be found [here](https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/03_DGE_QC_analysis.html)
 
 > **Task** Look at the quantiles and means of the first 3 samples and create a boxplot
 ```{r summary, echo=FALSE}
@@ -477,7 +425,7 @@ summary(M[,1:3])  # M %>% data.frame() %>%  select(1:3) %>% summary()
 boxplot(M[,1:3])  # M %>% data.frame() %>%  select(1:3) %>% boxplot()
 ```
 
-**Discussion**:  What is the problem - What could we do about it ?
+What is the problem and what could we do about it ?
 
 
 ```{r log_norm}
@@ -487,36 +435,25 @@ hist(log(M[,1]),100, col=myred)
 hist(log(M[,3]),100, col=myblue, add=TRUE)
 ```
 
-**Discussion**:   What happened to zero counts ? What may be the source of remaining discrepancy ?
-
-<br><br><br><br><br><br><br><br><br>
+What happened to zero counts ? What may be the source of remaining discrepancy ?
 
 - **Transformation**: make distributions more pleasing  
 - **Normalization**: make samples comparable
 
-## Sample-Sample Correlations
+## 5. Sample-Sample Correlations
 Compare the genome-wide correlations before and after transformation
 ```{r explore_corr}
 Mt <- log2(M + 1)      # simple log-transform; (why + 1 ?)
 pheatmap(cor(Mt), annotation = ann, annotation_colors = my_colors)
 ```
+Notice the overall high correlations? How would you explore this further
 
-
-**Discussion**: Notice the overall high correlations? How would you explore this further
-
-
-<br><br><br><br>
 ```{r smoothScatter}
 # correlation coeff. is only a single number
 smoothScatter(Mt[,1], Mt[,5])
 ```
 
-> **Task**: Compare this to an untransformed scatterplot.
-
-**Upshot**: transformations are important for data exploration !
-
-
-## PCA plot (10 min)
+## 6. PCA plot
 PCA aims to project samples from a high-dimensional space (M=20k+ genes) to a lower dimension (D=2).
 Similar to correlation analysis, the main purpose is to identify distinct and similar samples.
 ```{r PCA_manual}
@@ -525,9 +462,8 @@ Similar to correlation analysis, the main purpose is to identify distinct and si
 nt <- 500     # set number of most variable genes
 
 # get top variable genes (rows)
-top <- order(rowVars(Mt), decreasing = TRUE)[1:nt]  # calculate variance for each row and sort
-
-pca <- prcomp(t(Mt[top,]), scale=TRUE)      # perform PCA
+top <-  Mt %>% rowVars() %>% order(decreasing=TRUE) %>% head(nt)  # calculate variance for each row and sort
+pca <- Mt[top,] %>% t() %>% prcomp(scale=TRUE)      # perform PCA
 
 # pca-object contains transformed coordinates for each sample 
 # pca$x:  number of genes --> 2
@@ -548,7 +484,7 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
   scale_colour_manual(values=cn_col)
 ```
 
-> **Tasks / Homework** 
+> **Homework** 
 
 1. Observe and interprete the PCA plot. 
 2. Which factor explains the separation?
@@ -568,9 +504,3 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
   ylab(paste0("PC2: ",percentVar[2])) +
   scale_colour_manual(values=cn_col)
 ```
-
-
-
-
-
-

@@ -8,7 +8,7 @@ output:
     toc_float: true
     df_print: paged
 ---
-# Goals:
+
 # Apply what was learned through the course.
   * Initial QC and visualisation.
   * Run the DESeq workflow
@@ -16,15 +16,11 @@ output:
 
 Dataset: MPPs
 
-Data is available under
-
-> /data/processing3/RdeseqCourse/Data/data/mpp/
-
 with:
 
-> mpp_counts.tsv
+> data/mpp/mpp_counts.tsv
 
-> mpp_meta.tsv
+> data/mpp/mpp_meta.tsv
 
 Background:
 
@@ -43,11 +39,10 @@ You and your lab are eager to see:
 
 Hint: a list of cell-cycle genes (KEGG) are available under:
 
-> /data/processing3/RdeseqCourse/Data/genesets/KEGG_cellcycle.txt
+> ../data/genesets/KEGG_cellcycle.txt
 
 
 <span style="color:red">Cave!: rownames in the count object are lowercase-capitalized, the KEGG_cellcycle ones are fully capitalized.</span> 
-
 
 > Good luck and have fun!
 
@@ -61,46 +56,39 @@ library("tibble")
 library("ggplot2")
 library("pheatmap")
 library("UpSetR")
-library("tidyr")
+library("tidyverse")
 library("stringr")
 ```
 
 Read in the data.
 ```{r read in data, message=FALSE, warning=FALSE, paged.print=FALSE}
-# Get the data directory
-data_dir <- "../data/mpp/"
+dfile <- "../data/mpp/mpp_counts.tsv"
+data <- read_tsv(file=dfile)
+data <- data %>% column_to_rownames("gene_id") 
 
-# Read count matrix
-countdata <- read.table(paste0(data_dir, "mpp_counts.tsv", sep=''),
-                        header=TRUE, row.names = 1)
-#head(countdata)
-
-# Read samplesheet , detects conditions, generate the formula
-sampleInfo <- read.table(paste0(data_dir, "mpp_meta.tsv", sep=''),
-                          header=TRUE, check.names = TRUE, stringsAsFactor = F)
-sampleInfo$celltype <- as.factor(sampleInfo$celltype)
-sampleInfo$condition <- as.factor(sampleInfo$condition)
-rownames(sampleInfo) <- sampleInfo$sample
-sampleInfo$sample <- NULL
-print(sampleInfo)
+mfile <- "../data/mpp/mpp_meta.tsv"
+metadata <- read_tsv(file=mfile)
+metadata <- metadata %>% column_to_rownames("sample")
+metadata$condition <- as.factor(metadata$condition)
+metadata$celltype  <- as.factor(metadata$celltype)
 ```
 
 Check our factors !
 ```{r factorLevels, message=FALSE, warning=FALSE, paged.print=FALSE}
-print(sampleInfo$celltype)
-print(sampleInfo$condition)
+print(metadata$celltype)
+print(metadata$condition)
 ```
 Relevel factors !
 ```{r relevel condition factor, message=FALSE, warning=FALSE, paged.print=FALSE}
-levels(sampleInfo$condition) <- c("Young","Aged")
-print(sampleInfo$condition)
+levels(metadata$condition) <- c("Young","Aged")
+print(metadata$condition)
 ```
 
 # Build DESeq object.
 
 ```{r build DESeq, message=FALSE, warning=FALSE, paged.print=FALSE}
-dds <- DESeqDataSetFromMatrix(countData=countdata,
-                              colData=sampleInfo,
+dds <- DESeqDataSetFromMatrix(countData=data,
+                              colData=metadata,
                               design = ~celltype*condition
                               )
 ```
@@ -172,7 +160,7 @@ pheatmap(
 ```{r cell cycle, message=FALSE, warning=FALSE}
 # Get cell cycle genes.
 # Get the data directory
-data_dir <- "/data/processing3/RdeseqCourse/Data/genesets/"
+data_dir <- "../data/genesets/"
 
 # Read count matrix
 cellcycle <- read.table(paste0(data_dir, "KEGG_cellcycle.txt", sep=''),

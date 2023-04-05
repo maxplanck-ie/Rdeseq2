@@ -12,15 +12,3 @@ This tutorial is mainly based on these (public) resources:
 
  - https://hbctraining.github.io/DGE_workshop_salmon_online/
  - http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html
-
-# Flow
-
-  1. Description
-  2. Part_00.rmd
-  3. Part_01.rmd
-  4. Part_02.rmd
-  5. Part_03.rmd
-  6. Part_04.rmd
-  7. a_LFCShrinkage.rmd
-  8. b_outline.rmd
-
