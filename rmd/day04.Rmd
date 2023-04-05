@@ -1,10 +1,14 @@
 ---
 title: "deseq2 - applied"
+author: "Bioinfo-Core @ MPI-IE"
+date: "`r date() `"
 output:
   html_document:
+    theme: cosmo
+    highlight: textmate
     code_folding: hide
     toc: true
-    toc_depth: 2
+    toc_depth: 3
     toc_float: true
     df_print: paged
 ---
@@ -14,6 +18,7 @@ output:
   * Run the DESeq workflow
   * Interpret some of the results.
 
+# Introduction
 Dataset: MPPs
 
 with:
@@ -45,6 +50,8 @@ Hint: a list of cell-cycle genes (KEGG) are available under:
 <span style="color:red">Cave!: rownames in the count object are lowercase-capitalized, the KEGG_cellcycle ones are fully capitalized.</span> 
 
 > Good luck and have fun!
+
+***
 
 # Hands-on
 Load some libraries.
@@ -84,7 +91,7 @@ levels(metadata$condition) <- c("Young","Aged")
 print(metadata$condition)
 ```
 
-# Build DESeq object.
+## 1. Build DESeq object.
 
 ```{r build DESeq, message=FALSE, warning=FALSE, paged.print=FALSE}
 dds <- DESeqDataSetFromMatrix(countData=data,
@@ -93,26 +100,26 @@ dds <- DESeqDataSetFromMatrix(countData=data,
                               )
 ```
 
-# plotPCA
+## 2. plotPCA
 ```{r PCA, message=FALSE, warning=FALSE, paged.print=FALSE}
 plotPCA(rlog(dds, blind=TRUE),
         intgroup=c("celltype", "condition")
         )
 ```
 
-# run DESeq2
+## 3. run DESeq2
 
 ```{r Run deseq, message=FALSE, warning=FALSE, paged.print=FALSE}
 dds <- DESeq(dds)
 ```
 
-# plot dispersion
+## 4. plot dispersion
 
 ```{r Dispersion, message=FALSE, warning=FALSE, paged.print=FALSE}
 plotDispEsts(dds)
 ```
 
-# LRT for age.
+## 5. LRT for age.
 
 ```{r lrt-condition, message=FALSE, warning=FALSE}
 # which model are we interested in as reduced?
@@ -120,7 +127,7 @@ dds_lrt <- DESeq(dds, test="LRT", reduced = ~celltype)
 res_lrt <- results(dds_lrt)
 ```
 
-# results.
+## 6. results.
 ```{r parseResults, message=FALSE, warning=FALSE}
 cleanDF <- function(RESobj){
   RESdf <- data.frame(RESobj) %>%
@@ -134,7 +141,7 @@ res_lrt_clean <- cleanDF(res_lrt)
 head(res_lrt_clean)
 ```
 
-# Look at the 25 genes with lowest p-value.
+## 7. Look at the 25 genes with lowest p-value.
 ```{r heatmap_lrt, message=FALSE, warning=FALSE}
 
 pheatmap(
