@@ -1,7 +1,7 @@
 ---
 title: "DESeq2 Analysis with R: Part 02"
 author: "Mirela Balan"
-#date: "`r date() `"
+date: "`r date() `"
 output:
   html_document:
     code_folding: hide
@@ -9,6 +9,8 @@ output:
     toc_depth: 4
     toc_float: true
     df_print: paged
+    theme: cosmo
+    highlight: textmate
 ---
 
 ## Goals:
@@ -39,28 +41,30 @@ output:
 
 \
 
-``` {r load libs}
+``` {r load_libraries}
+suppressPackageStartupMessages({
+library("tidyverse")
 library("DESeq2")
 library("pheatmap")
 library("ashr")
-library("tidyverse")
+})
 ```
 
 b) Load data and metadata
 
 ```{r load_data, message=FALSE, echo = TRUE, results = 'hide'}
 
-#loading data and metadata (sample sheet) with tidyverse
+#loading data with tidyverse
 data <- readr::read_tsv("../data/myeloma/myeloma_counts.tsv", col_types = cols(gene_id="c", .default= "i"), col_names=TRUE)
+data <- column_to_rownames(data, var="gene_id")
 
+#loading metadata (sample sheet) with tidyverse
 metadata <- readr::read_tsv("../data/myeloma/myeloma_meta.tsv", col_types = list("c", "f", "f"), col_names=TRUE)
-
 # Same as:
 # metadata %>% mutate(celltype = factor(celltype))
 # metadata %>% mutate(condition = factor(condition))
 
-data <- column_to_rownames(data, var="gene_id")
-metadata <- column_to_rownames(metadata, var="sample")
+metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
 
 #preview your data and metadata
 data %>% head()
@@ -68,17 +72,18 @@ data %>% dim()
 
 metadata %>% head()
 metadata %>% dim()
+
+#check if the col and rows are in the same order:
+all(rownames(metadata) == colnames(data))
 ```
+
 
 
 
 c) Make design and create the DDS object
 
 ```{r make_dds_obj, message=FALSE, echo = TRUE, results = 'hide'}
-#check if the col and rows are in the same order:
-all(rownames(metadata) == colnames(data))
-
-#create design
+#create a more complex experimental design
 my_design <- ~celltype + condition
 
 #make dds obj
@@ -95,7 +100,7 @@ dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_desig
 Previously you noticed that the PCA shows a problem with our data. 
 
 ```{r old_PCA, echo=FALSE, out.width = '60%', fig.align="center"}
-#plotPCA is the DESeq2 function to plot automatically your samples on a PCA. However, the images don't look to nice. So we use it to extract the values needed for plotting and then using them with ggplot to get a better PCA.
+#plotPCA is the DESeq2 function to plot automatically your samples on a PCA. However, the images don't look too nice. So we use it to extract the values needed for plotting and then using them with ggplot to get a better PCA.
 
 rld_PCA <- rlog(dds, blind = TRUE) %>% plotPCA(intgroup=c("condition", "celltype"), returnData=TRUE)
 
@@ -306,7 +311,7 @@ par(mfrow = c(1,1))
 
 <center>
 
-![](images/factor_order_comparison.png){width=60%}
+![](images/day2_factor_order_comparison.png){width=60%}
 
 </center>
 
@@ -520,7 +525,7 @@ There are several steps to generating the DE results, and they are wrapped toget
 
 <center>
 
-![](images/expression_model.png){width=80%}
+![](images/day2_expression_model.png){width=80%}
 
 </center>
 
@@ -597,7 +602,7 @@ par(op)
 \
  
 ```{r, echo=FALSE, out.width = '60%', fig.align="center"}
-knitr::include_graphics("images/coverage_depth.png")
+knitr::include_graphics("images/day2_coverage_depth.png")
 ```
  
 \
@@ -608,7 +613,7 @@ knitr::include_graphics("images/coverage_depth.png")
 \
  
 ```{r, echo=FALSE, out.width = '60%', fig.align="center", fig.cap="\\label{fig:figs}(ref: Kumar, 2018, BMC Genomics)"}
-knitr::include_graphics("images/comp_bias.png")
+knitr::include_graphics("images/day2_comp_bias.png")
 ```
  
 \
@@ -650,7 +655,7 @@ NOTE: 'DESeq()' function estimates size factors automatically. But if you *run `
 Why can you do this in 2 different ways? So you can integrate various methods to compensate for sources of bias within the DESeq2 workflow (e.g. *cqn*, *EDASeq*, etc)
 
 ```{r, echo=FALSE, out.width = '80%', fig.align="center"}
-knitr::include_graphics(c("images/expl_size_factors.png"))
+knitr::include_graphics(c("images/day2_expl_size_factors.png"))
 ```
 
 \ 
@@ -680,7 +685,7 @@ dds_clean <- estimateDispersions(dds_clean)
 \
 
 ```{r, echo=FALSE, out.width = '50%', fig.align="center"}
-knitr::include_graphics(c("images/explain_dispersion.png"))
+knitr::include_graphics(c("images/day2_explain_dispersion.png"))
 ```
 
 \
@@ -699,7 +704,7 @@ Bad examples of dispersion plots:
 
 <center>
 ```{r, echo=FALSE, out.width = '60%', fig.align='center'}
-knitr::include_graphics("images/initial_dispersion.png")
+knitr::include_graphics("images/day2_initial_dispersion.png")
 ```
 
 </center>
@@ -792,17 +797,16 @@ dds_res_ordered <- dds_res.1[order(dds_res.1$padj),]     # sort the subset
 
 - why export data?
 ```{r, echo=FALSE, out.width = '70%', fig.align="center"}
-knitr::include_graphics(c("images/analysis_tools.png"))
+knitr::include_graphics(c("images/day2_analysis_tools.png"))
 ```
 
 - you can save your results in a 'tsv' file:
 
-> **Task 9:** Please find the write.csv function and use it to export your data:
+> **Task 9:** Please export your data as a tsv:
 
 ```{r export_results}
 # change the location of the saved file!!
-#wfile="../misc/results.tsv"      # location of data file
-#write.table(dds_res_ordered, file=wfile, col.names=T, row.names = T, sep = "\t", quote=F)  #tab-sep
+write.table(dds_res_ordered, file="day2_results.tsv", col.names=T, row.names = T, sep = "\t", quote=F)  #tab-sep
 #write.csv(dds_res_ordered, file=wfile, row.names=TRUE)                                      #comma-sep
 ```
 
@@ -812,19 +816,19 @@ knitr::include_graphics(c("images/analysis_tools.png"))
   - shiny apps on  MPI-IE website:
 
 ```{r, echo=FALSE, out.width = '80%', fig.align="center"}
-knitr::include_graphics("images/shiny_apps.png")
+knitr::include_graphics("images/day2_shiny_apps.png")
 ```
 
   - ClusterProfiler:
 
 ```{r, echo=FALSE, out.width = '80%', fig.align="center"}
-knitr::include_graphics("images/gene2functions.png")
+knitr::include_graphics("images/day2_gene2functions.png")
 ```
  
   - Ingenuity Pathway Analysis (IPA): tool to help interprete and analyze omics data (e.g. functional enrichment of DEGs)
   
 ```{r, echo=FALSE, out.width = '60%', fig.align="center"}
-knitr::include_graphics("images/ipa_example.jpg")
+knitr::include_graphics("images/day2_ipa_example.jpg")
 ```
 
 

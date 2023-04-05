@@ -34,8 +34,8 @@
   - [ ] get data -> or shared volume if workbench, else download link zip (github?)
 
 ## day 2
-  - [ ] relative path to data folder
-  - [ ] consolidate code w/ day1
+  - [x] relative path to data folder
+  - [x] consolidate code w/ day1
   - [ ] rowsum filtering per 50% of samples, or rowsums > 10, or ?
   - [ ] rename images with day prefix
   - [ ] fix layout + images
