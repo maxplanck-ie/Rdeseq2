@@ -26,7 +26,7 @@
  - [x] harmonize style / custom css ?
 
 ## outline
- - [ ] switch library loads & installs
+ - [x] switch library loads & installs
 
 ## day 2
   - [x] relative path to data folder
