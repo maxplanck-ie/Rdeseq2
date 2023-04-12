@@ -37,7 +37,7 @@ library("ashr")
 
 ```{r read_data, message=FALSE, warning=FALSE}
 # Get the data directory
-dfile <- "../data/myeloma/myeloma_counts.tsv"
+dfile <- "data/myeloma/myeloma_counts.tsv"
 data <- read_tsv(file=dfile)
 data <- data %>% column_to_rownames("gene_id") 
 
@@ -81,16 +81,44 @@ resultsNames(dds)
 
 Design:
 
-      ~1+celltype (or ~celltype)
-      = beta0 + beta1 * BM
+      ~1 + celltype (or ~celltype)
+      expression = beta0 + beta1 * JJ
 
-This results in the coefficient for the intercept and coefficient for the effect of “BM” (i.e. differences between BM vs. JJ). 
+Our coefficients here are our intercept, and condition for our celltype effect versus the base level.
 
-Each coefficient shows a difference (LFC).
+```{r coefplot celltype, echo=FALSE}
+source('funcs.R')
+tdf <- coeflist_to_ggplot(dds, "ENSG00000198932")
+tdf$name <- factor(tdf$name, levels=resultsNames(dds))
+ggplot(data=tdf, aes(x=name, y=value)) +
+  geom_hline(linetype='dashed', aes(yintercept=tdf[[1,2]])) +
+  geom_hline(aes(yintercept=0)) +
+  theme_minimal() + 
+  ggtitle('ENSG00000198932') +
+  ylab("Value") +
+  ylim(c(0,8)) +
+  geom_segment(
+    arrow = arrow(length = unit(0.03, "npc") ),
+    aes(xend=name,yend=c(tdf[[1,2]]-0.4, tdf[[2,2]]-0.4 ), y=c(0, tdf[[1,2]]), color='red')
+  ) +
+  geom_point(size=10) +
+  theme(legend.position = "none") +
+  geom_text(aes(x=name, y=value+1, label=c('β₀', 'β₁')))
+```
+
+
+> **Poll 3.1** What does the intercept value reflect ?
+
+```{r remember_the_levels!}
+dds$celltype
+```
+
+
+
+Each coefficient shows a difference.
 
     [1] "Intercept" (beta0)             "celltype_BM_vs_JJ" (beta1)
 
-![A simple design including celltype ](images/day3_case1.png)
 
 This can be shown by dummy variables:
 
@@ -103,7 +131,7 @@ This can be shown by dummy variables:
 
 Null hypothesis:
 
-    BM vs JJ (AMIL)
+    BM vs JJ
     beta1 = 0
 
 ***
@@ -121,7 +149,7 @@ A single factor with more then two levels.
 
 > **Tasks:** Recreate the dds object, now with a design that incorporates 'condition' (alone!)
 
-> **Poll 3.1** What coefficients do we get when we specify condition alone as a design?
+> **Poll 3.2** What coefficients do we get when we specify 'condition' alone as a design?
 
 ```{r simplefactordesign condition}
 dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~condition)
@@ -129,14 +157,34 @@ dds <- DESeq(dds)
 resultsNames(dds)
 ```
 
+```{r coefplot drug, echo=FALSE}
+source('funcs.R')
+tdf <- coeflist_to_ggplot(dds, "ENSG00000213123")
+tdf$name <- factor(tdf$name, levels=resultsNames(dds))
+
+ggplot(data=tdf, aes(x=name, y=value)) +
+  geom_hline(linetype='dashed', aes(yintercept=tdf[[1,2]])) +
+  geom_hline(aes(yintercept=0)) +
+  theme_minimal() + 
+  ggtitle('ENSG00000213123') +
+  ylab("Value") +
+  geom_point(size=10) +
+  theme(legend.position = "none") +
+  geom_text(aes(x=name, y=c(tdf[[1,2]] + 1, tdf[[2,2]] - 1, tdf[[3,2]] + 1), label=c('β₀', 'β₁', 'β₂'))) +
+  geom_segment(
+     arrow = arrow(length = unit(0.03, "npc") ),
+     aes(xend=name,yend=c(tdf[[1,2]]-0.4, tdf[[2,2]]+0.5, tdf[[3,2]]-0.5 ), y=c(0, tdf[[1,2]], tdf[[1,2]]), color='red')
+   )
+
+```
+
+
 Design:
       ~1+condition
       = beta0 + beta1 * DMSO + beta2 * TG
       beta0 = Intercept
       beta1 = condition_DMSO_vs_AMIL
       beta2 = condition_TG_vs_AMIL
-
-![A simple design including condition ](images/day3_case2.png)
 
 Model matrix:
 
@@ -151,10 +199,10 @@ Model matrix:
 
 Null hypothesis:
 
-    DMSO vs AMIL
+    AMIL vs DMSO
     beta1 = 0
 
-    TG vs AMIL
+    AMIL vs TG
     beta2 = 0
 
     DMSO vs TG
@@ -195,15 +243,52 @@ Design:
       beta4 = celltypeBM.conditionDMSO
       beta5 = celltypeBM.conditionTG
 
+```{r fulldesign}
+dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~celltype+condition+celltype:condition)
+dds <- DESeq(dds)
+resultsNames(dds)
+```
 
-![A full design including celltype and condition ](images/day3_case3.png)
+
+```{r coefplot interactions, echo=FALSE}
+source('funcs.R')
+tdf <- coeflist_to_ggplot(dds, "ENSG00000005102")
+tdf$name <- factor(tdf$name, levels=resultsNames(dds))
+
+ggplot(data=tdf, aes(x=name, y=value)) +
+  geom_hline(linetype='dashed', aes(yintercept=tdf[[1,2]])) +
+  geom_hline(aes(yintercept=0)) +
+  theme_minimal() + 
+  ggtitle('ENSG00000005102') +
+  ylab("Value") +
+  geom_point(size=10) +
+  theme(legend.position = "none") +
+  #theme(axis.text.x = element_text(angle = 90, vjust = 0.25, hjust=1))
+  geom_text(
+    aes(
+      x=name,
+      y=c(tdf[[1,2]] + 1.5, tdf[[2,2]] - 1.5, tdf[[3,2]] - 1.5, tdf[[4,2]] - 1.5, tdf[[5,2]] + 1.5, tdf[[6,2]] + 1.5),
+      label=c('β₀', 'β₁', 'β₂', 'β₃', 'β₄', 'β₅')
+    )
+  ) +
+  geom_segment(
+     arrow = arrow(length = unit(0.03, "npc") ),
+     aes(
+       xend=name,
+       y=c(0, tdf[[1,2]], tdf[[1,2]], tdf[[1,2]], tdf[[1,2]], tdf[[1,2]]),
+       yend=c(tdf[[1,2]]-1, tdf[[2,2]]+1, tdf[[3,2]]+1, tdf[[4,2]]+1, tdf[[5,2]]-1, tdf[[6,2]]-1),
+       color='red'
+     )
+  )
+
+```
 
 Null hypothesis:
 
-    BM vs JJ (AMIL)
+    JJ vs BM (AMIL)
     beta1 = 0
 
-    BM vs JJ (DMSO)
+    JJ vs BM (DMSO)
     beta1 + beta4 = 0
 
     DMSO vs AMIL (BM):
