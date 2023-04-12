@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Wed Apr 5 11:34:34 2023</h4>
+<h4 class="date">Wed Apr 12 15:26:59 2023</h4>
 
 </div>
 
@@ -429,7 +429,7 @@ library(&quot;EnsDb.Hsapiens.v75&quot;)
 library(&quot;UpSetR&quot;)
 library(&quot;ashr&quot;)</code></pre>
 <pre class="r"><code># Get the data directory
-dfile &lt;- &quot;../data/myeloma/myeloma_counts.tsv&quot;
+dfile &lt;- &quot;data/myeloma/myeloma_counts.tsv&quot;
 data &lt;- read_tsv(file=dfile)
 data &lt;- data %&gt;% column_to_rownames(&quot;gene_id&quot;) 
 
@@ -507,16 +507,27 @@ normalized count based on that.</p>
 <pre class="r"><code>resultsNames(dds)</code></pre>
 <pre><code>## [1] &quot;Intercept&quot;         &quot;celltype_JJ_vs_BM&quot;</code></pre>
 <p>Design:</p>
-<pre><code>  ~1+celltype (or ~celltype)
-  = beta0 + beta1 * BM</code></pre>
-<p>This results in the coefficient for the intercept and coefficient for
-the effect of “BM” (i.e. differences between BM vs. JJ).</p>
-<p>Each coefficient shows a difference (LFC).</p>
+<pre><code>  ~1 + celltype (or ~celltype)
+  expression = beta0 + beta1 * JJ</code></pre>
+<p>Our coefficients here are our intercept, and condition for our
+celltype effect versus the base level.</p>
+<pre><code>## Warning: Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.
+## Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.
+## Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[2, 2]]` is discouraged.
+## ℹ Use `.data[[2]]` instead.</code></pre>
+<p><img src="day03_files/figure-html/coefplot%20celltype-1.png" width="672" /></p>
+<blockquote>
+<p><strong>Poll 3.1</strong> What does the intercept value reflect ?</p>
+</blockquote>
+<pre class="r"><code>dds$celltype</code></pre>
+<pre><code>##  [1] JJ BM BM BM BM BM BM JJ JJ JJ JJ JJ BM BM BM JJ JJ JJ
+## Levels: BM JJ</code></pre>
+<p>Each coefficient shows a difference.</p>
 <pre><code>[1] &quot;Intercept&quot; (beta0)             &quot;celltype_BM_vs_JJ&quot; (beta1)</code></pre>
-<div class="figure">
-<img src="images/day3_case1.png" alt="" />
-<p class="caption">A simple design including celltype</p>
-</div>
 <p>This can be shown by dummy variables:</p>
 <table>
 <thead>
@@ -550,7 +561,7 @@ the effect of “BM” (i.e. differences between BM vs. JJ).</p>
 </tbody>
 </table>
 <p>Null hypothesis:</p>
-<pre><code>BM vs JJ (AMIL)
+<pre><code>BM vs JJ
 beta1 = 0</code></pre>
 <hr />
 <p>A single factor with more then two levels.</p>
@@ -593,8 +604,8 @@ beta1 = 0</code></pre>
 that incorporates ‘condition’ (alone!)</p>
 </blockquote>
 <blockquote>
-<p><strong>Poll 3.1</strong> What coefficients do we get when we specify
-condition alone as a design?</p>
+<p><strong>Poll 3.2</strong> What coefficients do we get when we specify
+‘condition’ alone as a design?</p>
 </blockquote>
 <pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~condition)</code></pre>
 <pre><code>## converting counts to integer mode</code></pre>
@@ -607,13 +618,28 @@ condition alone as a design?</p>
 <pre><code>## fitting model and testing</code></pre>
 <pre class="r"><code>resultsNames(dds)</code></pre>
 <pre><code>## [1] &quot;Intercept&quot;              &quot;condition_DMSO_vs_AMIL&quot; &quot;condition_TG_vs_AMIL&quot;</code></pre>
+<pre><code>## Warning: Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.
+## Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[2, 2]]` is discouraged.
+## ℹ Use `.data[[2]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[3, 2]]` is discouraged.
+## ℹ Use `.data[[3]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.
+## Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.
+## Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[2, 2]]` is discouraged.
+## ℹ Use `.data[[2]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[3, 2]]` is discouraged.
+## ℹ Use `.data[[3]]` instead.</code></pre>
+<p><img src="day03_files/figure-html/coefplot%20drug-1.png" width="672" /></p>
 <p>Design: ~1+condition = beta0 + beta1 * DMSO + beta2 * TG beta0 =
 Intercept beta1 = condition_DMSO_vs_AMIL beta2 =
 condition_TG_vs_AMIL</p>
-<div class="figure">
-<img src="images/day3_case2.png" alt="" />
-<p class="caption">A simple design including condition</p>
-</div>
 <p>Model matrix:</p>
 <table>
 <thead>
@@ -664,10 +690,10 @@ condition_TG_vs_AMIL</p>
 </tbody>
 </table>
 <p>Null hypothesis:</p>
-<pre><code>DMSO vs AMIL
+<pre><code>AMIL vs DMSO
 beta1 = 0
 
-TG vs AMIL
+AMIL vs TG
 beta2 = 0
 
 DMSO vs TG
@@ -761,15 +787,61 @@ as the effect of celltype on the condition (celltype:condtion)</p>
   beta3 = condition_TG_vs_AMIL
   beta4 = celltypeBM.conditionDMSO
   beta5 = celltypeBM.conditionTG</code></pre>
-<div class="figure">
-<img src="images/day3_case3.png" alt="" />
-<p class="caption">A full design including celltype and condition</p>
-</div>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~celltype+condition+celltype:condition)</code></pre>
+<pre><code>## converting counts to integer mode</code></pre>
+<pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
+<pre><code>## estimating size factors</code></pre>
+<pre><code>## estimating dispersions</code></pre>
+<pre><code>## gene-wise dispersion estimates</code></pre>
+<pre><code>## mean-dispersion relationship</code></pre>
+<pre><code>## final dispersion estimates</code></pre>
+<pre><code>## fitting model and testing</code></pre>
+<pre class="r"><code>resultsNames(dds)</code></pre>
+<pre><code>## [1] &quot;Intercept&quot;                &quot;celltype_JJ_vs_BM&quot;       
+## [3] &quot;condition_DMSO_vs_AMIL&quot;   &quot;condition_TG_vs_AMIL&quot;    
+## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
+<pre><code>## Warning: Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.
+## Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[2, 2]]` is discouraged.
+## ℹ Use `.data[[2]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[3, 2]]` is discouraged.
+## ℹ Use `.data[[3]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[4, 2]]` is discouraged.
+## ℹ Use `.data[[4]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[5, 2]]` is discouraged.
+## ℹ Use `.data[[5]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[6, 2]]` is discouraged.
+## ℹ Use `.data[[6]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.
+## Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.
+## Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.
+## Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.
+## Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.
+## Use of `tdf[[1, 2]]` is discouraged.
+## ℹ Use `.data[[1]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[2, 2]]` is discouraged.
+## ℹ Use `.data[[2]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[3, 2]]` is discouraged.
+## ℹ Use `.data[[3]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[4, 2]]` is discouraged.
+## ℹ Use `.data[[4]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[5, 2]]` is discouraged.
+## ℹ Use `.data[[5]]` instead.</code></pre>
+<pre><code>## Warning: Use of `tdf[[6, 2]]` is discouraged.
+## ℹ Use `.data[[6]]` instead.</code></pre>
+<p><img src="day03_files/figure-html/coefplot%20interactions-1.png" width="672" /></p>
 <p>Null hypothesis:</p>
-<pre><code>BM vs JJ (AMIL)
+<pre><code>JJ vs BM (AMIL)
 beta1 = 0
 
-BM vs JJ (DMSO)
+JJ vs BM (DMSO)
 beta1 + beta4 = 0
 
 DMSO vs AMIL (BM):

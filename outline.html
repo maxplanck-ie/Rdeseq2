@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: outline</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Wed Apr 5 11:37:23 2023</h4>
+<h4 class="date">Wed Apr 12 15:30:42 2023</h4>
 
 </div>
 
@@ -408,17 +408,9 @@ div.tocify {
 <h1>Libraries</h1>
 <p>We will use a couple of libraries in this course. We have to make
 sure these are installed. These installations can take a while. So it’s
-best to tackle this first.</p>
-<p>You can check which packages need to be installed:</p>
-<pre class="r"><code>library(&quot;DESeq2&quot;)
-library(&quot;tidyverse&quot;)
-library(&quot;pheatmap&quot;)
-library(&quot;ggrepel&quot;)
-library(&quot;EnsDb.Hsapiens.v75&quot;)
-library(&quot;UpSetR&quot;)
-library(&quot;ashr&quot;)</code></pre>
-<p>In case you need to still need these libaries, this code chunk below
-can be used as an example.</p>
+best to tackle this first. The following code chunk will checks if a
+required library is available and will attempt to install it if this is
+not the case.</p>
 <pre class="r"><code># Bioconductor
 if (!require(&quot;BiocManager&quot;, quietly = TRUE))
     install.packages(&quot;BiocManager&quot;)
@@ -438,6 +430,15 @@ if (!require(&quot;UpSetR&quot;, quietly = TRUE))
     install.packages(&quot;UpSetR&quot;)
 if (!require(&quot;ashr&quot;, quietly = TRUE))
     install.packages(&quot;ashr&quot;)</code></pre>
+<p>After running the above chunk, make sure the libraries can be
+loaded:</p>
+<pre class="r"><code>library(&quot;DESeq2&quot;)
+library(&quot;tidyverse&quot;)
+library(&quot;pheatmap&quot;)
+library(&quot;ggrepel&quot;)
+library(&quot;EnsDb.Hsapiens.v75&quot;)
+library(&quot;UpSetR&quot;)
+library(&quot;ashr&quot;)</code></pre>
 <hr />
 </div>
 <div id="what-you-will-hopefully-learn" class="section level1">
