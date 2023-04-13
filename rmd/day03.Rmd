@@ -86,7 +86,7 @@ Design:
 
 Our coefficients here are our intercept, and condition for our celltype effect versus the base level.
 
-```{r coefplot celltype, echo=FALSE}
+```{r coefplot celltype, echo=FALSE, warning=FALSE}
 source('funcs.R')
 tdf <- coeflist_to_ggplot(dds, "ENSG00000198932")
 tdf$name <- factor(tdf$name, levels=resultsNames(dds))
@@ -157,7 +157,7 @@ dds <- DESeq(dds)
 resultsNames(dds)
 ```
 
-```{r coefplot drug, echo=FALSE}
+```{r coefplot drug, echo=FALSE, warning=FALSE}
 source('funcs.R')
 tdf <- coeflist_to_ggplot(dds, "ENSG00000213123")
 tdf$name <- factor(tdf$name, levels=resultsNames(dds))
@@ -250,7 +250,7 @@ resultsNames(dds)
 ```
 
 
-```{r coefplot interactions, echo=FALSE}
+```{r coefplot interactions, echo=FALSE, fig.width=10, fig.height=7, warning=FALSE}
 source('funcs.R')
 tdf <- coeflist_to_ggplot(dds, "ENSG00000005102")
 tdf$name <- factor(tdf$name, levels=resultsNames(dds))
