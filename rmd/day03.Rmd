@@ -42,7 +42,7 @@ data <- read_tsv(file=dfile)
 data <- data %>% column_to_rownames("gene_id") 
 
 # Read samplesheet , detects conditions, generate the formula
-mfile <- "../data/myeloma/myeloma_meta.tsv"
+mfile <- "data/myeloma/myeloma_meta.tsv"
 metadata <- read_tsv(file=mfile)
 metadata <- metadata %>% column_to_rownames("sample") 
 
@@ -285,24 +285,21 @@ ggplot(data=tdf, aes(x=name, y=value)) +
 
 Null hypothesis:
 
-    JJ vs BM (AMIL)
+    BM vs JJ (AMIL!)
     beta1 = 0
 
-    JJ vs BM (DMSO)
+    BM vs JJ (DMSO!)
     beta1 + beta4 = 0
 
-    DMSO vs AMIL (BM):
+    AMIL vs DMSO (BM):
     beta2 = 0
 
-    TG vs DMSO (BM):
+    DMSO vs TG (BM):
     beta2 + beta3 = 0
-
-    Interaction:
-    beta5 = 0
    
 **Reminder**: The levels of your factors define which 'baseline' will be used, and thus what coefficients you will have!
 
-* Multi-factor design with increasing complexity are nicely explained in these [slides](https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing)
+* Multi-factor design with increasing complexity are nicely explained in Hugo Tavares' [slides](https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing)
 
 ## 3. Recap
 
@@ -318,34 +315,19 @@ dds <- dds[, -c(1,7)]                   # sample filtering
 dds <- dds[counts(dds) %>% rowSums() > 1, ]  # gene filtering
 ```
 
-### Size factors
-DESeq2 automatically estimates the size factors when performing the differential expression analysis. However, if `estimateSizeFactors()` is called, then DESeq2 will use these values.
-To normalize the count data, DESeq2 calculates size factors for each sample using the "median of ratios" method.
-
 ```{r estimate size factors, message=FALSE, warning=FALSE}
 dds <- estimateSizeFactors(dds)
+sizeFactors(dds)
 ```
 
-> **Poll 3.2** What is the relation between the size factors and the sequencing depth of a sample?
+**Reminder**: Note that you can intervene at this stage to override the size factor calculation (for example with spike in calculated size factors).
 
-```{r colsums, message=FALSE, warning=FALSE, eval=FALSE}
-seq_depth <- colSums(counts(dds))
-plot( sizeFactors(dds),  seq_depth)
-```
-
-
-### Dispersion estimation
-DESeq2 uses a measure of variation called dispersion, which accounts for a gene’s variance and mean expression level. Dispersion is calculated by `Var = μ + α*μ^2`, where `α` = dispersion, `Var` = variance, and `μ` = mean
 ```{r estimate dispersions, message=FALSE, warning=FALSE}
 dds <- estimateDispersions(dds)
 ```
 
-```{r Visualise dispersions, message=FALSE, warning=FALSE}
-# Visualise dispersion
-plotDispEsts(dds)
-```
+### Or everything in 1 go
 
-### Get all the steps for free!
 ```{r deseq analysis, message=FALSE, warning=FALSE}
 dds <- DESeq(dds)
 ```
@@ -361,33 +343,25 @@ By default DESeq2 uses the Wald test to identify genes that are differentially e
   * z-statistic is compared to a standard normal distribution to compute the p-values,
   * P values are adjusted for multiple testing using the procedure of Benjamini and Hochberg.
 
-Raw P-value distribution
+P-value distribution
 ```{r pvalue, eval=TRUE, message=FALSE, warning=FALSE}
-    res.df <- results(dds) %>% data.frame() %>% drop_na
-    ggplot(res.df) +
-        geom_histogram(aes(res.df$pvalue, fill = "a"), colour = "grey20", alpha = 0.5, stat = "bin") +
-        xlab("p-value") +
-        # geom_histogram(aes(res.df$padj, fill = "b"), colour = "grey20", alpha = 0.5, stat = "bin") +
-        scale_fill_manual(name = "group", values = c("a" = "steelblue"), labels = "p-value") +
-        geom_vline(xintercept = 0.05, colour = "red")
-```
-
-Adjusted P-value distribution
-```{r adjpvalue, eval=TRUE, message=FALSE, warning=FALSE}
-    ggplot(res.df) +
-        geom_histogram(aes(res.df$padj, fill = "a"), colour = "grey20", alpha = 0.5, stat = "bin") +
-        xlab("adj p-value") +
-        # geom_histogram(aes(res.df$padj, fill = "b"), colour = "grey20", alpha = 0.5, stat = "bin") +
-        scale_fill_manual(name = "group", values = c("a" = "steelblue"), labels = "padj") +
-        geom_vline(xintercept = 0.05, colour = "red")
+res.df <- results(dds) %>% data.frame() %>% drop_na
+ggplot(res.df) +
+    geom_histogram(aes(res.df$pvalue, fill = "a"), colour = "grey20", alpha = 0.5, stat = "bin") +
+    xlab("p-value") +
+    # geom_histogram(aes(res.df$padj, fill = "b"), colour = "grey20", alpha = 0.5, stat = "bin") +
+    scale_fill_manual(name = "group", values = c("a" = "steelblue"), labels = "p-value") +
+    geom_vline(xintercept = 0.05, colour = "red") +
+    theme_minimal()
 ```
 
 A frequently asked question is: 'Why is my padj 'NA' but my p-values are significant ? It's my favorite gene!'
 
 There are three reasons to set p-values to NA (From the [DESeq2 vignette](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pvaluesNA))
-   * within a row, all samples have zero counts
-   * a row contains a sample with an extreme count outlier.
-   * A row is filtered by automatic filtering
+
+   * within a row, all samples have zero counts  
+   * a row contains a sample with an extreme count outlier.  
+   * A row is filtered by automatic filtering  
 
 ```{r showres}
 head(res.df)
@@ -419,9 +393,9 @@ Let's start with the first option.
 
 ```{r contrast, message=FALSE, warning=FALSE}
 resultsNames(dds) # to see what names to use
-contrast <- c("celltype", "JJ", "BM")
+contrast <- c("condition", "AMIL", "DMSO")
 res <- results(dds, contrast = contrast, alpha = 0.05)
-class(res)
+res
 # What is in the results?
 res %>% data.frame() %>% head() %>% drop_na()
 ```
@@ -441,19 +415,15 @@ Columns of results dataframe:
   * padj: BH adjusted p-values
 
 ```{r plot norm_count vs p values}
-plot(res$baseMean+1, -log10(res$padj),
-     log="x", xlab="mean of normalized counts",
-     ylab=expression(-log[10](pvalue)),
-     ylim=c(0,30),
-     cex=.4, col=rgb(0,0,0,.3))
+ggplot(data=res %>% data.frame()) +
+  geom_point(size=0.5, aes(x=log10(baseMean+1), y=-log10(padj))) +
+  theme_minimal()
 ```
 
 ```{r plot l2fc vs p values}
-plot(res$log2FoldChange, -log10(res$padj),
-     log="x", xlab="mean of normalized counts",
-     ylab=expression(-log[10](pvalue)),
-     ylim=c(0,30),
-     cex=.4, col=rgb(0,0,0,.3))
+ggplot(data=res %>% data.frame()) +
+  geom_point(size=0.5, aes(x=log2FoldChange, y=-log10(padj))) +
+  theme_minimal()
 ```
 
 
@@ -483,9 +453,15 @@ The specifics about these methods is beyond the scope of this course.
 **Recommendation**: ashr works for most (if not all) setups, including contrasts.
 
 ```{r MA plot, message=FALSE, warning=FALSE}
-# MA plot
-plotMA(res, ylim=c(-2,2))
-plotMA(res_shrink, ylim=c(-2,2))
+
+ggplot(data=res %>% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldChange)) +
+  geom_point(size=0.5, color=ifelse(data.frame(res)$padj < 0.05, 'red', 'black')) +
+  theme_minimal()
+
+ggplot(data=res_shrink %>% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldChange)) +
+  geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj < 0.05, 'red', 'black')) +
+  theme_minimal()
+
 ```
 
 ***
@@ -506,28 +482,36 @@ plotMA(res_shrink, ylim=c(-2,2))
 plotCounts(dds, gene = "ENSG00000164062", intgroup = "celltype")
 # To see the data underneath the figure
 d <- plotCounts(dds, gene = "ENSG00000164062", intgroup = "celltype", returnData=TRUE)
-#d %>% View()
+d %>% head()
 # can be used for ggplot
 ggplot(d, aes(x = celltype, y = count, color = celltype)) +
     geom_point(position=position_jitter(w = 0.1,h = 0)) +
     geom_text_repel(aes(label = rownames(d))) +
-    theme_bw() +
+    theme_minimal() +
     ggtitle("ENSG00000164062") +
     theme(plot.title = element_text(hjust = 0.5))
 ```
 
   * Make a heatmap of several (or all) significant genes
     
-    I. Extract the normalized values of the top 20 significant genes (based on padj) and plot a heatmap of their expression using `pheatmap()`.
-      
-      (Hint: You can use 'subset' to extract the top genes from the filtered and sorted significant genes which you generated before.)
+> **Task**: Plot a heatmap of the normalised counts for the 'top 20' genes from our previously generated results table.
+
+  * convert the res_shrink object to a dataframe ( data.frame() ), sort by padj( arrange() ), take the top 20 ( head() )
+  * Extract the normalised (!) counts from the dds object and convert to dataframe ( counts(dds) )
+  * subset the dataframe with normalised counts for the gene ID's in the top20 ( filter() )
+  * plot with pheatmap, note that you can scale the values per row (scale='row')!
+
+**Reminder**: Some function between ensembldb (part of EnsDb.Hsapiens.v79) and dplyr overlap. Explicitely state the library when calling them to avoid errors.
+
 
 ```{r heatmap, message=FALSE, warning=FALSE}
-res_sig <- subset(res_shrink, padj<0.05)
-res_sig_sorted = res_sig[order(res_sig$padj), ]
-normalized_counts <- counts(dds, normalized=T)
-norm_sig <- subset(normalized_counts, row.names(normalized_counts) %in% row.names(res_sig_sorted))
-pheatmap(norm_sig[1:20,],
+top20 <- res_shrink %>% data.frame() %>% subset(padj < 0.05) %>% arrange(padj, descending=FALSE) %>% head(20)
+head(top20)
+normcounts <- counts(dds, normalized=TRUE) %>% data.frame()
+head(normcounts)
+top20_counts <- normcounts %>% dplyr::filter(rownames(normcounts) %in% rownames(top20))
+head(top20_counts)
+pheatmap(top20_counts,
          cluster_rows = T,
          show_rownames = F,
          border_color = NA,
@@ -544,20 +528,11 @@ pheatmap(norm_sig[1:20,],
   I. Generate a volcano plot of your result and color the siginificant genes differently
     
 ```{r volcano plot, message=FALSE, warning=FALSE}
-volcano_xlim <- max(abs(quantile(na.omit(res_shrink$log2FoldChange),p= c(0.01, 0.99)) ) )
-volcano_ylim <- quantile(-log(na.omit(res_shrink$padj) ), p = 0.7)
-sig_data <- res_shrink[which(res_shrink$padj < 0.05),]
-print(ggplot(res_shrink%>% data.frame(), aes(log2FoldChange, -log(padj))) +
-            geom_point(alpha = 0.4, size = 1, colour = "grey50") +
-            scale_x_continuous(limits = c(-volcano_xlim, volcano_xlim)) +
-            scale_y_continuous(limits = c(0, volcano_ylim) ) +
-            geom_vline(xintercept = 0, col = "navy") +
-            geom_point(data = sig_data%>% data.frame(), aes(log2FoldChange, -log(padj)), alpha = 0.6, size = 1, colour = "red" ) +
-            theme_bw(base_size = 14) +
-            labs(x = "log2-fold change",
-                 y = "-log (padj)",
-                 title = sprintf("Volcano plot"))
-    )
+ggplot(data=res_shrink %>% data.frame(), aes(x=log2FoldChange, -log10(padj))) +
+  geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj < 0.05, 'red', 'black')) +
+  ylim(c(0,10)) +
+  theme_minimal()
+
 ```
 
 
@@ -580,25 +555,26 @@ Columns relevant to the LRT test:
 * pvalue: the stat value is compared to a chi-squared distribution to generate a pvalue
 * padj: BH adjusted p-values
 
-```{r detect lrt sig genes, message=FALSE, warning=FALSE}
-sig_res_lrt <- res_lrt %>%
-               data.frame() %>%
-               rownames_to_column(var="gene") %>%
-               drop_na() %>%
-               dplyr::filter(padj < 0.05)
-head(sig_res_lrt)
-# Get sig gene lists
-sig_lrt_genes <- sig_res_lrt %>%
-                pull(gene)
-length(sig_lrt_genes)
-```
+**Reminder**: Note that the l2FC/lfcSE is again from our last coefficient ! (and thus doesn't tell us anything in this case).
 
-```{r heatmap of sig_lrt_genes}
-normalized_counts <- counts(dds, normalized=T)
-norm_lrt_sig <- subset(normalized_counts, row.names(normalized_counts) %in% sig_lrt_genes)
-pheatmap(norm_lrt_sig,
+```{r detect lrt sig genes and plot heatmap, message=FALSE, warning=FALSE}
+sig_res_lrt <- res_lrt %>% data.frame() %>% rownames_to_column(var="gene") %>% drop_na() %>% dplyr::filter(padj < 0.05) %>% arrange(padj, descending=FALSE)
+nrow(sig_res_lrt)
+
+lrtcounts <- normcounts %>% subset(rownames(normcounts) %in% sig_res_lrt$gene)
+
+pheatmap(lrtcounts,
          cluster_rows = T,
-         kmeans_k = 3,
+         show_rownames = F,
+         border_color = NA,
+         fontsize = 10,
+         scale = "row",
+         fontsize_row = 10,
+         height = 20)
+
+pheatmap(lrtcounts,
+         cluster_rows = T,
+         kmeans_k = 10,
          show_rownames = F,
          border_color = NA,
          fontsize = 10,
@@ -662,14 +638,18 @@ Extract TG vs AMIL:
 
 ```{r extract TG vs AMIL, message=FALSE, warning=FALSE}
 TGvAMIL <- lfcShrink(dds, contrast = c('condition', 'TG', 'AMIL'), type="ashr")
-head( data.frame(TGvAMIL) )
+head( TGvAMIL %>% data.frame() )
 
 
 # or
 
 TGvAMIL <- lfcShrink(dds, contrast = c(0,0,0,1,0,0), type="ashr")
-head( data.frame(TGvAMIL) )
+head( TGvAMIL %>% data.frame() )
 ```
+
+
+> ! Make sure you have the 'TGvAMIL' results object.
+
 
 > **Poll 3.4**:
 > Given our contrast c('condition', 'TG', 'AMIL'), what would a (significant) positive foldchange correspond to ?
@@ -713,6 +693,9 @@ print(JJ_TG - JJ_AMIL)
 TGvAMIL_JJ <- lfcShrink(dds, contrast = JJ_TG - JJ_AMIL, type="ashr")
 ```
 
+> ! Make sure you have the 'TGvAMIL_JJ' results object.
+
+
 ```{r a more complex comparison, message=FALSE, warning=FALSE}
 
 # we'd like to condition TG in cellType JJ
@@ -731,14 +714,18 @@ print(compl1 - compl2)
 
 ## 5. Clean & Annotate
 
-One more 'issue' we need to tackle: we only have transcript IDs, not actual gene names. There are a couple of packages that take care of the conversion, and one of the most used is [biomaRt](https://bioconductor.org/packages/release/bioc/html/biomaRt.html). For this course we won't rely on it, since it uses an API (and we'll probably get blocked). An alternative is the [org.Hs.eg.db](https://bioconductor.org/packages/release/data/annotation/html/org.Hs.eg.db.html) package, which keeps all needed files locally (note the Hs stands for Homo Sapiens, and thus can only be used for this matter. As you probably guessed, for most model organisms there is a package like this (mm, sp, ...) ). Since the data is processed with GRCh37, we will use the following database: "EnsDb.Hsapiens.v75". How to utilize these libraries differs from library to library, but is usually pretty well documented.
+ * we only have transcript IDs, not actual gene names.
+ * Commonly used package to convert between them is [biomaRt](https://bioconductor.org/packages/release/bioc/html/biomaRt.html). 
+ * Alternatively (without API/internet) is [org.Hs.eg.db](https://bioconductor.org/packages/release/data/annotation/html/org.Hs.eg.db.html) package.
+
+**Reminder**: Hs -> Homo Sapiens. As you probably guessed, for most model organisms there is a package like this (mm, sp, ...) ). Since the data is processed with GRCh37, we will use the following database: "EnsDb.Hsapiens.v75"
 
 In our case we can use:
 
 
-> ensembldb::select(EnsDb.Hsapiens.v79, keys= ensemble, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
+> ensembldb::select(EnsDb.Hsapiens.v75, keys= ensemble, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
 
-Cave! Some function between ensembldb (part of EnsDb.Hsapiens.v79) and dplyr overlap. Explicitely state the library when calling them to avoid errors.
+**Reminder**: Some function between ensembldb (part of EnsDb.Hsapiens.v79) and dplyr overlap. Explicitely state the library when calling them to avoid errors.
 
 Remember. With our contrast juggling we have 2 results objects ('Large DESeqResults').
 
@@ -746,13 +733,17 @@ TGvAMIL (for BM cells).
 TGvAMIL_JJ (for JJ cells).
 
 
-> **Task**: Treat both result objects as such that we have we get (1) a dataframe that (2) has genes with baseMean 0 removed and, (3) rows with 'NA' filtered out and (4) sorted (ascending) by adjusted p-value. If you are feeling brave, make sure this dataframe has an additional column ("gene_symbol") that contains the gene name. A true R-superhero will wrap these operations in a single function.
+> **Task**: Clean our results classes (TGvAMIL & TGvAMIL_JJ)
+
+  * convert the results object into a dataframe
+  * remove the na values from the dataframe
+  * Sort the dataframe by adjusted p value
+  * if you are feeling brave, you can wrap these operations in a function!
 
 
 ```{r parseResults, message=FALSE, warning=FALSE}
 cleanDF <- function(RESobj){
   RESdf <- data.frame(RESobj) %>%
-    dplyr::filter(baseMean > 0) %>%
     drop_na() %>%
     arrange(padj)
   RESdf$gene_symbol <- ensembldb::select(EnsDb.Hsapiens.v75, keys = rownames(RESdf),
@@ -762,41 +753,33 @@ cleanDF <- function(RESobj){
 
 TGvAMIL_JJ_cleaned <- cleanDF(TGvAMIL_JJ)
 TGvAMIL_BM_cleaned <- cleanDF(TGvAMIL)
+```
 
+``` {r plot_cleanedresults, message=FALSE, warning=FALSE}
 # Plot Zscores for top20 hits.
 pheatmap(
-  counts(dds, normalized=TRUE)[head( rownames(TGvAMIL_JJ_cleaned) , n=20), c("JJ_AMIL_1",
-                                                                             "JJ_AMIL_2",
-                                                                             "JJ_AMIL_3",
-                                                                             "JJ_TG_1",
-                                                                             "JJ_TG_2",
-                                                                             "JJ_TG_3")],
+  normcounts %>% subset(rownames(normcounts) %in% rownames(head(TGvAMIL_JJ_cleaned, 20))) %>% dplyr::select(8,9,10,14,15,16),
   scale = 'row',
   main='TG v AMIL - JJ',
-  labels_row = paste0(head(TGvAMIL_JJ_cleaned$gene_symbol, n=20), ' ', head(rownames(TGvAMIL_JJ_cleaned), n=20 ))
+  labels_row = TGvAMIL_JJ_cleaned %>% head(20) %>% pull('gene_symbol')
 )
 
 pheatmap(
-  counts(dds, normalized=TRUE)[head( rownames(TGvAMIL_BM_cleaned) , n=20), c("BM_AMIL_1",
-                                                                             "BM_AMIL_2",
-                                                                             "BM_AMIL_3",
-                                                                             "BM_TG_1",
-                                                                             "BM_TG_2",
-                                                                             "BM_TG_3")],
+  normcounts %>% subset(rownames(normcounts) %in% rownames(head(TGvAMIL_BM_cleaned, 20))) %>% dplyr::select(3,4,5,11,12,13),
   scale = 'row',
   main='TG v AMIL - BM',
-  labels_row = paste0(head(TGvAMIL_BM_cleaned$gene_symbol, n=20), ' ', head(rownames(TGvAMIL_BM_cleaned), n=20 ))
-  )
+  labels_row = TGvAMIL_JJ_cleaned %>% head(20) %>% pull('gene_symbol')
+)
 ```
 
 To look at the overlaps:
 
 ```{r UpsetPlot, message = FALSE, warning = FALSE}
 upsetList <- list(
-  "BM - Up" = rownames( TGvAMIL_BM_cleaned[ (TGvAMIL_BM_cleaned$log2FoldChange > 2) & (TGvAMIL_BM_cleaned$padj < 0.05),] ),
-  "BM - Down" = rownames( TGvAMIL_BM_cleaned[ (TGvAMIL_BM_cleaned$log2FoldChange < -2) & (TGvAMIL_BM_cleaned$padj < 0.05),] ),
-  "JJ - Up" = rownames( TGvAMIL_JJ_cleaned[ (TGvAMIL_JJ_cleaned$log2FoldChange > 2) & (TGvAMIL_JJ_cleaned$padj < 0.05),] ),
-  "JJ - Down" = rownames( TGvAMIL_JJ_cleaned[ (TGvAMIL_JJ_cleaned$log2FoldChange < -2) & (TGvAMIL_JJ_cleaned$padj < 0.05),] )
+  "BM - Up" = TGvAMIL_BM_cleaned %>% subset( (padj < 0.05) & log2FoldChange > 2 ) %>% rownames(),
+  "BM - Down" = TGvAMIL_BM_cleaned %>% subset( (padj < 0.05) & log2FoldChange < -2 ) %>% rownames(),
+  "JJ - Up" = TGvAMIL_JJ_cleaned %>% subset( (padj < 0.05) & log2FoldChange > 2 ) %>% rownames(),
+  "JJ - Down" = TGvAMIL_JJ_cleaned %>% subset( (padj < 0.05) & log2FoldChange < -2 ) %>% rownames()
   )
 
 upset(fromList(upsetList), order.by = "freq")
@@ -807,56 +790,43 @@ upset(fromList(upsetList), order.by = "freq")
 Finally, look at two specific geneSets.
  - genes involved in splicing
  - genes involved in apoptosis
+ 
+ Note that we will read in the txt files as a vector (with gene symbols.
 
 ```{r Pathways, message = FALSE, warning = FALSE}
-data_dir <- "../data/genesets/"
-kegg_apoptosis <-  read.table(paste0(data_dir, "KEGG_apoptosis.txt", sep=''),
-                          header=FALSE, stringsAsFactor = F)
-kegg_apoptosis <- kegg_apoptosis$V1
 
-kegg_spliceosome <-  read.table(paste0(data_dir, "KEGG_spliceosome.txt", sep=''),
-                          header=FALSE, stringsAsFactor = F)
-kegg_spliceosome <- kegg_spliceosome$V1
+keggf <- 'data/genesets/KEGG_apoptosis.txt'
+splicef <- 'data/genesets/KEGG_spliceosome.txt'
+
+kegg_apoptosis <- read_tsv(file=keggf, col_names = FALSE)
+kegg_apoptosis <- kegg_apoptosis$X1
+
+kegg_spliceosome <- read_tsv(file=splicef, col_names = FALSE)
+kegg_spliceosome <- kegg_spliceosome$X1
+kegg_spliceosome %>% head()
 
 retIDsfromSymbolList <- function(df, symbols){
-  return(rownames(df[(df$gene_symbol %in% symbols) & (df$padj < 0.05),]) )
+  return(df %>% subset(gene_symbol %in% symbols) %>% subset(padj < 0.05) %>% rownames())
 }
 
 # spliceosome
 
 pheatmap(
-  counts(dds, normalized=TRUE)[retIDsfromSymbolList(TGvAMIL_BM_cleaned,
-                                                    kegg_spliceosome), c("BM_CTRL_2",
-                                                                         "BM_CTRL_3",
-                                                                         "BM_AMIL_1",
-                                                                         "BM_AMIL_2",
-                                                                         "BM_AMIL_3",
-                                                                         "BM_TG_1",
-                                                                         "BM_TG_2",
-                                                                         "BM_TG_3")],
+  normcounts %>% subset(rownames(normcounts) %in% retIDsfromSymbolList(TGvAMIL_BM_cleaned, kegg_spliceosome)) %>% dplyr::select(3,4,5,11,12,13),
   scale = 'row',
   main='TG v AMIL - BM : spliceosome',
-  fontsize=5,
-  labels_row = TGvAMIL_BM_cleaned[(TGvAMIL_BM_cleaned$gene_symbol %in% kegg_spliceosome) & (TGvAMIL_BM_cleaned$padj < 0.05),]$gene_symbol
+  fontsize=5
 )
 
 # Apoptosis
 
 pheatmap(
-  counts(dds, normalized=TRUE)[retIDsfromSymbolList(TGvAMIL_BM_cleaned,
-                                                    kegg_apoptosis), c("BM_CTRL_2",
-                                                                         "BM_CTRL_3",
-                                                                         "BM_AMIL_1",
-                                                                         "BM_AMIL_2",
-                                                                         "BM_AMIL_3",
-                                                                         "BM_TG_1",
-                                                                         "BM_TG_2",
-                                                                         "BM_TG_3")],
+  normcounts %>% subset(rownames(normcounts) %in% retIDsfromSymbolList(TGvAMIL_BM_cleaned, kegg_apoptosis)) %>% dplyr::select(3,4,5,11,12,13),
   scale = 'row',
   main='TG v AMIL - BM : apoptosis',
-  fontsize=5,
-  labels_row = TGvAMIL_BM_cleaned[(TGvAMIL_BM_cleaned$gene_symbol %in% kegg_apoptosis) & (TGvAMIL_BM_cleaned$padj < 0.05),]$gene_symbol
+  fontsize=5
 )
+
 ```
 
 
@@ -882,37 +852,18 @@ write.table(res_lrt_clean, file="lrtResults.tsv", quote = FALSE, sep = "\t")
 
 # spliceosome
 pheatmap(
-  counts(dds, normalized=TRUE)[retIDsfromSymbolList(res_lrt_clean,
-                                                    kegg_spliceosome), c("BM_CTRL_2",
-                                                                         "BM_CTRL_3",
-                                                                         "BM_AMIL_1",
-                                                                         "BM_AMIL_2",
-                                                                         "BM_AMIL_3",
-                                                                         "BM_TG_1",
-                                                                         "BM_TG_2",
-                                                                         "BM_TG_3"
-                                                                         )],
+  normcounts %>% subset(rownames(normcounts) %in% retIDsfromSymbolList(res_lrt_clean, kegg_spliceosome)),
   scale = 'row',
   main='LRT : spliceosome',
-  fontsize=5,
-  labels_row = res_lrt_clean[(res_lrt_clean$gene_symbol %in% kegg_spliceosome) & (res_lrt_clean$padj < 0.05),]$gene_symbol
+  fontsize=5
 )
 
 # Apoptosis
 pheatmap(
-  counts(dds, normalized=TRUE)[retIDsfromSymbolList(res_lrt_clean,
-                                                    kegg_apoptosis), c("BM_CTRL_2",
-                                                                         "BM_CTRL_3",
-                                                                         "BM_AMIL_1",
-                                                                         "BM_AMIL_2",
-                                                                         "BM_AMIL_3",
-                                                                         "BM_TG_1",
-                                                                         "BM_TG_2",
-                                                                         "BM_TG_3")],
+  normcounts %>% subset(rownames(normcounts) %in% retIDsfromSymbolList(res_lrt_clean, kegg_apoptosis)),
   scale = 'row',
   main='LRT : apoptosis',
-  fontsize=5,
-  labels_row = TGvAMIL_BM_cleaned[(res_lrt_clean$gene_symbol %in% kegg_apoptosis) & (res_lrt_clean$padj < 0.05),]$gene_symbol
+  fontsize=5
 )
 
 ```
