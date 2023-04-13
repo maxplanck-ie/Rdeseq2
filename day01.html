@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 01</h1>
 <h4 class="author">Thomas Manke @ MPI-IE</h4>
-<h4 class="date">Thu Apr 13 15:05:14 2023</h4>
+<h4 class="date">Thu Apr 13 19:16:00 2023</h4>
 
 </div>
 
@@ -514,7 +514,7 @@ tab-separated file with header information.</p>
 <blockquote>
 <p><strong>Task</strong>: Read the data e.g. using read_tsv()</p>
 </blockquote>
-<pre class="r"><code>dfile &lt;- &quot;../data/myeloma/myeloma_counts.tsv&quot;
+<pre class="r"><code>dfile &lt;- &quot;data/myeloma/myeloma_counts.tsv&quot;
 data &lt;- read_tsv(file=dfile)</code></pre>
 <p>Take some time to inspect the data structure. What are the variables?
 How many samples are in the data ?</p>
@@ -569,7 +569,7 @@ important as data.</p>
 Inspect the data frame - which data types are included? Make sure that
 the rownames of the metadata are valid sample names.</p>
 </blockquote>
-<pre class="r"><code>mfile &lt;- &quot;../data/myeloma/myeloma_meta.tsv&quot;               # location of metadata file
+<pre class="r"><code>mfile &lt;- &quot;data/myeloma/myeloma_meta.tsv&quot;               # location of metadata file
 #metadata &lt;- read.csv(file=mfile, header=TRUE, sep=&quot;\t&quot;)
 metadata &lt;- read_tsv(file=mfile)</code></pre>
 <pre><code>## Rows: 18 Columns: 3
