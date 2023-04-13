@@ -104,7 +104,7 @@ dds <- DESeqDataSetFromMatrix(countData=data,
 ```{r PCA, message=FALSE, warning=FALSE, paged.print=FALSE}
 plotPCA(rlog(dds, blind=TRUE),
         intgroup=c("celltype", "condition")
-        )
+        ) + theme_minimal()
 ```
 
 ## 3. run DESeq2
@@ -131,7 +131,6 @@ res_lrt <- results(dds_lrt)
 ```{r parseResults, message=FALSE, warning=FALSE}
 cleanDF <- function(RESobj){
   RESdf <- data.frame(RESobj) %>%
-    dplyr::filter(baseMean > 0) %>%
     drop_na() %>%
     arrange(padj)
   return(RESdf)
@@ -141,22 +140,21 @@ res_lrt_clean <- cleanDF(res_lrt)
 head(res_lrt_clean)
 ```
 
-## 7. Look at the 25 genes with lowest p-value.
-```{r heatmap_lrt, message=FALSE, warning=FALSE}
-
+## 7. Look at the 25 genes with lowest p-values
+```{r heatmap_lrt, message=FALSE, warning=FALSE, fig.height=8, fig.weight=6}
+normcounts <- counts(dds, normalized=TRUE) %>% data.frame()
+top_25_genes <- res_lrt_clean %>% arrange(padj) %>% head(25) %>% rownames()
 pheatmap(
-  counts(dds, normalized=TRUE)[head( rownames(res_lrt_clean) , n=20),],
+  normcounts %>% subset(rownames(normcounts) %in% top_25_genes),
   scale = 'row',
-  main='Age effect - LRT top 20',
-  labels_row = head(rownames(res_lrt_clean), n=20 )
+  main='Age effect - LRT top 25'
 )
 
 ```
 
 ```{r heatmap_lrt_full, message=FALSE, warning=FALSE}
-
 pheatmap(
-  counts(dds, normalized=TRUE)[rownames(res_lrt_clean[res_lrt_clean$padj < 0.05,]),],
+  normcounts %>% subset(rownames(normcounts) %in% rownames(res_lrt_clean %>% subset(padj < 0.05))),
   scale = 'row',
   main='Age effect - LRT',
   show_rownames = FALSE
@@ -169,14 +167,13 @@ pheatmap(
 # Get the data directory
 ccf <- "data/genesets/KEGG_cellcycle.txt"
 cellcycle <- read_tsv(file=ccf, col_names=FALSE)
-cellcycle <- cellcycle$V1
-# Read count matrix
+cellcycle <- cellcycle$X1
 
-rownames(res_lrt_clean) <- toupper(rownames(res_lrt_clean))
-res_lrt_clean_cycle <- res_lrt_clean[cellcycle,] %>% drop_na()
+rownames(res_lrt_clean) <- res_lrt_clean %>% rownames() %>% toupper()
+res_lrt_clean_cycle <- res_lrt_clean %>% subset(rownames(res_lrt_clean) %in% cellcycle) %>% subset(padj < 0.05)
 
 pheatmap(
-  counts(dds, normalized=TRUE)[str_to_title(rownames(res_lrt_clean_cycle[res_lrt_clean_cycle$padj < 0.05,])),],
+  normcounts %>% subset(rownames(normcounts) %in% str_to_title(rownames(res_lrt_clean_cycle))),
   scale = 'row',
   main='cell cycle genes - LRT',
   show_rownames = FALSE
@@ -210,74 +207,71 @@ ageEffect_MPP2 <- cleanDF( lfcShrink(dds, contrast = MPP2_old-MPP2_young, type='
 
 ```
 
-```{r LTHSC, message=FALSE, warning=FALSE}
+```{r LTHSC, message=FALSE, warning=FALSE, fig.height=8, fig.width=6}
 pheatmap(
-  counts(dds, normalized=TRUE)[head( rownames(ageEffect_HSC), n=20), c("Young_HSC_1", "Young_HSC_2",
-                                                                       "Aged_HSC_1", "Aged_HSC_2")],
+  normcounts %>% subset(rownames(normcounts) %in% rownames(head(ageEffect_HSC, 25))) %>% dplyr::select(1,2,7,8),
   scale = 'row',
   main='age effect - HSCs',
   show_rownames = TRUE,
-  annotation_row = ageEffect_HSC[c(1:20), c('log2FoldChange'), drop=FALSE]
+  annotation_row = ageEffect_MPP1[c(1:25), c('log2FoldChange'), drop=FALSE]
   )
 
 # cell cycle
 ageEffect_HSC_cycle <- ageEffect_HSC
-rownames(ageEffect_HSC_cycle) <- toupper(rownames(ageEffect_HSC) )
-ageEffect_HSC_cycle <- ageEffect_HSC_cycle[cellcycle,] %>% drop_na()
+rownames(ageEffect_HSC_cycle) <- ageEffect_HSC %>% rownames() %>% toupper()
+ageEffect_HSC_cycle <- ageEffect_HSC_cycle %>% subset(rownames(ageEffect_HSC_cycle) %in% cellcycle) %>% subset(padj < 0.05)
 
 pheatmap(
-  counts(dds, normalized=TRUE)[str_to_title(rownames(ageEffect_HSC_cycle[ageEffect_HSC_cycle$padj < 0.05,])), c("Young_HSC_1", "Young_HSC_2", "Aged_HSC_1", "Aged_HSC_2")],
+  normcounts %>% subset(rownames(normcounts) %in% str_to_title(rownames(ageEffect_HSC_cycle))) %>% dplyr::select(1,2,7,8),
   scale = 'row',
   main='cell cycle genes - HSC',
-  show_rownames = FALSE
+  show_rownames = TRUE
 )
 
 ```
 
-```{r MPP1, message=FALSE, warning=FALSE}
+```{r MPP1, message=FALSE, warning=FALSE, fig.height=8, fig.width=6}
+
 pheatmap(
-  counts(dds, normalized=TRUE)[head( rownames(ageEffect_MPP1), n=20), c("Young_MPP1_1", "Young_MPP1_2",
-                                                                       "Aged_MPP1_1", "Aged_MPP1_2")],
+  normcounts %>% subset(rownames(normcounts) %in% rownames(head(ageEffect_MPP1, 25))) %>% dplyr::select(3,4,9,10),
   scale = 'row',
-  main='age effect - MPP1',
+  main='age effect - MPP1s',
   show_rownames = TRUE,
-  annotation_row = ageEffect_MPP1[c(1:20), c('log2FoldChange'), drop=FALSE]
+  annotation_row = ageEffect_MPP1[c(1:25), c('log2FoldChange'), drop=FALSE]
   )
 
 # cell cycle
 ageEffect_MPP1_cycle <- ageEffect_MPP1
-rownames(ageEffect_MPP1_cycle) <- toupper(rownames(ageEffect_MPP1_cycle) )
-ageEffect_MPP1_cycle <- ageEffect_MPP1_cycle[cellcycle,] %>% drop_na()
+rownames(ageEffect_MPP1_cycle) <- ageEffect_MPP1_cycle %>% rownames() %>% toupper()
+ageEffect_MPP1_cycle <- ageEffect_MPP1_cycle %>% subset(rownames(ageEffect_MPP1_cycle) %in% cellcycle) %>% subset(padj < 0.05)
 
 pheatmap(
-  counts(dds, normalized=TRUE)[str_to_title(rownames(ageEffect_MPP1_cycle[ageEffect_MPP1_cycle$padj < 0.05,])), c("Young_MPP1_1", "Young_MPP1_2", "Aged_MPP1_1", "Aged_MPP1_2")],
+  normcounts %>% subset(rownames(normcounts) %in% str_to_title(rownames(ageEffect_MPP1_cycle))) %>% dplyr::select(3,4,9,10),
   scale = 'row',
-  main='cell cycle genes - MPP1',
-  show_rownames = FALSE
+  main='cell cycle genes - MPP1s',
+  show_rownames = TRUE
 )
-
 ```
 
-```{r MPP2, message=FALSE, warning=FALSE}
+```{r MPP2, message=FALSE, warning=FALSE, fig.height=8, fig.width=6}
+
 pheatmap(
-  counts(dds, normalized=TRUE)[head( rownames(ageEffect_MPP2), n=20), c("Young_MPP2_1", "Young_MPP2_2",
-                                                                       "Aged_MPP2_1", "Aged_MPP2_2")],
+  normcounts %>% subset(rownames(normcounts) %in% rownames(head(ageEffect_MPP2, 25))) %>% dplyr::select(5,6,11,12),
   scale = 'row',
-  main='age effect - MPP2',
+  main='age effect - MPP2s',
   show_rownames = TRUE,
-  annotation_row = ageEffect_MPP2[c(1:20), c('log2FoldChange'), drop=FALSE]
+  annotation_row = ageEffect_MPP2[c(1:25), c('log2FoldChange'), drop=FALSE]
   )
 
 # cell cycle
 ageEffect_MPP2_cycle <- ageEffect_MPP2
-rownames(ageEffect_MPP2_cycle) <- toupper(rownames(ageEffect_MPP2_cycle) )
-ageEffect_MPP2_cycle <- ageEffect_MPP2_cycle[cellcycle,] %>% drop_na()
+rownames(ageEffect_MPP2_cycle) <- ageEffect_MPP2_cycle %>% rownames() %>% toupper()
+ageEffect_MPP2_cycle <- ageEffect_MPP2_cycle %>% subset(rownames(ageEffect_MPP2_cycle) %in% cellcycle) %>% subset(padj < 0.05)
 
 pheatmap(
-  counts(dds, normalized=TRUE)[str_to_title(rownames(ageEffect_MPP2_cycle[ageEffect_MPP2_cycle$padj < 0.05,])), c("Young_MPP2_1", "Young_MPP2_2", "Aged_MPP2_1", "Aged_MPP2_2")],
+  normcounts %>% subset(rownames(normcounts) %in% str_to_title(rownames(ageEffect_MPP2_cycle))) %>% dplyr::select(5,6,11,12),
   scale = 'row',
-  main='cell cycle genes - MPP2',
-  show_rownames = FALSE
+  main='cell cycle genes - MPP2s',
+  show_rownames = TRUE
 )
-
 ```
