@@ -105,7 +105,7 @@ Data can come in various formats. Here we have prepared the data as tab-separate
 > **Task**: Read the data e.g. using read_tsv()
 
 ```{r import_data, message=FALSE}
-dfile <- "../data/myeloma/myeloma_counts.tsv"
+dfile <- "data/myeloma/myeloma_counts.tsv"
 data <- read_tsv(file=dfile)
 ```
 
@@ -161,7 +161,7 @@ Often the metadata is hidden in the paper (or in the filenames). This is bad pra
 Make sure that the rownames of the metadata are valid sample names.
 
 ```{r import_meta}
-mfile <- "../data/myeloma/myeloma_meta.tsv"               # location of metadata file
+mfile <- "data/myeloma/myeloma_meta.tsv"               # location of metadata file
 #metadata <- read.csv(file=mfile, header=TRUE, sep="\t")
 metadata <- read_tsv(file=mfile)
 metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames

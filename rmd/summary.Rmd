@@ -23,32 +23,16 @@ library(DESeq2)
 library(pheatmap)
 library(tidyverse)
 library(ashr)
-
-### define own convenience functions ###
-my_volcano = function(res){
-  # a low-key alternative to
-  # EnhancedVolcano(res, lab = rownames(res), x = 'log2FoldChange', y = 'pvalue')
-  res %>% 
-    data.frame() %>%                                     # convert to data frame
-    arrange(padj) %>%                                    # sort by padj 
-    mutate(significant=padj < 0.05) %>%                  # define significant genes 
-    mutate(rank=row_number()) %>%         # define rank as rownumber (after sorting)
-    add_rownames("gene_name") %>%         # add rownames
-    ggplot(aes(x=log2FoldChange, y=-log10(padj), color=significant)) + 
-    geom_point() + 
-    # label first 5 genes
-    geom_text(aes(label=ifelse(rank<5,gene_name,'')), size = 3, hjust=0,vjust=-0.15) 
-}
 ```
 
 
 # Data, Metadata and Design
 ```{r import}
-dfile <- "../data/mpp/mpp_counts.tsv"     
+dfile <- "data/mpp/mpp_counts.tsv"     
 data <- read_tsv(dfile)
 data <- data %>% column_to_rownames("gene_id") 
 
-mfile <- "../data/mpp/mpp_meta.tsv"      
+mfile <- "data/mpp/mpp_meta.tsv"      
 metadata <- read_tsv(mfile)
 metadata <- metadata %>% column_to_rownames("sample") 
 metadata$condition <- as.factor(metadata$condition)

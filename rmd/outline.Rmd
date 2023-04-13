@@ -18,20 +18,7 @@ output:
 
 We will use a couple of libraries in this course. We have to make sure these are installed. 
 These installations can take a while. So it's best to tackle this first.
-
-You can check which packages need to be installed:
-
-```{r load, message=FALSE}
-library("DESeq2")
-library("tidyverse")
-library("pheatmap")
-library("ggrepel")
-library("EnsDb.Hsapiens.v75")
-library("UpSetR")
-library("ashr")
-```
-
-In case you need to still need these libaries, this code chunk below can be used as an example.
+The following code chunk will checks if a required library is available and will attempt to install it if this is not the case.
 
 ```{r install, message=FALSE}
 # Bioconductor
@@ -54,6 +41,19 @@ if (!require("UpSetR", quietly = TRUE))
 if (!require("ashr", quietly = TRUE))
     install.packages("ashr")
 ```
+
+After running the above chunk, make sure the libraries can be loaded:
+
+```{r load, message=FALSE}
+library("DESeq2")
+library("tidyverse")
+library("pheatmap")
+library("ggrepel")
+library("EnsDb.Hsapiens.v75")
+library("UpSetR")
+library("ashr")
+```
+
 
 ***
 

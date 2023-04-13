@@ -26,7 +26,7 @@
  - [x] harmonize style / custom css ?
 
 ## outline
- - [ ] switch library loads & installs
+ - [x] switch library loads & installs
 
 ## day 2
   - [x] relative path to data folder
@@ -54,19 +54,19 @@
 
 ## day 3
 
- - [ ] coef pngs -> ggplot them, colorcode doesn't make sense
- - [ ] recap should be bullet points rather then full re-explanation
- - [ ] wald test remove p adj values
- - [ ] tidy all
- - [ ] in get some results -> 2. contrasts and results, include the res as full class, not df as well (what comparison) ?
- - [ ] norm counts vs p value -> ggplot2
- - [ ] remove l2fc / p value plot
- - [ ] volcano plot '*' is not formatted properly
- - [ ] volcano plot is formatted a bit weird, perhaps with shrunk values ?
- - [ ] LRT == kmeans clustered !
- - [ ] Clean & Annotate: text to bullet points
- - [ ] Clean & Annotate: reformat task 
+ - [x] coef pngs -> ggplot them, colorcode doesn't make sense
+ - [x] recap should be bullet points rather then full re-explanation
+ - [x] wald test remove p adj values
+ - [x] tidy all
+ - [x] in get some results -> 2. contrasts and results, include the res as full class, not df as well (what comparison) ?
+ - [x] norm counts vs p value -> ggplot2
+ - [x] remove l2fc / p value plot
+ - [x] volcano plot '*' is not formatted properly
+ - [x] volcano plot is formatted a bit weird, perhaps with shrunk values ?
+ - [x] LRT == kmeans clustered !
+ - [x] Clean & Annotate: text to bullet points
+ - [x] Clean & Annotate: reformat task 
 
 ## day 4
- - [ ] compile
- - [ ] elaborate heatmaps + gene ontology
+ - [x] compile
+ - [x] elaborate heatmaps + gene ontology
