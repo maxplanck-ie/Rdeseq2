@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: outline</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Thu Apr 13 19:21:31 2023</h4>
+<h4 class="date">Thu Apr 13 19:30:36 2023</h4>
 
 </div>
 
@@ -413,27 +413,11 @@ tweaking.</p>
 <pre class="r"><code>library(DESeq2)
 library(pheatmap)
 library(tidyverse)
-library(ashr)
-
-### define own convenience functions ###
-my_volcano = function(res){
-  # a low-key alternative to
-  # EnhancedVolcano(res, lab = rownames(res), x = &#39;log2FoldChange&#39;, y = &#39;pvalue&#39;)
-  res %&gt;% 
-    data.frame() %&gt;%                                     # convert to data frame
-    arrange(padj) %&gt;%                                    # sort by padj 
-    mutate(significant=padj &lt; 0.05) %&gt;%                  # define significant genes 
-    mutate(rank=row_number()) %&gt;%         # define rank as rownumber (after sorting)
-    add_rownames(&quot;gene_name&quot;) %&gt;%         # add rownames
-    ggplot(aes(x=log2FoldChange, y=-log10(padj), color=significant)) + 
-    geom_point() + 
-    # label first 5 genes
-    geom_text(aes(label=ifelse(rank&lt;5,gene_name,&#39;&#39;)), size = 3, hjust=0,vjust=-0.15) 
-}</code></pre>
+library(ashr)</code></pre>
 </div>
 <div id="data-metadata-and-design" class="section level1">
 <h1>Data, Metadata and Design</h1>
-<pre class="r"><code>dfile &lt;- &quot;../data/mpp/mpp_counts.tsv&quot;     
+<pre class="r"><code>dfile &lt;- &quot;data/mpp/mpp_counts.tsv&quot;     
 data &lt;- read_tsv(dfile)</code></pre>
 <pre><code>## Rows: 24417 Columns: 13
 ## ── Column specification ────────────────────────────────────────────────────────
@@ -445,7 +429,7 @@ data &lt;- read_tsv(dfile)</code></pre>
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
 <pre class="r"><code>data &lt;- data %&gt;% column_to_rownames(&quot;gene_id&quot;) 
 
-mfile &lt;- &quot;../data/mpp/mpp_meta.tsv&quot;      
+mfile &lt;- &quot;data/mpp/mpp_meta.tsv&quot;      
 metadata &lt;- read_tsv(mfile)</code></pre>
 <pre><code>## Rows: 12 Columns: 3
 ## ── Column specification ────────────────────────────────────────────────────────
