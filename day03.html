@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Wed Apr 12 15:26:59 2023</h4>
+<h4 class="date">Thu Apr 13 11:37:51 2023</h4>
 
 </div>
 
@@ -511,14 +511,6 @@ normalized count based on that.</p>
   expression = beta0 + beta1 * JJ</code></pre>
 <p>Our coefficients here are our intercept, and condition for our
 celltype effect versus the base level.</p>
-<pre><code>## Warning: Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.
-## Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.
-## Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[2, 2]]` is discouraged.
-## ℹ Use `.data[[2]]` instead.</code></pre>
 <p><img src="day03_files/figure-html/coefplot%20celltype-1.png" width="672" /></p>
 <blockquote>
 <p><strong>Poll 3.1</strong> What does the intercept value reflect ?</p>
@@ -618,24 +610,6 @@ that incorporates ‘condition’ (alone!)</p>
 <pre><code>## fitting model and testing</code></pre>
 <pre class="r"><code>resultsNames(dds)</code></pre>
 <pre><code>## [1] &quot;Intercept&quot;              &quot;condition_DMSO_vs_AMIL&quot; &quot;condition_TG_vs_AMIL&quot;</code></pre>
-<pre><code>## Warning: Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.
-## Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[2, 2]]` is discouraged.
-## ℹ Use `.data[[2]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[3, 2]]` is discouraged.
-## ℹ Use `.data[[3]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.
-## Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.
-## Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[2, 2]]` is discouraged.
-## ℹ Use `.data[[2]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[3, 2]]` is discouraged.
-## ℹ Use `.data[[3]]` instead.</code></pre>
 <p><img src="day03_files/figure-html/coefplot%20drug-1.png" width="672" /></p>
 <p>Design: ~1+condition = beta0 + beta1 * DMSO + beta2 * TG beta0 =
 Intercept beta1 = condition_DMSO_vs_AMIL beta2 =
@@ -800,43 +774,7 @@ as the effect of celltype on the condition (celltype:condtion)</p>
 <pre><code>## [1] &quot;Intercept&quot;                &quot;celltype_JJ_vs_BM&quot;       
 ## [3] &quot;condition_DMSO_vs_AMIL&quot;   &quot;condition_TG_vs_AMIL&quot;    
 ## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
-<pre><code>## Warning: Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.
-## Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[2, 2]]` is discouraged.
-## ℹ Use `.data[[2]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[3, 2]]` is discouraged.
-## ℹ Use `.data[[3]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[4, 2]]` is discouraged.
-## ℹ Use `.data[[4]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[5, 2]]` is discouraged.
-## ℹ Use `.data[[5]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[6, 2]]` is discouraged.
-## ℹ Use `.data[[6]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.
-## Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.
-## Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.
-## Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.
-## Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.
-## Use of `tdf[[1, 2]]` is discouraged.
-## ℹ Use `.data[[1]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[2, 2]]` is discouraged.
-## ℹ Use `.data[[2]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[3, 2]]` is discouraged.
-## ℹ Use `.data[[3]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[4, 2]]` is discouraged.
-## ℹ Use `.data[[4]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[5, 2]]` is discouraged.
-## ℹ Use `.data[[5]]` instead.</code></pre>
-<pre><code>## Warning: Use of `tdf[[6, 2]]` is discouraged.
-## ℹ Use `.data[[6]]` instead.</code></pre>
-<p><img src="day03_files/figure-html/coefplot%20interactions-1.png" width="672" /></p>
+<p><img src="day03_files/figure-html/coefplot%20interactions-1.png" width="960" /></p>
 <p>Null hypothesis:</p>
 <pre><code>JJ vs BM (AMIL)
 beta1 = 0
