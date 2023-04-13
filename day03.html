@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Thu Apr 13 11:37:51 2023</h4>
+<h4 class="date">Thu Apr 13 15:06:58 2023</h4>
 
 </div>
 
@@ -434,7 +434,7 @@ data &lt;- read_tsv(file=dfile)
 data &lt;- data %&gt;% column_to_rownames(&quot;gene_id&quot;) 
 
 # Read samplesheet , detects conditions, generate the formula
-mfile &lt;- &quot;../data/myeloma/myeloma_meta.tsv&quot;
+mfile &lt;- &quot;data/myeloma/myeloma_meta.tsv&quot;
 metadata &lt;- read_tsv(file=mfile)
 metadata &lt;- metadata %&gt;% column_to_rownames(&quot;sample&quot;) 
 
@@ -776,25 +776,22 @@ as the effect of celltype on the condition (celltype:condtion)</p>
 ## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
 <p><img src="day03_files/figure-html/coefplot%20interactions-1.png" width="960" /></p>
 <p>Null hypothesis:</p>
-<pre><code>JJ vs BM (AMIL)
+<pre><code>BM vs JJ (AMIL!)
 beta1 = 0
 
-JJ vs BM (DMSO)
+BM vs JJ (DMSO!)
 beta1 + beta4 = 0
 
-DMSO vs AMIL (BM):
+AMIL vs DMSO (BM):
 beta2 = 0
 
-TG vs DMSO (BM):
-beta2 + beta3 = 0
-
-Interaction:
-beta5 = 0</code></pre>
+DMSO vs TG (BM):
+beta2 + beta3 = 0</code></pre>
 <p><strong>Reminder</strong>: The levels of your factors define which
 ‘baseline’ will be used, and thus what coefficients you will have!</p>
 <ul>
 <li>Multi-factor design with increasing complexity are nicely explained
-in these <a
+in Hugo Tavares’ <a
 href="https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing">slides</a></li>
 </ul>
 </div>
@@ -810,35 +807,19 @@ dds &lt;- DESeq2::DESeqDataSetFromMatrix(countData = data, colData = metadata, d
 # filtering as in day 1 and 2
 dds &lt;- dds[, -c(1,7)]                   # sample filtering
 dds &lt;- dds[counts(dds) %&gt;% rowSums() &gt; 1, ]  # gene filtering</code></pre>
-</div>
-<div id="size-factors" class="section level3">
-<h3>Size factors</h3>
-<p>DESeq2 automatically estimates the size factors when performing the
-differential expression analysis. However, if
-<code>estimateSizeFactors()</code> is called, then DESeq2 will use these
-values. To normalize the count data, DESeq2 calculates size factors for
-each sample using the “median of ratios” method.</p>
-<pre class="r"><code>dds &lt;- estimateSizeFactors(dds)</code></pre>
-<blockquote>
-<p><strong>Poll 3.2</strong> What is the relation between the size
-factors and the sequencing depth of a sample?</p>
-</blockquote>
-<pre class="r"><code>seq_depth &lt;- colSums(counts(dds))
-plot( sizeFactors(dds),  seq_depth)</code></pre>
-</div>
-<div id="dispersion-estimation" class="section level3">
-<h3>Dispersion estimation</h3>
-<p>DESeq2 uses a measure of variation called dispersion, which accounts
-for a gene’s variance and mean expression level. Dispersion is
-calculated by <code>Var = μ + α*μ^2</code>, where <code>α</code> =
-dispersion, <code>Var</code> = variance, and <code>μ</code> = mean</p>
+<pre class="r"><code>dds &lt;- estimateSizeFactors(dds)
+sizeFactors(dds)</code></pre>
+<pre><code>## BM_CTRL_2 BM_CTRL_3 BM_AMIL_1 BM_AMIL_2 BM_AMIL_3 JJ_CTRL_2 JJ_CTRL_3 JJ_AMIL_1 
+## 1.1433547 1.4178968 1.1081712 1.2521730 0.8317523 1.0132260 0.6720967 0.6667752 
+## JJ_AMIL_2 JJ_AMIL_3   BM_TG_1   BM_TG_2   BM_TG_3   JJ_TG_1   JJ_TG_2   JJ_TG_3 
+## 1.0994127 1.2136785 1.1125837 0.9072609 1.1596233 0.7719960 1.2800491 0.9103010</code></pre>
+<p><strong>Reminder</strong>: Note that you can intervene at this stage
+to override the size factor calculation (for example with spike in
+calculated size factors).</p>
 <pre class="r"><code>dds &lt;- estimateDispersions(dds)</code></pre>
-<pre class="r"><code># Visualise dispersion
-plotDispEsts(dds)</code></pre>
-<p><img src="day03_files/figure-html/Visualise%20dispersions-1.png" width="672" /></p>
 </div>
-<div id="get-all-the-steps-for-free" class="section level3">
-<h3>Get all the steps for free!</h3>
+<div id="or-everything-in-1-go" class="section level3">
+<h3>Or everything in 1 go</h3>
 <pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
 </div>
 </div>
@@ -861,30 +842,28 @@ the p-values,</li>
 <li>P values are adjusted for multiple testing using the procedure of
 Benjamini and Hochberg.</li>
 </ul>
-<p>Raw P-value distribution</p>
-<pre class="r"><code>    res.df &lt;- results(dds) %&gt;% data.frame() %&gt;% drop_na
-    ggplot(res.df) +
-        geom_histogram(aes(res.df$pvalue, fill = &quot;a&quot;), colour = &quot;grey20&quot;, alpha = 0.5, stat = &quot;bin&quot;) +
-        xlab(&quot;p-value&quot;) +
-        # geom_histogram(aes(res.df$padj, fill = &quot;b&quot;), colour = &quot;grey20&quot;, alpha = 0.5, stat = &quot;bin&quot;) +
-        scale_fill_manual(name = &quot;group&quot;, values = c(&quot;a&quot; = &quot;steelblue&quot;), labels = &quot;p-value&quot;) +
-        geom_vline(xintercept = 0.05, colour = &quot;red&quot;)</code></pre>
+<p>P-value distribution</p>
+<pre class="r"><code>res.df &lt;- results(dds) %&gt;% data.frame() %&gt;% drop_na
+ggplot(res.df) +
+    geom_histogram(aes(res.df$pvalue, fill = &quot;a&quot;), colour = &quot;grey20&quot;, alpha = 0.5, stat = &quot;bin&quot;) +
+    xlab(&quot;p-value&quot;) +
+    # geom_histogram(aes(res.df$padj, fill = &quot;b&quot;), colour = &quot;grey20&quot;, alpha = 0.5, stat = &quot;bin&quot;) +
+    scale_fill_manual(name = &quot;group&quot;, values = c(&quot;a&quot; = &quot;steelblue&quot;), labels = &quot;p-value&quot;) +
+    geom_vline(xintercept = 0.05, colour = &quot;red&quot;) +
+    theme_minimal()</code></pre>
 <p><img src="day03_files/figure-html/pvalue-1.png" width="672" /></p>
-<p>Adjusted P-value distribution</p>
-<pre class="r"><code>    ggplot(res.df) +
-        geom_histogram(aes(res.df$padj, fill = &quot;a&quot;), colour = &quot;grey20&quot;, alpha = 0.5, stat = &quot;bin&quot;) +
-        xlab(&quot;adj p-value&quot;) +
-        # geom_histogram(aes(res.df$padj, fill = &quot;b&quot;), colour = &quot;grey20&quot;, alpha = 0.5, stat = &quot;bin&quot;) +
-        scale_fill_manual(name = &quot;group&quot;, values = c(&quot;a&quot; = &quot;steelblue&quot;), labels = &quot;padj&quot;) +
-        geom_vline(xintercept = 0.05, colour = &quot;red&quot;)</code></pre>
-<p><img src="day03_files/figure-html/adjpvalue-1.png" width="672" /></p>
 <p>A frequently asked question is: ‘Why is my padj ’NA’ but my p-values
 are significant ? It’s my favorite gene!’</p>
 <p>There are three reasons to set p-values to NA (From the <a
 href="https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pvaluesNA">DESeq2
-vignette</a>) * within a row, all samples have zero counts * a row
-contains a sample with an extreme count outlier. * A row is filtered by
-automatic filtering</p>
+vignette</a>)</p>
+<ul>
+<li>within a row, all samples have zero counts<br />
+</li>
+<li>a row contains a sample with an extreme count outlier.<br />
+</li>
+<li>A row is filtered by automatic filtering</li>
+</ul>
 <pre class="r"><code>head(res.df)</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
@@ -923,17 +902,43 @@ baseline!)</li>
 <pre><code>## [1] &quot;Intercept&quot;                &quot;celltype_JJ_vs_BM&quot;       
 ## [3] &quot;condition_DMSO_vs_AMIL&quot;   &quot;condition_TG_vs_AMIL&quot;    
 ## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
-<pre class="r"><code>contrast &lt;- c(&quot;celltype&quot;, &quot;JJ&quot;, &quot;BM&quot;)
+<pre class="r"><code>contrast &lt;- c(&quot;condition&quot;, &quot;AMIL&quot;, &quot;DMSO&quot;)
 res &lt;- results(dds, contrast = contrast, alpha = 0.05)
-class(res)</code></pre>
-<pre><code>## [1] &quot;DESeqResults&quot;
-## attr(,&quot;package&quot;)
-## [1] &quot;DESeq2&quot;</code></pre>
+res</code></pre>
+<pre><code>## log2 fold change (MLE): condition AMIL vs DMSO 
+## Wald test p-value: condition AMIL vs DMSO 
+## DataFrame with 27351 rows and 6 columns
+##                   baseMean log2FoldChange     lfcSE       stat      pvalue
+##                  &lt;numeric&gt;      &lt;numeric&gt; &lt;numeric&gt;  &lt;numeric&gt;   &lt;numeric&gt;
+## ENSG00000000419 2285.01560       0.807373  0.219019   3.686318 0.000227522
+## ENSG00000000457  775.42002      -0.146588  0.107762  -1.360295 0.173736580
+## ENSG00000000460 1300.43696       0.130681  0.125072   1.044844 0.296094994
+## ENSG00000000938    2.45443      -4.300796  1.557781  -2.760848 0.005765141
+## ENSG00000000971 1626.92877      -0.317478  1.182084  -0.268575 0.788256823
+## ...                    ...            ...       ...        ...         ...
+## ENSG00000273486  40.217168     -0.0983117  0.310342 -0.3167853    0.751407
+## ENSG00000273487   0.162242      0.2796940  5.587073  0.0500609    0.960074
+## ENSG00000273488  13.780769      0.1731713  0.560276  0.3090824    0.757259
+## ENSG00000273489   1.064893      0.7217515  1.945622  0.3709618    0.710666
+## ENSG00000273492   0.856644      0.2795786  3.085181  0.0906198    0.927795
+##                        padj
+##                   &lt;numeric&gt;
+## ENSG00000000419 0.000623795
+## ENSG00000000457 0.269935755
+## ENSG00000000460 0.419479872
+## ENSG00000000938 0.012815923
+## ENSG00000000971 0.890189211
+## ...                     ...
+## ENSG00000273486    0.859296
+## ENSG00000273487          NA
+## ENSG00000273488    0.864046
+## ENSG00000273489          NA
+## ENSG00000273492          NA</code></pre>
 <pre class="r"><code># What is in the results?
 res %&gt;% data.frame() %&gt;% head() %&gt;% drop_na()</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"2285.015595","2":"-0.1526134","3":"0.19572860","4":"-0.7797197","5":"4.355559e-01","6":"4.967264e-01","_rn_":"ENSG00000000419"},{"1":"775.420019","2":"0.6971900","3":"0.09633194","4":"7.2373706","5":"4.574670e-13","6":"1.364468e-12","_rn_":"ENSG00000000457"},{"1":"1300.436964","2":"0.2512201","3":"0.11204515","4":"2.2421330","5":"2.495278e-02","6":"3.646637e-02","_rn_":"ENSG00000000460"},{"1":"2.454431","2":"4.4148605","3":"1.49117971","4":"2.9606495","5":"3.069911e-03","6":"4.991162e-03","_rn_":"ENSG00000000938"},{"1":"1626.928772","2":"11.7115612","3":"0.83767189","4":"13.9810842","5":"2.033662e-44","6":"1.661695e-43","_rn_":"ENSG00000000971"},{"1":"992.805073","2":"3.5926963","3":"0.10594383","4":"33.9113299","5":"4.535284e-252","6":"7.493217e-250","_rn_":"ENSG00000001036"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"2285.015595","2":"0.8073734","3":"0.2190189","4":"3.6863177","5":"2.275223e-04","6":"6.237954e-04","_rn_":"ENSG00000000419"},{"1":"775.420019","2":"-0.1465876","3":"0.1077616","4":"-1.3602950","5":"1.737366e-01","6":"2.699358e-01","_rn_":"ENSG00000000457"},{"1":"1300.436964","2":"0.1306811","3":"0.1250724","4":"1.0448442","5":"2.960950e-01","6":"4.194799e-01","_rn_":"ENSG00000000460"},{"1":"2.454431","2":"-4.3007960","3":"1.5577805","4":"-2.7608485","5":"5.765141e-03","6":"1.281592e-02","_rn_":"ENSG00000000938"},{"1":"1626.928772","2":"-0.3174781","3":"1.1820841","4":"-0.2685749","5":"7.882568e-01","6":"8.901892e-01","_rn_":"ENSG00000000971"},{"1":"992.805073","2":"1.2743843","3":"0.1567393","4":"8.1306000","5":"4.271707e-16","6":"3.275936e-15","_rn_":"ENSG00000001036"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <p>Columns of results dataframe:</p>
@@ -945,19 +950,15 @@ res %&gt;% data.frame() %&gt;% head() %&gt;% drop_na()</code></pre>
 <li><p>pvalue: Wald test p-value</p></li>
 <li><p>padj: BH adjusted p-values</p></li>
 </ul>
-<pre class="r"><code>plot(res$baseMean+1, -log10(res$padj),
-     log=&quot;x&quot;, xlab=&quot;mean of normalized counts&quot;,
-     ylab=expression(-log[10](pvalue)),
-     ylim=c(0,30),
-     cex=.4, col=rgb(0,0,0,.3))</code></pre>
+<pre class="r"><code>ggplot(data=res %&gt;% data.frame()) +
+  geom_point(size=0.5, aes(x=log10(baseMean+1), y=-log10(padj))) +
+  theme_minimal()</code></pre>
+<pre><code>## Warning: Removed 6898 rows containing missing values (`geom_point()`).</code></pre>
 <p><img src="day03_files/figure-html/plot%20norm_count%20vs%20p%20values-1.png" width="672" /></p>
-<pre class="r"><code>plot(res$log2FoldChange, -log10(res$padj),
-     log=&quot;x&quot;, xlab=&quot;mean of normalized counts&quot;,
-     ylab=expression(-log[10](pvalue)),
-     ylim=c(0,30),
-     cex=.4, col=rgb(0,0,0,.3))</code></pre>
-<pre><code>## Warning in xy.coords(x, y, xlabel, ylabel, log): 12537 x values &lt;= 0 omitted
-## from logarithmic plot</code></pre>
+<pre class="r"><code>ggplot(data=res %&gt;% data.frame()) +
+  geom_point(size=0.5, aes(x=log2FoldChange, y=-log10(padj))) +
+  theme_minimal()</code></pre>
+<pre><code>## Warning: Removed 6898 rows containing missing values (`geom_point()`).</code></pre>
 <p><img src="day03_files/figure-html/plot%20l2fc%20vs%20p%20values-1.png" width="672" /></p>
 </div>
 <div id="shrinking" class="section level2">
@@ -992,10 +993,13 @@ interaction</li>
 course.</p>
 <p><strong>Recommendation</strong>: ashr works for most (if not all)
 setups, including contrasts.</p>
-<pre class="r"><code># MA plot
-plotMA(res, ylim=c(-2,2))</code></pre>
+<pre class="r"><code>ggplot(data=res %&gt;% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldChange)) +
+  geom_point(size=0.5, color=ifelse(data.frame(res)$padj &lt; 0.05, &#39;red&#39;, &#39;black&#39;)) +
+  theme_minimal()</code></pre>
 <p><img src="day03_files/figure-html/MA%20plot-1.png" width="672" /></p>
-<pre class="r"><code>plotMA(res_shrink, ylim=c(-2,2))</code></pre>
+<pre class="r"><code>ggplot(data=res_shrink %&gt;% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldChange)) +
+  geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj &lt; 0.05, &#39;red&#39;, &#39;black&#39;)) +
+  theme_minimal()</code></pre>
 <p><img src="day03_files/figure-html/MA%20plot-2.png" width="672" /></p>
 <hr />
 </div>
@@ -1018,29 +1022,62 @@ plotCounts(dds, gene = &quot;ENSG00000164062&quot;, intgroup = &quot;celltype&qu
 <p><img src="day03_files/figure-html/visualisation-1.png" width="672" /></p>
 <pre class="r"><code># To see the data underneath the figure
 d &lt;- plotCounts(dds, gene = &quot;ENSG00000164062&quot;, intgroup = &quot;celltype&quot;, returnData=TRUE)
-#d %&gt;% View()
-# can be used for ggplot
+d %&gt;% head()</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["count"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["celltype"],"name":[2],"type":["fct"],"align":["left"]}],"data":[{"1":"5112.6495","2":"BM","_rn_":"BM_CTRL_2"},{"1":"4069.2023","2":"BM","_rn_":"BM_CTRL_3"},{"1":"365.9670","2":"BM","_rn_":"BM_AMIL_1"},{"1":"358.2780","2":"BM","_rn_":"BM_AMIL_2"},{"1":"255.3836","2":"BM","_rn_":"BM_AMIL_3"},{"1":"4242.3968","2":"JJ","_rn_":"JJ_CTRL_2"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code># can be used for ggplot
 ggplot(d, aes(x = celltype, y = count, color = celltype)) +
     geom_point(position=position_jitter(w = 0.1,h = 0)) +
     geom_text_repel(aes(label = rownames(d))) +
-    theme_bw() +
+    theme_minimal() +
     ggtitle(&quot;ENSG00000164062&quot;) +
     theme(plot.title = element_text(hjust = 0.5))</code></pre>
 <p><img src="day03_files/figure-html/visualisation-2.png" width="672" /></p>
 <ul>
-<li><p>Make a heatmap of several (or all) significant genes</p>
-<p>I. Extract the normalized values of the top 20 significant genes
-(based on padj) and plot a heatmap of their expression using
-<code>pheatmap()</code>.</p>
-<p>(Hint: You can use ‘subset’ to extract the top genes from the
-filtered and sorted significant genes which you generated
-before.)</p></li>
+<li>Make a heatmap of several (or all) significant genes</li>
 </ul>
-<pre class="r"><code>res_sig &lt;- subset(res_shrink, padj&lt;0.05)
-res_sig_sorted = res_sig[order(res_sig$padj), ]
-normalized_counts &lt;- counts(dds, normalized=T)
-norm_sig &lt;- subset(normalized_counts, row.names(normalized_counts) %in% row.names(res_sig_sorted))
-pheatmap(norm_sig[1:20,],
+<blockquote>
+<p><strong>Task</strong>: Plot a heatmap of the normalised counts for
+the ‘top 20’ genes from our previously generated results table.</p>
+</blockquote>
+<ul>
+<li>convert the res_shrink object to a dataframe ( data.frame() ), sort
+by padj( arrange() ), take the top 20 ( head() )</li>
+<li>Extract the normalised (!) counts from the dds object and convert to
+dataframe ( counts(dds) )</li>
+<li>subset the dataframe with normalised counts for the gene ID’s in the
+top20 ( filter() )</li>
+<li>plot with pheatmap, note that you can scale the values per row
+(scale=‘row’)!</li>
+</ul>
+<p><strong>Reminder</strong>: Some function between ensembldb (part of
+EnsDb.Hsapiens.v79) and dplyr overlap. Explicitely state the library
+when calling them to avoid errors.</p>
+<pre class="r"><code>top20 &lt;- res_shrink %&gt;% data.frame() %&gt;% subset(padj &lt; 0.05) %&gt;% arrange(padj, descending=FALSE) %&gt;% head(20)
+head(top20)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"2539.423","2":"-4.097763","3":"0.11225249","4":"8.368892e-294","5":"1.711690e-289","_rn_":"ENSG00000114779"},{"1":"2975.832","2":"-3.345543","3":"0.10381676","4":"2.172113e-229","5":"2.221311e-225","_rn_":"ENSG00000131778"},{"1":"10837.741","2":"-3.151205","3":"0.10551776","4":"1.770231e-197","5":"1.206884e-193","_rn_":"ENSG00000134824"},{"1":"1448.943","2":"-2.973073","3":"0.10097460","4":"4.642644e-192","5":"2.373900e-188","_rn_":"ENSG00000100596"},{"1":"4855.847","2":"-2.777564","3":"0.09841187","4":"8.201833e-177","5":"3.355042e-173","_rn_":"ENSG00000116133"},{"1":"9839.925","2":"-5.751354","3":"0.20598414","4":"8.627241e-175","5":"2.940883e-171","_rn_":"ENSG00000237973"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>normcounts &lt;- counts(dds, normalized=TRUE) %&gt;% data.frame()
+head(normcounts)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["BM_CTRL_2"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_3"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_1"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_2"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_3"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_2"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_3"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_1"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_2"],"name":[9],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_3"],"name":[10],"type":["dbl"],"align":["right"]},{"label":["BM_TG_1"],"name":[11],"type":["dbl"],"align":["right"]},{"label":["BM_TG_2"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["BM_TG_3"],"name":[13],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_1"],"name":[14],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_2"],"name":[15],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_3"],"name":[16],"type":["dbl"],"align":["right"]}],"data":[{"1":"1567.3176845","2":"1670.07924","3":"2134.146839","4":"3839.7249","5":"2522.3854","6":"1853.485838","7":"2033.933641","8":"1732.217979","9":"2746.92113","10":"3158.991366","11":"2211.968391","12":"2162.553323","13":"2084.297540","14":"2073.845035","15":"2429.59430","16":"2338.786888","_rn_":"ENSG00000000419"},{"1":"537.0162156","2":"602.30054","3":"562.187518","4":"467.1878","5":"518.1831","6":"857.656653","7":"920.998481","8":"767.874983","9":"866.82644","10":"864.314539","11":"759.493413","12":"834.379646","13":"740.757794","14":"1066.067748","15":"1048.39728","16":"993.078134","_rn_":"ENSG00000000457"},{"1":"840.5090931","2":"902.74554","3":"845.537247","4":"995.8687","5":"1024.3434","6":"1044.189572","7":"916.534838","8":"1259.794894","9":"1200.64102","10":"956.595977","11":"1747.284255","12":"1684.190355","13":"1816.107001","14":"1748.713802","15":"2006.95427","16":"1816.981453","_rn_":"ENSG00000000460"},{"1":"2.6238577","2":"4.23162","3":"0.000000","4":"0.0000","5":"0.0000","6":"3.947787","7":"1.487881","8":"4.499267","9":"2.72873","10":"4.119707","11":"4.494044","12":"1.102219","13":"2.587047","14":"2.590687","15":"1.56244","16":"3.295613","_rn_":"ENSG00000000938"},{"1":"0.8746192","2":"1.41054","3":"2.707163","4":"0.0000","5":"0.0000","6":"2822.667464","7":"2962.371529","8":"3410.444748","9":"2907.91618","10":"3144.984363","11":"2.696426","12":"0.000000","13":"0.862349","14":"3778.517157","15":"3394.40104","16":"3601.006773","_rn_":"ENSG00000000971"},{"1":"66.4710625","2":"69.11646","3":"162.429781","4":"140.5557","5":"195.9718","6":"2136.739531","7":"2251.164301","8":"1892.691852","9":"2060.19085","10":"1986.522740","11":"47.636865","12":"44.088753","13":"37.081007","14":"1658.039753","15":"1560.87763","16":"1575.303146","_rn_":"ENSG00000001036"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>top20_counts &lt;- normcounts %&gt;% dplyr::filter(rownames(normcounts) %in% rownames(top20))
+head(top20_counts)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["BM_CTRL_2"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_3"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_1"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_2"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_3"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_2"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_3"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_1"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_2"],"name":[9],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_3"],"name":[10],"type":["dbl"],"align":["right"]},{"label":["BM_TG_1"],"name":[11],"type":["dbl"],"align":["right"]},{"label":["BM_TG_2"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["BM_TG_3"],"name":[13],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_1"],"name":[14],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_2"],"name":[15],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_3"],"name":[16],"type":["dbl"],"align":["right"]}],"data":[{"1":"983.072","2":"1141.127","3":"4067.96362","4":"3822.15542","5":"4056.49593","6":"4595.2237","7":"4786.5139","8":"6787.8949","9":"6850.0209","10":"6826.3546","11":"1125.309","12":"1146.308","13":"1052.066","14":"4743.5481","15":"4742.7868","16":"4457.8662","_rn_":"ENSG00000083799"},{"1":"1823.581","2":"1935.966","3":"269.81391","4":"226.00710","5":"214.00601","6":"1278.0959","7":"1230.4778","8":"1061.8271","9":"1096.9493","10":"1222.7291","11":"3046.063","12":"2884.507","13":"2898.355","14":"1290.1622","15":"1398.3839","16":"1306.1614","_rn_":"ENSG00000100596"},{"1":"1070.534","2":"1026.168","3":"64.06952","4":"64.68754","5":"49.29352","6":"935.6254","7":"796.0165","8":"547.4109","9":"688.5494","10":"647.6179","11":"1244.850","12":"1111.037","13":"1019.297","14":"1314.7737","15":"1231.2028","16":"1287.4863","_rn_":"ENSG00000101246"},{"1":"2141.068","2":"2368.296","3":"311.32375","4":"231.59738","5":"283.73830","6":"844.8263","7":"931.4137","8":"502.4182","9":"522.0969","10":"458.9354","11":"1541.457","12":"1405.329","13":"1480.653","14":"720.2110","15":"671.8492","16":"659.1227","_rn_":"ENSG00000111684"},{"1":"1138.754","2":"1044.505","3":"139.87009","4":"104.61813","5":"84.15967","6":"991.8814","7":"999.8562","8":"715.3835","9":"684.0016","10":"705.2938","11":"1233.166","12":"1194.805","13":"1234.021","14":"944.3055","15":"819.4998","16":"873.3375","_rn_":"ENSG00000114395"},{"1":"4381.842","2":"4223.156","3":"270.71630","4":"241.18072","5":"232.04022","6":"3377.3315","7":"3340.2934","8":"931.3484","9":"1071.4812","10":"1247.4473","11":"3640.176","12":"3934.921","13":"4078.048","14":"3238.3589","15":"3149.8792","16":"3272.5440","_rn_":"ENSG00000114779"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>pheatmap(top20_counts,
          cluster_rows = T,
          show_rownames = F,
          border_color = NA,
@@ -1055,20 +1092,10 @@ volcano plot; in which the log transformed adjusted p-values plotted on
 the y-axis and log2 fold change values on the x-axis.</p>
 <p>I. Generate a volcano plot of your result and color the siginificant
 genes differently</p>
-<pre class="r"><code>volcano_xlim &lt;- max(abs(quantile(na.omit(res_shrink$log2FoldChange),p= c(0.01, 0.99)) ) )
-volcano_ylim &lt;- quantile(-log(na.omit(res_shrink$padj) ), p = 0.7)
-sig_data &lt;- res_shrink[which(res_shrink$padj &lt; 0.05),]
-print(ggplot(res_shrink%&gt;% data.frame(), aes(log2FoldChange, -log(padj))) +
-            geom_point(alpha = 0.4, size = 1, colour = &quot;grey50&quot;) +
-            scale_x_continuous(limits = c(-volcano_xlim, volcano_xlim)) +
-            scale_y_continuous(limits = c(0, volcano_ylim) ) +
-            geom_vline(xintercept = 0, col = &quot;navy&quot;) +
-            geom_point(data = sig_data%&gt;% data.frame(), aes(log2FoldChange, -log(padj)), alpha = 0.6, size = 1, colour = &quot;red&quot; ) +
-            theme_bw(base_size = 14) +
-            labs(x = &quot;log2-fold change&quot;,
-                 y = &quot;-log (padj)&quot;,
-                 title = sprintf(&quot;Volcano plot&quot;))
-    )</code></pre>
+<pre class="r"><code>ggplot(data=res_shrink %&gt;% data.frame(), aes(x=log2FoldChange, -log10(padj))) +
+  geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj &lt; 0.05, &#39;red&#39;, &#39;black&#39;)) +
+  ylim(c(0,10)) +
+  theme_minimal()</code></pre>
 <p><img src="day03_files/figure-html/volcano%20plot-1.png" width="672" /></p>
 </div>
 <div id="likelihood-ratio-test" class="section level2">
@@ -1117,34 +1144,32 @@ full model</li>
 generate a pvalue</li>
 <li>padj: BH adjusted p-values</li>
 </ul>
-<pre class="r"><code>sig_res_lrt &lt;- res_lrt %&gt;%
-               data.frame() %&gt;%
-               rownames_to_column(var=&quot;gene&quot;) %&gt;%
-               drop_na() %&gt;%
-               dplyr::filter(padj &lt; 0.05)
-head(sig_res_lrt)</code></pre>
-<div data-pagedtable="false">
-<script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["gene"],"name":[1],"type":["chr"],"align":["left"]},{"label":["baseMean"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[7],"type":["dbl"],"align":["right"]}],"data":[{"1":"ENSG00000000938","2":"2.454431","3":"-4.6057612","4":"1.84361437","5":"7.88485","6":"1.940111e-02","7":"4.230365e-02","_rn_":"1"},{"1":"ENSG00000001036","2":"992.805073","3":"1.6289399","4":"0.18393797","5":"105.78804","6":"1.067626e-23","7":"3.632365e-22","_rn_":"2"},{"1":"ENSG00000001461","2":"1921.587265","3":"-0.7718358","4":"0.11799923","5":"51.55933","6":"6.368447e-12","7":"6.172079e-11","_rn_":"3"},{"1":"ENSG00000001497","2":"4220.876478","3":"-0.1234039","4":"0.12055614","5":"22.79787","6":"1.120744e-05","7":"4.630290e-05","_rn_":"4"},{"1":"ENSG00000001629","2":"2173.362590","3":"0.9150457","4":"0.08369348","5":"156.55933","6":"1.008260e-34","7":"8.538509e-33","_rn_":"5"},{"1":"ENSG00000002016","2":"532.617095","3":"0.4116655","4":"0.15015564","5":"11.86298","6":"2.654528e-03","7":"7.047127e-03","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
-  </script>
-</div>
-<pre class="r"><code># Get sig gene lists
-sig_lrt_genes &lt;- sig_res_lrt %&gt;%
-                pull(gene)
-length(sig_lrt_genes)</code></pre>
+<p><strong>Reminder</strong>: Note that the l2FC/lfcSE is again from our
+last coefficient ! (and thus doesn’t tell us anything in this case).</p>
+<pre class="r"><code>sig_res_lrt &lt;- res_lrt %&gt;% data.frame() %&gt;% rownames_to_column(var=&quot;gene&quot;) %&gt;% drop_na() %&gt;% dplyr::filter(padj &lt; 0.05) %&gt;% arrange(padj, descending=FALSE)
+nrow(sig_res_lrt)</code></pre>
 <pre><code>## [1] 9058</code></pre>
-<pre class="r"><code>normalized_counts &lt;- counts(dds, normalized=T)
-norm_lrt_sig &lt;- subset(normalized_counts, row.names(normalized_counts) %in% sig_lrt_genes)
-pheatmap(norm_lrt_sig,
+<pre class="r"><code>lrtcounts &lt;- normcounts %&gt;% subset(rownames(normcounts) %in% sig_res_lrt$gene)
+
+pheatmap(lrtcounts,
          cluster_rows = T,
-         kmeans_k = 3,
          show_rownames = F,
          border_color = NA,
          fontsize = 10,
          scale = &quot;row&quot;,
          fontsize_row = 10,
          height = 20)</code></pre>
-<p><img src="day03_files/figure-html/heatmap%20of%20sig_lrt_genes-1.png" width="672" /></p>
+<p><img src="day03_files/figure-html/detect%20lrt%20sig%20genes%20and%20plot%20heatmap-1.png" width="672" /></p>
+<pre class="r"><code>pheatmap(lrtcounts,
+         cluster_rows = T,
+         kmeans_k = 10,
+         show_rownames = F,
+         border_color = NA,
+         fontsize = 10,
+         scale = &quot;row&quot;,
+         fontsize_row = 10,
+         height = 20)</code></pre>
+<p><img src="day03_files/figure-html/detect%20lrt%20sig%20genes%20and%20plot%20heatmap-2.png" width="672" /></p>
 </div>
 <div id="back-to-square-one." class="section level2">
 <h2>3. Back to square one.</h2>
@@ -1201,7 +1226,7 @@ cells and TG treated cells.</p>
 </ol>
 <p>Extract TG vs AMIL:</p>
 <pre class="r"><code>TGvAMIL &lt;- lfcShrink(dds, contrast = c(&#39;condition&#39;, &#39;TG&#39;, &#39;AMIL&#39;), type=&quot;ashr&quot;)
-head( data.frame(TGvAMIL) )</code></pre>
+head( TGvAMIL %&gt;% data.frame() )</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"2285.015595","2":"-0.3770458","3":"0.19121426","4":"4.308939e-02","5":"7.179610e-02","_rn_":"ENSG00000000419"},{"1":"775.420019","2":"0.5861986","3":"0.09565698","4":"6.905639e-10","5":"2.346661e-09","_rn_":"ENSG00000000457"},{"1":"1300.436964","2":"0.8611169","3":"0.11017112","4":"3.101694e-15","5":"1.446757e-14","_rn_":"ENSG00000000460"},{"1":"2.454431","2":"2.0975766","3":"1.63771789","4":"8.146322e-03","5":"1.532493e-02","_rn_":"ENSG00000000938"},{"1":"1626.928772","2":"0.1826784","3":"0.73163570","4":"7.037643e-01","5":"7.995552e-01","_rn_":"ENSG00000000971"},{"1":"992.805073","2":"-1.9005389","3":"0.16206222","4":"3.968801e-33","5":"4.374413e-32","_rn_":"ENSG00000001036"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
@@ -1210,12 +1235,15 @@ head( data.frame(TGvAMIL) )</code></pre>
 <pre class="r"><code># or
 
 TGvAMIL &lt;- lfcShrink(dds, contrast = c(0,0,0,1,0,0), type=&quot;ashr&quot;)
-head( data.frame(TGvAMIL) )</code></pre>
+head( TGvAMIL %&gt;% data.frame() )</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"2285.015595","2":"-0.3770458","3":"0.19121426","4":"4.308939e-02","5":"7.179610e-02","_rn_":"ENSG00000000419"},{"1":"775.420019","2":"0.5861986","3":"0.09565698","4":"6.905639e-10","5":"2.346661e-09","_rn_":"ENSG00000000457"},{"1":"1300.436964","2":"0.8611169","3":"0.11017112","4":"3.101694e-15","5":"1.446757e-14","_rn_":"ENSG00000000460"},{"1":"2.454431","2":"2.0975766","3":"1.63771790","4":"8.146322e-03","5":"1.532493e-02","_rn_":"ENSG00000000938"},{"1":"1626.928772","2":"0.1826784","3":"0.73163570","4":"7.037643e-01","5":"7.995552e-01","_rn_":"ENSG00000000971"},{"1":"992.805073","2":"-1.9005389","3":"0.16206222","4":"3.968801e-33","5":"4.374413e-32","_rn_":"ENSG00000001036"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
+<blockquote>
+<p>! Make sure you have the ‘TGvAMIL’ results object.</p>
+</blockquote>
 <blockquote>
 <p><strong>Poll 3.4</strong>: Given our contrast c(‘condition’, ‘TG’,
 ‘AMIL’), what would a (significant) positive foldchange correspond to
@@ -1266,6 +1294,9 @@ print(JJ_TG - JJ_AMIL)</code></pre>
 ##              conditionTG celltypeJJ:conditionDMSO   celltypeJJ:conditionTG 
 ##                        1                        0                        1</code></pre>
 <pre class="r"><code>TGvAMIL_JJ &lt;- lfcShrink(dds, contrast = JJ_TG - JJ_AMIL, type=&quot;ashr&quot;)</code></pre>
+<blockquote>
+<p>! Make sure you have the ‘TGvAMIL_JJ’ results object.</p>
+</blockquote>
 <pre class="r"><code># we&#39;d like to condition TG in cellType JJ
 compl1 &lt;- colMeans(mod_mat[dds$celltype == &#39;BM&#39; &amp; dds$condition == &quot;DMSO&quot;,])
 compl2 &lt;- colMeans(mod_mat[dds$celltype == &#39;JJ&#39; &amp; dds$condition == &quot;TG&quot;,])
@@ -1287,41 +1318,42 @@ print(compl1 - compl2)</code></pre>
 </div>
 <div id="clean-annotate" class="section level2">
 <h2>5. Clean &amp; Annotate</h2>
-<p>One more ‘issue’ we need to tackle: we only have transcript IDs, not
-actual gene names. There are a couple of packages that take care of the
-conversion, and one of the most used is <a
-href="https://bioconductor.org/packages/release/bioc/html/biomaRt.html">biomaRt</a>.
-For this course we won’t rely on it, since it uses an API (and we’ll
-probably get blocked). An alternative is the <a
+<ul>
+<li>we only have transcript IDs, not actual gene names.</li>
+<li>Commonly used package to convert between them is <a
+href="https://bioconductor.org/packages/release/bioc/html/biomaRt.html">biomaRt</a>.</li>
+<li>Alternatively (without API/internet) is <a
 href="https://bioconductor.org/packages/release/data/annotation/html/org.Hs.eg.db.html">org.Hs.eg.db</a>
-package, which keeps all needed files locally (note the Hs stands for
-Homo Sapiens, and thus can only be used for this matter. As you probably
+package.</li>
+</ul>
+<p><strong>Reminder</strong>: Hs -&gt; Homo Sapiens. As you probably
 guessed, for most model organisms there is a package like this (mm, sp,
 …) ). Since the data is processed with GRCh37, we will use the following
-database: “EnsDb.Hsapiens.v75”. How to utilize these libraries differs
-from library to library, but is usually pretty well documented.</p>
+database: “EnsDb.Hsapiens.v75”</p>
 <p>In our case we can use:</p>
 <blockquote>
-<p>ensembldb::select(EnsDb.Hsapiens.v79, keys= ensemble, keytype =
+<p>ensembldb::select(EnsDb.Hsapiens.v75, keys= ensemble, keytype =
 “GENEID”, columns = c(“SYMBOL”,“GENEID”))</p>
 </blockquote>
-<p>Cave! Some function between ensembldb (part of EnsDb.Hsapiens.v79)
-and dplyr overlap. Explicitely state the library when calling them to
-avoid errors.</p>
+<p><strong>Reminder</strong>: Some function between ensembldb (part of
+EnsDb.Hsapiens.v79) and dplyr overlap. Explicitely state the library
+when calling them to avoid errors.</p>
 <p>Remember. With our contrast juggling we have 2 results objects
 (‘Large DESeqResults’).</p>
 <p>TGvAMIL (for BM cells). TGvAMIL_JJ (for JJ cells).</p>
 <blockquote>
-<p><strong>Task</strong>: Treat both result objects as such that we have
-we get (1) a dataframe that (2) has genes with baseMean 0 removed and,
-(3) rows with ‘NA’ filtered out and (4) sorted (ascending) by adjusted
-p-value. If you are feeling brave, make sure this dataframe has an
-additional column (“gene_symbol”) that contains the gene name. A true
-R-superhero will wrap these operations in a single function.</p>
+<p><strong>Task</strong>: Clean our results classes (TGvAMIL &amp;
+TGvAMIL_JJ)</p>
 </blockquote>
+<ul>
+<li>convert the results object into a dataframe</li>
+<li>remove the na values from the dataframe</li>
+<li>Sort the dataframe by adjusted p value</li>
+<li>if you are feeling brave, you can wrap these operations in a
+function!</li>
+</ul>
 <pre class="r"><code>cleanDF &lt;- function(RESobj){
   RESdf &lt;- data.frame(RESobj) %&gt;%
-    dplyr::filter(baseMean &gt; 0) %&gt;%
     drop_na() %&gt;%
     arrange(padj)
   RESdf$gene_symbol &lt;- ensembldb::select(EnsDb.Hsapiens.v75, keys = rownames(RESdf),
@@ -1330,39 +1362,28 @@ R-superhero will wrap these operations in a single function.</p>
 }
 
 TGvAMIL_JJ_cleaned &lt;- cleanDF(TGvAMIL_JJ)
-TGvAMIL_BM_cleaned &lt;- cleanDF(TGvAMIL)
-
-# Plot Zscores for top20 hits.
+TGvAMIL_BM_cleaned &lt;- cleanDF(TGvAMIL)</code></pre>
+<pre class="r"><code># Plot Zscores for top20 hits.
 pheatmap(
-  counts(dds, normalized=TRUE)[head( rownames(TGvAMIL_JJ_cleaned) , n=20), c(&quot;JJ_AMIL_1&quot;,
-                                                                             &quot;JJ_AMIL_2&quot;,
-                                                                             &quot;JJ_AMIL_3&quot;,
-                                                                             &quot;JJ_TG_1&quot;,
-                                                                             &quot;JJ_TG_2&quot;,
-                                                                             &quot;JJ_TG_3&quot;)],
+  normcounts %&gt;% subset(rownames(normcounts) %in% rownames(head(TGvAMIL_JJ_cleaned, 20))) %&gt;% dplyr::select(8,9,10,14,15,16),
   scale = &#39;row&#39;,
   main=&#39;TG v AMIL - JJ&#39;,
-  labels_row = paste0(head(TGvAMIL_JJ_cleaned$gene_symbol, n=20), &#39; &#39;, head(rownames(TGvAMIL_JJ_cleaned), n=20 ))
+  labels_row = TGvAMIL_JJ_cleaned %&gt;% head(20) %&gt;% pull(&#39;gene_symbol&#39;)
 )</code></pre>
-<p><img src="day03_files/figure-html/parseResults-1.png" width="672" /></p>
+<p><img src="day03_files/figure-html/plot_cleanedresults-1.png" width="672" /></p>
 <pre class="r"><code>pheatmap(
-  counts(dds, normalized=TRUE)[head( rownames(TGvAMIL_BM_cleaned) , n=20), c(&quot;BM_AMIL_1&quot;,
-                                                                             &quot;BM_AMIL_2&quot;,
-                                                                             &quot;BM_AMIL_3&quot;,
-                                                                             &quot;BM_TG_1&quot;,
-                                                                             &quot;BM_TG_2&quot;,
-                                                                             &quot;BM_TG_3&quot;)],
+  normcounts %&gt;% subset(rownames(normcounts) %in% rownames(head(TGvAMIL_BM_cleaned, 20))) %&gt;% dplyr::select(3,4,5,11,12,13),
   scale = &#39;row&#39;,
   main=&#39;TG v AMIL - BM&#39;,
-  labels_row = paste0(head(TGvAMIL_BM_cleaned$gene_symbol, n=20), &#39; &#39;, head(rownames(TGvAMIL_BM_cleaned), n=20 ))
-  )</code></pre>
-<p><img src="day03_files/figure-html/parseResults-2.png" width="672" /></p>
+  labels_row = TGvAMIL_JJ_cleaned %&gt;% head(20) %&gt;% pull(&#39;gene_symbol&#39;)
+)</code></pre>
+<p><img src="day03_files/figure-html/plot_cleanedresults-2.png" width="672" /></p>
 <p>To look at the overlaps:</p>
 <pre class="r"><code>upsetList &lt;- list(
-  &quot;BM - Up&quot; = rownames( TGvAMIL_BM_cleaned[ (TGvAMIL_BM_cleaned$log2FoldChange &gt; 2) &amp; (TGvAMIL_BM_cleaned$padj &lt; 0.05),] ),
-  &quot;BM - Down&quot; = rownames( TGvAMIL_BM_cleaned[ (TGvAMIL_BM_cleaned$log2FoldChange &lt; -2) &amp; (TGvAMIL_BM_cleaned$padj &lt; 0.05),] ),
-  &quot;JJ - Up&quot; = rownames( TGvAMIL_JJ_cleaned[ (TGvAMIL_JJ_cleaned$log2FoldChange &gt; 2) &amp; (TGvAMIL_JJ_cleaned$padj &lt; 0.05),] ),
-  &quot;JJ - Down&quot; = rownames( TGvAMIL_JJ_cleaned[ (TGvAMIL_JJ_cleaned$log2FoldChange &lt; -2) &amp; (TGvAMIL_JJ_cleaned$padj &lt; 0.05),] )
+  &quot;BM - Up&quot; = TGvAMIL_BM_cleaned %&gt;% subset( (padj &lt; 0.05) &amp; log2FoldChange &gt; 2 ) %&gt;% rownames(),
+  &quot;BM - Down&quot; = TGvAMIL_BM_cleaned %&gt;% subset( (padj &lt; 0.05) &amp; log2FoldChange &lt; -2 ) %&gt;% rownames(),
+  &quot;JJ - Up&quot; = TGvAMIL_JJ_cleaned %&gt;% subset( (padj &lt; 0.05) &amp; log2FoldChange &gt; 2 ) %&gt;% rownames(),
+  &quot;JJ - Down&quot; = TGvAMIL_JJ_cleaned %&gt;% subset( (padj &lt; 0.05) &amp; log2FoldChange &lt; -2 ) %&gt;% rownames()
   )
 
 upset(fromList(upsetList), order.by = &quot;freq&quot;)</code></pre>
@@ -1372,53 +1393,38 @@ upset(fromList(upsetList), order.by = &quot;freq&quot;)</code></pre>
 <h2>6. Apoptosis &amp; Spliceosome</h2>
 <p>Finally, look at two specific geneSets. - genes involved in splicing
 - genes involved in apoptosis</p>
-<pre class="r"><code>data_dir &lt;- &quot;../data/genesets/&quot;
-kegg_apoptosis &lt;-  read.table(paste0(data_dir, &quot;KEGG_apoptosis.txt&quot;, sep=&#39;&#39;),
-                          header=FALSE, stringsAsFactor = F)
-kegg_apoptosis &lt;- kegg_apoptosis$V1
+<p>Note that we will read in the txt files as a vector (with gene
+symbols.</p>
+<pre class="r"><code>keggf &lt;- &#39;data/genesets/KEGG_apoptosis.txt&#39;
+splicef &lt;- &#39;data/genesets/KEGG_spliceosome.txt&#39;
 
-kegg_spliceosome &lt;-  read.table(paste0(data_dir, &quot;KEGG_spliceosome.txt&quot;, sep=&#39;&#39;),
-                          header=FALSE, stringsAsFactor = F)
-kegg_spliceosome &lt;- kegg_spliceosome$V1
+kegg_apoptosis &lt;- read_tsv(file=keggf, col_names = FALSE)
+kegg_apoptosis &lt;- kegg_apoptosis$X1
 
-retIDsfromSymbolList &lt;- function(df, symbols){
-  return(rownames(df[(df$gene_symbol %in% symbols) &amp; (df$padj &lt; 0.05),]) )
+kegg_spliceosome &lt;- read_tsv(file=splicef, col_names = FALSE)
+kegg_spliceosome &lt;- kegg_spliceosome$X1
+kegg_spliceosome %&gt;% head()</code></pre>
+<pre><code>## [1] &quot;ACIN1&quot;  &quot;ALYREF&quot; &quot;AQR&quot;    &quot;BCAS2&quot;  &quot;BUD31&quot;  &quot;CCDC12&quot;</code></pre>
+<pre class="r"><code>retIDsfromSymbolList &lt;- function(df, symbols){
+  return(df %&gt;% subset(gene_symbol %in% symbols) %&gt;% subset(padj &lt; 0.05) %&gt;% rownames())
 }
 
 # spliceosome
 
 pheatmap(
-  counts(dds, normalized=TRUE)[retIDsfromSymbolList(TGvAMIL_BM_cleaned,
-                                                    kegg_spliceosome), c(&quot;BM_CTRL_2&quot;,
-                                                                         &quot;BM_CTRL_3&quot;,
-                                                                         &quot;BM_AMIL_1&quot;,
-                                                                         &quot;BM_AMIL_2&quot;,
-                                                                         &quot;BM_AMIL_3&quot;,
-                                                                         &quot;BM_TG_1&quot;,
-                                                                         &quot;BM_TG_2&quot;,
-                                                                         &quot;BM_TG_3&quot;)],
+  normcounts %&gt;% subset(rownames(normcounts) %in% retIDsfromSymbolList(TGvAMIL_BM_cleaned, kegg_spliceosome)) %&gt;% dplyr::select(3,4,5,11,12,13),
   scale = &#39;row&#39;,
   main=&#39;TG v AMIL - BM : spliceosome&#39;,
-  fontsize=5,
-  labels_row = TGvAMIL_BM_cleaned[(TGvAMIL_BM_cleaned$gene_symbol %in% kegg_spliceosome) &amp; (TGvAMIL_BM_cleaned$padj &lt; 0.05),]$gene_symbol
+  fontsize=5
 )</code></pre>
 <p><img src="day03_files/figure-html/Pathways-1.png" width="672" /></p>
 <pre class="r"><code># Apoptosis
 
 pheatmap(
-  counts(dds, normalized=TRUE)[retIDsfromSymbolList(TGvAMIL_BM_cleaned,
-                                                    kegg_apoptosis), c(&quot;BM_CTRL_2&quot;,
-                                                                         &quot;BM_CTRL_3&quot;,
-                                                                         &quot;BM_AMIL_1&quot;,
-                                                                         &quot;BM_AMIL_2&quot;,
-                                                                         &quot;BM_AMIL_3&quot;,
-                                                                         &quot;BM_TG_1&quot;,
-                                                                         &quot;BM_TG_2&quot;,
-                                                                         &quot;BM_TG_3&quot;)],
+  normcounts %&gt;% subset(rownames(normcounts) %in% retIDsfromSymbolList(TGvAMIL_BM_cleaned, kegg_apoptosis)) %&gt;% dplyr::select(3,4,5,11,12,13),
   scale = &#39;row&#39;,
   main=&#39;TG v AMIL - BM : apoptosis&#39;,
-  fontsize=5,
-  labels_row = TGvAMIL_BM_cleaned[(TGvAMIL_BM_cleaned$gene_symbol %in% kegg_apoptosis) &amp; (TGvAMIL_BM_cleaned$padj &lt; 0.05),]$gene_symbol
+  fontsize=5
 )</code></pre>
 <p><img src="day03_files/figure-html/Pathways-2.png" width="672" /></p>
 </div>
@@ -1444,37 +1450,18 @@ write.table(res_lrt_clean, file=&quot;lrtResults.tsv&quot;, quote = FALSE, sep =
 
 # spliceosome
 pheatmap(
-  counts(dds, normalized=TRUE)[retIDsfromSymbolList(res_lrt_clean,
-                                                    kegg_spliceosome), c(&quot;BM_CTRL_2&quot;,
-                                                                         &quot;BM_CTRL_3&quot;,
-                                                                         &quot;BM_AMIL_1&quot;,
-                                                                         &quot;BM_AMIL_2&quot;,
-                                                                         &quot;BM_AMIL_3&quot;,
-                                                                         &quot;BM_TG_1&quot;,
-                                                                         &quot;BM_TG_2&quot;,
-                                                                         &quot;BM_TG_3&quot;
-                                                                         )],
+  normcounts %&gt;% subset(rownames(normcounts) %in% retIDsfromSymbolList(res_lrt_clean, kegg_spliceosome)),
   scale = &#39;row&#39;,
   main=&#39;LRT : spliceosome&#39;,
-  fontsize=5,
-  labels_row = res_lrt_clean[(res_lrt_clean$gene_symbol %in% kegg_spliceosome) &amp; (res_lrt_clean$padj &lt; 0.05),]$gene_symbol
+  fontsize=5
 )</code></pre>
 <p><img src="day03_files/figure-html/parse%20lrt-1.png" width="672" /></p>
 <pre class="r"><code># Apoptosis
 pheatmap(
-  counts(dds, normalized=TRUE)[retIDsfromSymbolList(res_lrt_clean,
-                                                    kegg_apoptosis), c(&quot;BM_CTRL_2&quot;,
-                                                                         &quot;BM_CTRL_3&quot;,
-                                                                         &quot;BM_AMIL_1&quot;,
-                                                                         &quot;BM_AMIL_2&quot;,
-                                                                         &quot;BM_AMIL_3&quot;,
-                                                                         &quot;BM_TG_1&quot;,
-                                                                         &quot;BM_TG_2&quot;,
-                                                                         &quot;BM_TG_3&quot;)],
+  normcounts %&gt;% subset(rownames(normcounts) %in% retIDsfromSymbolList(res_lrt_clean, kegg_apoptosis)),
   scale = &#39;row&#39;,
   main=&#39;LRT : apoptosis&#39;,
-  fontsize=5,
-  labels_row = TGvAMIL_BM_cleaned[(res_lrt_clean$gene_symbol %in% kegg_apoptosis) &amp; (res_lrt_clean$padj &lt; 0.05),]$gene_symbol
+  fontsize=5
 )</code></pre>
 <p><img src="day03_files/figure-html/parse%20lrt-2.png" width="672" /></p>
 </div>
