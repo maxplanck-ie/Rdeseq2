@@ -44,7 +44,7 @@ You and your lab are eager to see:
 
 Hint: a list of cell-cycle genes (KEGG) are available under:
 
-> ../data/genesets/KEGG_cellcycle.txt
+> data/genesets/KEGG_cellcycle.txt
 
 
 <span style="color:red">Cave!: rownames in the count object are lowercase-capitalized, the KEGG_cellcycle ones are fully capitalized.</span> 
@@ -69,11 +69,11 @@ library("stringr")
 
 Read in the data.
 ```{r read in data, message=FALSE, warning=FALSE, paged.print=FALSE}
-dfile <- "../data/mpp/mpp_counts.tsv"
+dfile <- "data/mpp/mpp_counts.tsv"
 data <- read_tsv(file=dfile)
 data <- data %>% column_to_rownames("gene_id") 
 
-mfile <- "../data/mpp/mpp_meta.tsv"
+mfile <- "data/mpp/mpp_meta.tsv"
 metadata <- read_tsv(file=mfile)
 metadata <- metadata %>% column_to_rownames("sample")
 metadata$condition <- as.factor(metadata$condition)
@@ -167,12 +167,10 @@ pheatmap(
 ```{r cell cycle, message=FALSE, warning=FALSE}
 # Get cell cycle genes.
 # Get the data directory
-data_dir <- "../data/genesets/"
-
-# Read count matrix
-cellcycle <- read.table(paste0(data_dir, "KEGG_cellcycle.txt", sep=''),
-                        header=FALSE)
+ccf <- "data/genesets/KEGG_cellcycle.txt"
+cellcycle <- read_tsv(file=ccf, col_names=FALSE)
 cellcycle <- cellcycle$V1
+# Read count matrix
 
 rownames(res_lrt_clean) <- toupper(rownames(res_lrt_clean))
 res_lrt_clean_cycle <- res_lrt_clean[cellcycle,] %>% drop_na()
