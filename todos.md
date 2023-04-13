@@ -57,7 +57,7 @@
  - [x] coef pngs -> ggplot them, colorcode doesn't make sense
  - [x] recap should be bullet points rather then full re-explanation
  - [x] wald test remove p adj values
- - [ ] tidy all
+ - [x] tidy all
  - [x] in get some results -> 2. contrasts and results, include the res as full class, not df as well (what comparison) ?
  - [x] norm counts vs p value -> ggplot2
  - [x] remove l2fc / p value plot
@@ -68,5 +68,5 @@
  - [x] Clean & Annotate: reformat task 
 
 ## day 4
- - [ ] compile
- - [ ] elaborate heatmaps + gene ontology
+ - [x] compile
+ - [x] elaborate heatmaps + gene ontology
