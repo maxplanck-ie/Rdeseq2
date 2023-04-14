@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 01</h1>
 <h4 class="author">Thomas Manke @ MPI-IE</h4>
-<h4 class="date">Thu Apr 13 19:45:23 2023</h4>
+<h4 class="date">Fri Apr 14 12:02:27 2023</h4>
 
 </div>
 
@@ -414,20 +414,11 @@ href="https://pubmed.ncbi.nlm.nih.gov/28790111/">Amiloride to treat
 multiple myeloma</a></p>
 <p>In this study, RNA-seq data is available to compare amiloride to a
 state-of-the-art drug (TG003) in two cancer (multiple myeloma) cell
-lines with different mutations (BM: p53mut, JJ: del(17p)). <br> ***</p>
+lines with different mutations (BM: p53mut, JJ: del(17p)). <br></p>
+<hr />
 </div>
 <div id="tools" class="section level2">
 <h2>2. Tools</h2>
-<blockquote>
-<p><strong>Task</strong>: Start a new session in <a
-href="https://workbench.ie-freiburg.mpg.de">workbench</a>, or on your
-local computer. Note that we will be working with R version 4.1.3.
-<strong>Task</strong>: Create a new R-project, e.g. DESeq2_Course
-<strong>Task</strong>: Open a new notebook: e.g. DESeq2_notebook</p>
-</blockquote>
-<p><strong>Recommendation</strong> We advice you to use Notebooks
-throughout the course (and beyond), as it is straight forward to keep
-your notes (documentation) and code together in one place.</p>
 <blockquote>
 <p><strong>Poll 1.1</strong>: How do you get information about the
 current R-version and loaded packages?</p>
@@ -451,7 +442,7 @@ class="uri">https://bioconductor.org/</a></li>
 <li>All packages come for a <strong>specific R-version</strong>. This
 tutorial uses R version 4.1.3.</li>
 <li>All packages have specific <strong>package version</strong>
-(e.g. DESeq2 is version 1.30.1), and can come from different sources
+(e.g. DESeq2 is version 1.34.0), and can come from different sources
 (CRAN, Bioconductor, github, …).</li>
 <li>Most packages have <strong>dependencies</strong> on other packages
 that should also be installed</li>
@@ -543,6 +534,8 @@ them?</p>
 <p><strong>Task</strong>: Ensure that the rownames of the count data are
 gene names.</p>
 </blockquote>
+<p>You could do a re-assignment in base-R, or utilise the
+‘column_to_rownames() function from tidyverse.’</p>
 <pre class="r"><code># dplyr
 data &lt;- data %&gt;% column_to_rownames(&quot;gene_id&quot;)  # gene_id -&gt; rownames and removes gene_id
 
@@ -564,6 +557,10 @@ could also be quantitative data (e.g. age, weight, …). Often the
 metadata is hidden in the paper (or in the filenames). This is bad
 practise - make sure to have a proper ‘samplesheet’. Metadata is just as
 important as data.</p>
+<p>Our metadata file is located here:</p>
+<blockquote>
+<p>‘data/myeloma/myeloma_meta.tsv’</p>
+</blockquote>
 <blockquote>
 <p><strong>Task</strong>: Read the metadata into an R-object “metadata”.
 Inspect the data frame - which data types are included? Make sure that
@@ -692,9 +689,9 @@ pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)</code></pre>
 <p><img src="day01_files/figure-html/model_matrix-1.png" width="672" /></p>
 <blockquote>
 <p><strong>Tasks</strong>: Include an additional factor (+ celltype) and
-observe the design matrix <strong>Tasks</strong>: Bonus: include an
-interaction term (+ condition:celltype) and discuss its
-interpretation</p>
+observe the design matrix<br />
+<strong>Tasks</strong>: Bonus: include an interaction term (+
+condition:celltype) and discuss its interpretation</p>
 </blockquote>
 <pre class="r"><code>MM &lt;- model.matrix(~ condition*celltype, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)</code></pre>

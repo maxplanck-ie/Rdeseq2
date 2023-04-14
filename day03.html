@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Thu Apr 13 19:47:08 2023</h4>
+<h4 class="date">Fri Apr 14 12:04:27 2023</h4>
 
 </div>
 
@@ -411,7 +411,7 @@ div.tocify {
 <li>multi-factor design</li>
 <li>Normalisation: Estimating size factors (has been explained
 before)</li>
-<li>Checking for the dispertion (has been explained before)</li>
+<li>Dispersion estimation (has been explained before)</li>
 <li>Building up contrasts</li>
 <li>Make a results table</li>
 <li>Summarize and extract a list of significant differentially expressed
@@ -463,7 +463,8 @@ normalized count based on that.</p>
 </div>
 <div id="design-examples" class="section level2">
 <h2>2. design examples</h2>
-<p>A single factor with two levels.</p>
+<div id="a-single-factor-with-two-levels." class="section level3">
+<h3>A single factor with two levels.</h3>
 <table>
 <thead>
 <tr class="header">
@@ -519,14 +520,14 @@ celltype effect versus the base level.</p>
 <pre><code>##  [1] JJ BM BM BM BM BM BM JJ JJ JJ JJ JJ BM BM BM JJ JJ JJ
 ## Levels: BM JJ</code></pre>
 <p>Each coefficient shows a difference.</p>
-<pre><code>[1] &quot;Intercept&quot; (beta0)             &quot;celltype_BM_vs_JJ&quot; (beta1)</code></pre>
+<pre><code>[1] &quot;Intercept&quot; (beta0)             &quot;celltype_JJ_vs_BM&quot; (beta1)</code></pre>
 <p>This can be shown by dummy variables:</p>
 <table>
 <thead>
 <tr class="header">
 <th align="left">samples</th>
 <th align="left">(Intercept)</th>
-<th align="left">celltypeBM</th>
+<th align="left">celltypeJJ</th>
 </tr>
 </thead>
 <tbody>
@@ -556,7 +557,10 @@ celltype effect versus the base level.</p>
 <pre><code>BM vs JJ
 beta1 = 0</code></pre>
 <hr />
-<p>A single factor with more then two levels.</p>
+</div>
+<div id="a-single-factor-with-more-then-two-levels."
+class="section level3">
+<h3>A single factor with more then two levels.</h3>
 <table>
 <thead>
 <tr class="header">
@@ -611,9 +615,12 @@ that incorporates ‘condition’ (alone!)</p>
 <pre class="r"><code>resultsNames(dds)</code></pre>
 <pre><code>## [1] &quot;Intercept&quot;              &quot;condition_DMSO_vs_AMIL&quot; &quot;condition_TG_vs_AMIL&quot;</code></pre>
 <p><img src="day03_files/figure-html/coefplot%20drug-1.png" width="672" /></p>
-<p>Design: ~1+condition = beta0 + beta1 * DMSO + beta2 * TG beta0 =
-Intercept beta1 = condition_DMSO_vs_AMIL beta2 =
-condition_TG_vs_AMIL</p>
+<p>Design:</p>
+<pre><code>  ~1+condition  
+  = beta0 + beta1 * DMSO + beta2 * TG  
+  beta0 = Intercept  
+  beta1 = condition_DMSO_vs_AMIL  
+  beta2 = condition_TG_vs_AMIL  </code></pre>
 <p>Model matrix:</p>
 <table>
 <thead>
@@ -621,7 +628,7 @@ condition_TG_vs_AMIL</p>
 <th align="left">samples</th>
 <th align="left">(Intercept)</th>
 <th align="left">conditionDMSO</th>
-<th align="left">condittionTG</th>
+<th align="left">conditionTG</th>
 </tr>
 </thead>
 <tbody>
@@ -775,6 +782,9 @@ as the effect of celltype on the condition (celltype:condtion)</p>
 ## [3] &quot;condition_DMSO_vs_AMIL&quot;   &quot;condition_TG_vs_AMIL&quot;    
 ## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
 <p><img src="day03_files/figure-html/coefplot%20interactions-1.png" width="960" /></p>
+<blockquote>
+<p><strong>Poll 3.3</strong> What does the intercept value reflect ?</p>
+</blockquote>
 <p>Null hypothesis:</p>
 <pre><code>BM vs JJ (AMIL!)
 beta1 = 0
@@ -794,6 +804,7 @@ beta2 + beta3 = 0</code></pre>
 in Hugo Tavares’ <a
 href="https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing">slides</a></li>
 </ul>
+</div>
 </div>
 <div id="recap" class="section level2">
 <h2>3. Recap</h2>
@@ -842,9 +853,9 @@ the p-values,</li>
 <li>P values are adjusted for multiple testing using the procedure of
 Benjamini and Hochberg.</li>
 </ul>
+<pre class="r"><code>res.df &lt;- results(dds) %&gt;% data.frame() %&gt;% drop_na</code></pre>
 <p>P-value distribution</p>
-<pre class="r"><code>res.df &lt;- results(dds) %&gt;% data.frame() %&gt;% drop_na
-ggplot(res.df) +
+<pre class="r"><code>ggplot(res.df) +
     geom_histogram(aes(res.df$pvalue, fill = &quot;a&quot;), colour = &quot;grey20&quot;, alpha = 0.5, stat = &quot;bin&quot;) +
     xlab(&quot;p-value&quot;) +
     # geom_histogram(aes(res.df$padj, fill = &quot;b&quot;), colour = &quot;grey20&quot;, alpha = 0.5, stat = &quot;bin&quot;) +
@@ -893,11 +904,10 @@ alphabetical order of the levels.</p>
 <ul>
 <li>a character vector with three elements. c(“celltype”, “JJ”, “BM”)
 (last level == baseline!)</li>
-<li>A list of 2 character vectors. list(coef1, coef2) (last coef ==
-baseline!)</li>
+<li>A list of 2 character vectors. list(coef1, coef2)</li>
 <li>A numerical vector with an element for each coef c(0,0,0,1,0,0)</li>
 </ul>
-<p>Let’s start with the first option.</p>
+<p>Let’s try!</p>
 <pre class="r"><code>resultsNames(dds) # to see what names to use</code></pre>
 <pre><code>## [1] &quot;Intercept&quot;                &quot;celltype_JJ_vs_BM&quot;       
 ## [3] &quot;condition_DMSO_vs_AMIL&quot;   &quot;condition_TG_vs_AMIL&quot;    
@@ -1192,7 +1202,7 @@ DESeq object (dds)</p>
 <pre class="r"><code>design(dds)</code></pre>
 <pre><code>## ~celltype + condition + celltype:condition</code></pre>
 <blockquote>
-<p><strong>Poll 3.3</strong>: Is there a difference in specifying
+<p><strong>Poll 3.4</strong>: Is there a difference in specifying
 ~celltype*condition and ~celltype + condition + celltype:condition ?</p>
 </blockquote>
 <p><strong>Reminder</strong>: This is in essence a drug repurposing
@@ -1245,7 +1255,7 @@ head( TGvAMIL %&gt;% data.frame() )</code></pre>
 <p>! Make sure you have the ‘TGvAMIL’ results object.</p>
 </blockquote>
 <blockquote>
-<p><strong>Poll 3.4</strong>: Given our contrast c(‘condition’, ‘TG’,
+<p><strong>Poll 3.5</strong>: Given our contrast c(‘condition’, ‘TG’,
 ‘AMIL’), what would a (significant) positive foldchange correspond to
 ?</p>
 </blockquote>
