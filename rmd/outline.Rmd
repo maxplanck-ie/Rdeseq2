@@ -139,8 +139,8 @@ In your session (local or workbench):
 
 * file -> new project -> 'Version Control' -> git
 
-> Repository URL: https://github.com/maxplanck-ie/Rdeseq2
-> Project directory name: chose a folder name
+> Repository URL: https://github.com/maxplanck-ie/Rdeseq2  
+> Project directory name: chose a folder name  
 
 ! For workbench users: 
 
@@ -160,3 +160,7 @@ which should contain these folders:
  * genesets
  * mpp
  * myeloma
+
+How it should look like:
+
+![ An new R notebook in our freshly cloned project ](images/outline_clonedrepo.png)
