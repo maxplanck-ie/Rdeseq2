@@ -128,3 +128,39 @@ The Rstudio GUI.
 > How will you keep track of the code, course material and notes during this course ?
 
 ***
+
+# Set up our project
+
+> **Task**: Create a new project, cloning the datafiles we will be using from github.
+
+If you are working in workbench, start a new session.
+
+In your session (local or workbench):
+
+* file -> new project -> 'Version Control' -> git
+
+> Repository URL: https://github.com/maxplanck-ie/Rdeseq2  
+> Project directory name: chose a folder name  
+
+! For workbench users: 
+
+* create the project as a subdirectory under your group volume (e.g. /data/manke/group/deboutte), or a processing volume (/data/processing/deboutte)
+* Remember to choose version 4.1.3 
+
+If it worked, you should have a new session, and in your console you will retrieve your project directory:
+
+ > getwd()
+
+and you should be able to see the data folder:
+
+ > list.files('data')
+
+which should contain these folders:
+
+ * genesets
+ * mpp
+ * myeloma
+
+How it should look like:
+
+![ An new R notebook in our freshly cloned project ](images/outline_clonedrepo.png)

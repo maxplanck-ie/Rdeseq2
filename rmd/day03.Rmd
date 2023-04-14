@@ -17,7 +17,7 @@ output:
 * Different steps of a differential gene expression analysis
   * multi-factor design
   * Normalisation: Estimating size factors (has been explained before)
-  * Checking for the dispertion (has been explained before)
+  * Dispersion estimation (has been explained before)
   * Building up contrasts
   * Make a results table
   * Summarize and extract a list of significant differentially expressed genes
@@ -64,7 +64,7 @@ DESeq2 uses the design as a model for each gene, and fits a normalized count bas
 
 ## 2. design examples
 
-A single factor with two levels.
+### A single factor with two levels.
 
 |samples |celltype<factor> |
 |:-------|:-----|
@@ -117,12 +117,12 @@ dds$celltype
 
 Each coefficient shows a difference.
 
-    [1] "Intercept" (beta0)             "celltype_BM_vs_JJ" (beta1)
+    [1] "Intercept" (beta0)             "celltype_JJ_vs_BM" (beta1)
 
 
 This can be shown by dummy variables:
 
-|samples | (Intercept) | celltypeBM |
+|samples | (Intercept) | celltypeJJ |
 |:-------|:----|:----|
 |sample1 |1 | 0 |
 |sample2 |1 | 0 |
@@ -136,7 +136,7 @@ Null hypothesis:
 
 ***
 
-A single factor with more then two levels.
+### A single factor with more then two levels.
 
 |samples |condition<factor> |
 |:-------|:-----|
@@ -178,17 +178,17 @@ ggplot(data=tdf, aes(x=name, y=value)) +
 
 ```
 
-
 Design:
-      ~1+condition
-      = beta0 + beta1 * DMSO + beta2 * TG
-      beta0 = Intercept
-      beta1 = condition_DMSO_vs_AMIL
-      beta2 = condition_TG_vs_AMIL
+
+      ~1+condition  
+      = beta0 + beta1 * DMSO + beta2 * TG  
+      beta0 = Intercept  
+      beta1 = condition_DMSO_vs_AMIL  
+      beta2 = condition_TG_vs_AMIL  
 
 Model matrix:
 
-|samples | (Intercept) | conditionDMSO | condittionTG |
+|samples | (Intercept) | conditionDMSO | conditionTG |
 |:-------|:----|:----|:----|
 |sample1 |1 | 0 | 0 |
 |sample2 |1 | 0 | 0 |
@@ -243,6 +243,8 @@ Design:
       beta4 = celltypeBM.conditionDMSO
       beta5 = celltypeBM.conditionTG
 
+
+
 ```{r fulldesign}
 dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~celltype+condition+celltype:condition)
 dds <- DESeq(dds)
@@ -282,6 +284,9 @@ ggplot(data=tdf, aes(x=name, y=value)) +
   )
 
 ```
+
+> **Poll 3.3** What does the intercept value reflect ?
+
 
 Null hypothesis:
 
@@ -342,10 +347,12 @@ By default DESeq2 uses the Wald test to identify genes that are differentially e
   * The shrunken estimate of LFC is divided by its standard error, resulting in a z-statistic,
   * z-statistic is compared to a standard normal distribution to compute the p-values,
   * P values are adjusted for multiple testing using the procedure of Benjamini and Hochberg.
+```{r getresults!, eval=TRUE}
+res.df <- results(dds) %>% data.frame() %>% drop_na
+```
 
 P-value distribution
 ```{r pvalue, eval=TRUE, message=FALSE, warning=FALSE}
-res.df <- results(dds) %>% data.frame() %>% drop_na
 ggplot(res.df) +
     geom_histogram(aes(res.df$pvalue, fill = "a"), colour = "grey20", alpha = 0.5, stat = "bin") +
     xlab("p-value") +
@@ -386,10 +393,10 @@ If there is only two factor levels, There is no need to  specify contrasts, DESe
 Contrasts can be specified in three different ways:
 
   * a character vector with three elements. c("celltype", "JJ", "BM") (last level == baseline!)
-  * A list of 2 character vectors. list(coef1, coef2) (last coef == baseline!)
+  * A list of 2 character vectors. list(coef1, coef2)
   * A numerical vector with an element for each coef c(0,0,0,1,0,0)
 
-Let's start with the first option.
+Let's try!
 
 ```{r contrast, message=FALSE, warning=FALSE}
 resultsNames(dds) # to see what names to use
@@ -605,7 +612,7 @@ colData(dds)$condition
 design(dds)
 ```
 
-> **Poll 3.3**: Is there a difference in specifying ~celltype*condition and ~celltype + condition + celltype:condition ?
+> **Poll 3.4**: Is there a difference in specifying ~celltype*condition and ~celltype + condition + celltype:condition ?
 
 
 **Reminder**:
@@ -651,8 +658,7 @@ head( TGvAMIL %>% data.frame() )
 > ! Make sure you have the 'TGvAMIL' results object.
 
 
-> **Poll 3.4**:
-> Given our contrast c('condition', 'TG', 'AMIL'), what would a (significant) positive foldchange correspond to ?
+> **Poll 3.5**: Given our contrast c('condition', 'TG', 'AMIL'), what would a (significant) positive foldchange correspond to ?
 
 ```{r return celltype, message=FALSE, warning=FALSE}
 colData(dds)$celltype

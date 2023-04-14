@@ -25,16 +25,10 @@ The story we'll work with is a 'drug repurposing' effort to use an old diuretic 
 
 In this study, RNA-seq data is available to compare amiloride to a state-of-the-art drug (TG003) in two cancer (multiple myeloma) cell lines with different mutations (BM: p53mut, JJ: del(17p)).
 <br> 
+
 ***
 
 ## 2. Tools
-
-> **Task**: Start a new session in [workbench](https://workbench.ie-freiburg.mpg.de), or on your local computer. Note that we will be working with R version 4.1.3.
-> **Task**: Create a new R-project, e.g. DESeq2_Course
-> **Task**: Open a new notebook: e.g. DESeq2_notebook
-
-**Recommendation** 
-We advice you to use Notebooks throughout the course (and beyond), as it is straight forward to keep your notes (documentation) and code together in one place.
 
 > **Poll 1.1**: 
 > How do you get information about the current R-version and loaded packages?
@@ -54,7 +48,7 @@ For R, two of the most common and reliable package repositories are:
 **Reminder** 
 
 1. All packages come for a **specific R-version**. This tutorial uses R version 4.1.3.
-2. All packages have specific **package version** (e.g. DESeq2 is version 1.30.1), and can come from different sources (CRAN, Bioconductor, github, ...).
+2. All packages have specific **package version** (e.g. DESeq2 is version 1.34.0), and can come from different sources (CRAN, Bioconductor, github, ...).
 3. Most packages have **dependencies** on other packages that should also be installed 
 4. Installation can be very **time consuming** but needs to be done only once. 
 
@@ -136,6 +130,8 @@ Where are the gene names, and which convention is chosen for them?
 
 > **Task**: Ensure that the rownames of the count data are gene names.
 
+You could do a re-assignment in base-R, or utilise the 'column_to_rownames() function from tidyverse.'
+
 ```{r add_rownames}
 # dplyr
 data <- data %>% column_to_rownames("gene_id")  # gene_id -> rownames and removes gene_id
@@ -155,7 +151,11 @@ data <- data %>% column_to_rownames("gene_id")  # gene_id -> rownames and remove
 Metadata (=data about data); typically contains important information on the samples and their origin. 
 Often these are categorical data such as cell type, experimental condition or other batch assignments. But it could also be quantitative data (e.g. age, weight, ...).
 Often the metadata is hidden in the paper (or in the filenames). This is bad practise - make sure to have a proper 'samplesheet'.
- Metadata is just as important as data.
+Metadata is just as important as data.
+
+Our metadata file is located here:
+
+> 'data/myeloma/myeloma_meta.tsv' 
 
 > **Task**: Read the metadata into an R-object "metadata". Inspect the data frame - which data types are included?
 Make sure that the rownames of the metadata are valid sample names.
@@ -269,8 +269,8 @@ MM <- model.matrix(my_design, data=metadata)
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
 
-> **Tasks**: Include an additional factor (+ celltype) and observe the design matrix 
-> **Tasks**: Bonus: include an interaction term (+ condition:celltype) and discuss its interpretation
+> **Tasks**: Include an additional factor (+ celltype) and observe the design matrix   
+> **Tasks**: Bonus: include an interaction term (+ condition:celltype) and discuss its interpretation  
 
 ```{r model_matrix_interaction}
 MM <- model.matrix(~ condition*celltype, data=metadata)
