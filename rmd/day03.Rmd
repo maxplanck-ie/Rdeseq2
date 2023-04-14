@@ -64,7 +64,7 @@ DESeq2 uses the design as a model for each gene, and fits a normalized count bas
 
 ## 2. design examples
 
-A single factor with two levels.
+### A single factor with two levels.
 
 |samples |celltype<factor> |
 |:-------|:-----|
@@ -136,7 +136,7 @@ Null hypothesis:
 
 ***
 
-A single factor with more then two levels.
+### A single factor with more then two levels.
 
 |samples |condition<factor> |
 |:-------|:-----|
