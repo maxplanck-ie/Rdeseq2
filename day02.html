@@ -9,7 +9,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Mirela Balan" />
+<meta name="author" content="Bioinfo-Core @ MPI-IE" />
 
 
 <title>DESeq2 Analysis with R: Part 02</title>
@@ -397,298 +397,203 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 02</h1>
-<h4 class="author">Mirela Balan</h4>
-<h4 class="date">Fri Apr 14 13:49:50 2023</h4>
+<h4 class="author">Bioinfo-Core @ MPI-IE</h4>
+<h4 class="date">Mon Apr 17 21:26:52 2023</h4>
 
 </div>
 
 
-<div id="goals" class="section level2">
-<h2>Goals:</h2>
+<div id="goals-deseq2-workflow" class="section level2">
+<h2>Goals: DESeq2 workflow</h2>
 <ul>
-<li>going over the DESeq2 workflow</li>
-<li>indepth explanations for:
-<ul>
-<li>general formating for data and metadata</li>
-<li>factorization</li>
-<li>pre-filtering</li>
-<li>RNA-seq data distribution</li>
-<li>modelling data</li>
-<li>data transformation</li>
-<li>size factors and normalization</li>
-<li>dispersions</li>
-</ul></li>
-<li>extracting the results<br />
-<br />
-<br />
-</li>
+<li>repeat: generating DESeq-object (data, metadata, design)</li>
+<li>filtering: samples and genes</li>
+<li>transformations: normalization and sizefactors</li>
+<li>modeling: variance + dispersion</li>
+<li>statistical tests</li>
+<li>extracting results</li>
 </ul>
 </div>
-<div id="filtering-data---25-min" class="section level2">
-<h2>1. Filtering data - 25 min</h2>
-<p><strong>Load data, metadata, check samples</strong></p>
-<p><br />
-</p>
-<p><code>dds &lt;- data + metadata + design</code></p>
-<p><br />
-</p>
+<div id="preparation-repeat" class="section level2">
+<h2>Preparation (Repeat)</h2>
+<div id="load-libraries" class="section level3">
+<h3>Load Libraries</h3>
 <pre class="r"><code>suppressPackageStartupMessages({
 library(&quot;tidyverse&quot;)
 library(&quot;DESeq2&quot;)
 library(&quot;pheatmap&quot;)
 library(&quot;ashr&quot;)
 })</code></pre>
-<ol start="2" style="list-style-type: lower-alpha">
-<li>Load data and metadata</li>
-</ol>
-<pre class="r"><code>#loading data with tidyverse
-data &lt;- readr::read_tsv(&quot;../data/myeloma/myeloma_counts.tsv&quot;, col_types = cols(gene_id=&quot;c&quot;, .default= &quot;i&quot;), col_names=TRUE)
-data &lt;- column_to_rownames(data, var=&quot;gene_id&quot;)
+</div>
+<div id="load-data" class="section level3">
+<h3>Load data</h3>
+<pre class="r"><code>data &lt;- readr::read_tsv(&quot;data/myeloma/myeloma_counts.tsv&quot;)</code></pre>
+<pre><code>## Rows: 57905 Columns: 19
+## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: &quot;\t&quot;
+## chr  (1): gene_id
+## dbl (18): JJ_CTRL_1, BM_CTRL_2, BM_CTRL_3, BM_AMIL_1, BM_AMIL_2, BM_AMIL_3, ...
+## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<pre class="r"><code>data &lt;- data %&gt;% 
+  column_to_rownames(var=&quot;gene_id&quot;) %&gt;%
+  mutate(across(where(is.double), as.integer))
 
-#loading metadata (sample sheet) with tidyverse
-metadata &lt;- readr::read_tsv(&quot;../data/myeloma/myeloma_meta.tsv&quot;, col_types = list(&quot;c&quot;, &quot;f&quot;, &quot;f&quot;), col_names=TRUE)
-# Same as:
-# metadata %&gt;% mutate(celltype = factor(celltype))
-# metadata %&gt;% mutate(condition = factor(condition))
+data %&gt;% str()</code></pre>
+<pre><code>## &#39;data.frame&#39;:    57905 obs. of  18 variables:
+##  $ JJ_CTRL_1: int  0 0 1637 453 719 2 2 61 2354 3025 ...
+##  $ BM_CTRL_2: int  0 0 1792 614 961 3 1 76 2808 4071 ...
+##  $ BM_CTRL_3: int  0 0 2368 854 1280 6 2 98 3963 4837 ...
+##  $ BM_AMIL_1: int  0 0 2365 623 937 0 3 180 1298 2242 ...
+##  $ BM_AMIL_2: int  0 0 4808 585 1247 0 0 176 1240 2818 ...
+##  $ BM_AMIL_3: int  0 0 2098 431 852 0 0 163 812 1981 ...
+##  $ BM_CTRL_1: int  0 0 1664 687 884 1 2498 1543 1590 2097 ...
+##  $ JJ_CTRL_2: int  0 0 1878 869 1058 4 2860 2165 2018 2906 ...
+##  $ JJ_CTRL_3: int  0 0 1367 619 616 1 1991 1513 1331 1971 ...
+##  $ JJ_AMIL_1: int  0 0 1155 512 840 3 2274 1262 552 1178 ...
+##  $ JJ_AMIL_2: int  0 0 3020 953 1320 3 3197 2265 1316 2099 ...
+##  $ JJ_AMIL_3: int  0 0 3834 1049 1161 5 3817 2411 1194 2075 ...
+##  $ BM_TG_1  : int  0 0 2461 845 1944 5 3 53 3384 3274 ...
+##  $ BM_TG_2  : int  0 0 1962 757 1528 1 0 40 2918 2785 ...
+##  $ BM_TG_3  : int  0 0 2417 859 2106 3 1 43 3516 3610 ...
+##  $ JJ_TG_1  : int  0 0 1601 823 1350 2 2917 1280 1999 1889 ...
+##  $ JJ_TG_2  : int  0 0 3110 1342 2569 2 4345 1998 3321 3467 ...
+##  $ JJ_TG_3  : int  0 0 2129 904 1654 3 3278 1434 2352 2404 ...</code></pre>
+<pre class="r"><code>data %&gt;% dim()</code></pre>
+<pre><code>## [1] 57905    18</code></pre>
+<pre class="r"><code>data %&gt;% head()</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["JJ_CTRL_1"],"name":[1],"type":["int"],"align":["right"]},{"label":["BM_CTRL_2"],"name":[2],"type":["int"],"align":["right"]},{"label":["BM_CTRL_3"],"name":[3],"type":["int"],"align":["right"]},{"label":["BM_AMIL_1"],"name":[4],"type":["int"],"align":["right"]},{"label":["BM_AMIL_2"],"name":[5],"type":["int"],"align":["right"]},{"label":["BM_AMIL_3"],"name":[6],"type":["int"],"align":["right"]},{"label":["BM_CTRL_1"],"name":[7],"type":["int"],"align":["right"]},{"label":["JJ_CTRL_2"],"name":[8],"type":["int"],"align":["right"]},{"label":["JJ_CTRL_3"],"name":[9],"type":["int"],"align":["right"]},{"label":["JJ_AMIL_1"],"name":[10],"type":["int"],"align":["right"]},{"label":["JJ_AMIL_2"],"name":[11],"type":["int"],"align":["right"]},{"label":["JJ_AMIL_3"],"name":[12],"type":["int"],"align":["right"]},{"label":["BM_TG_1"],"name":[13],"type":["int"],"align":["right"]},{"label":["BM_TG_2"],"name":[14],"type":["int"],"align":["right"]},{"label":["BM_TG_3"],"name":[15],"type":["int"],"align":["right"]},{"label":["JJ_TG_1"],"name":[16],"type":["int"],"align":["right"]},{"label":["JJ_TG_2"],"name":[17],"type":["int"],"align":["right"]},{"label":["JJ_TG_3"],"name":[18],"type":["int"],"align":["right"]}],"data":[{"1":"0","2":"0","3":"0","4":"0","5":"0","6":"0","7":"0","8":"0","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","_rn_":"ENSG00000000003"},{"1":"0","2":"0","3":"0","4":"0","5":"0","6":"0","7":"0","8":"0","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","_rn_":"ENSG00000000005"},{"1":"1637","2":"1792","3":"2368","4":"2365","5":"4808","6":"2098","7":"1664","8":"1878","9":"1367","10":"1155","11":"3020","12":"3834","13":"2461","14":"1962","15":"2417","16":"1601","17":"3110","18":"2129","_rn_":"ENSG00000000419"},{"1":"453","2":"614","3":"854","4":"623","5":"585","6":"431","7":"687","8":"869","9":"619","10":"512","11":"953","12":"1049","13":"845","14":"757","15":"859","16":"823","17":"1342","18":"904","_rn_":"ENSG00000000457"},{"1":"719","2":"961","3":"1280","4":"937","5":"1247","6":"852","7":"884","8":"1058","9":"616","10":"840","11":"1320","12":"1161","13":"1944","14":"1528","15":"2106","16":"1350","17":"2569","18":"1654","_rn_":"ENSG00000000460"},{"1":"2","2":"3","3":"6","4":"0","5":"0","6":"0","7":"1","8":"4","9":"1","10":"3","11":"3","12":"5","13":"5","14":"1","15":"3","16":"2","17":"2","18":"3","_rn_":"ENSG00000000938"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+<div id="load-metadata" class="section level3">
+<h3>Load Metadata</h3>
+<pre class="r"><code>metadata &lt;- readr::read_tsv(&quot;data/myeloma/myeloma_meta.tsv&quot;)</code></pre>
+<pre><code>## Rows: 18 Columns: 3
+## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: &quot;\t&quot;
+## chr (3): sample, celltype, condition
+## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<pre class="r"><code>metadata &lt;- metadata %&gt;% 
+  mutate(celltype = factor(celltype)) %&gt;%
+  mutate(condition = factor(condition)) %&gt;%
+  column_to_rownames(&quot;sample&quot;)  
 
-metadata &lt;- metadata %&gt;% column_to_rownames(&quot;sample&quot;)  # sample -&gt; rownames
-
-#preview your data and metadata
-data %&gt;% head()
-data %&gt;% dim()
-
-metadata %&gt;% head()
-metadata %&gt;% dim()
-
-#check if the col and rows are in the same order:
+metadata %&gt;% str()</code></pre>
+<pre><code>## &#39;data.frame&#39;:    18 obs. of  2 variables:
+##  $ celltype : Factor w/ 2 levels &quot;BM&quot;,&quot;JJ&quot;: 2 1 1 1 1 1 1 2 2 2 ...
+##  $ condition: Factor w/ 3 levels &quot;AMIL&quot;,&quot;DMSO&quot;,..: 2 2 2 1 1 1 2 2 2 1 ...</code></pre>
+<pre class="r"><code>metadata %&gt;% dim()</code></pre>
+<pre><code>## [1] 18  2</code></pre>
+<pre class="r"><code>metadata %&gt;% head()</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["celltype"],"name":[1],"type":["fct"],"align":["left"]},{"label":["condition"],"name":[2],"type":["fct"],"align":["left"]}],"data":[{"1":"JJ","2":"DMSO","_rn_":"JJ_CTRL_1"},{"1":"BM","2":"DMSO","_rn_":"BM_CTRL_2"},{"1":"BM","2":"DMSO","_rn_":"BM_CTRL_3"},{"1":"BM","2":"AMIL","_rn_":"BM_AMIL_1"},{"1":"BM","2":"AMIL","_rn_":"BM_AMIL_2"},{"1":"BM","2":"AMIL","_rn_":"BM_AMIL_3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>#check if the col and rows are in the same order:
 all(rownames(metadata) == colnames(data))</code></pre>
-<ol start="3" style="list-style-type: lower-alpha">
-<li>Make design and create the DDS object</li>
-</ol>
-<pre class="r"><code>#create a more complex experimental design
-my_design &lt;- ~celltype + condition
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code># Convert to factors
+metadata$celltype &lt;- metadata$celltype %&gt;% as.factor()
+metadata$condition &lt;- metadata$condition %&gt;% as.factor()</code></pre>
+</div>
+<div id="create-design" class="section level3">
+<h3>Create Design</h3>
+<pre class="r"><code>my_design &lt;- ~celltype + condition</code></pre>
+</div>
+<div id="create-deseq-object" class="section level3">
+<h3>Create DESeq Object</h3>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=my_design)
 
-#make dds obj
-dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_design)</code></pre>
-<div id="sample-filtering---15-min" class="section level3">
-<h3>1.1. Sample filtering - 15 min</h3>
+class(dds)</code></pre>
+<pre><code>## [1] &quot;DESeqDataSet&quot;
+## attr(,&quot;package&quot;)
+## [1] &quot;DESeq2&quot;</code></pre>
+<pre class="r"><code>dim(dds)</code></pre>
+<pre><code>## [1] 57905    18</code></pre>
+</div>
+<div id="first-inspection-pca" class="section level3">
+<h3>First Inspection (PCA)</h3>
 <p>Previously you noticed that the PCA shows a problem with our
 data.</p>
-<p><img src="day02_files/figure-html/old_PCA-1.png" width="60%" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># define function (see day 1)
+myPlotPCA = function(dds, nt=500) {
+  M &lt;- counts(dds)                 # get counts from dds
+  Mt &lt;- log2(M + 1)                # a simple (and fast) transformation
+  ann &lt;- data.frame(colData(dds))  # get annotations from colData = metadata
+  cn_col &lt;- c(&quot;#1B9E77&quot;, &quot;#D95F02&quot;, &quot;#7570B3&quot;)   # condition colours
+  names(cn_col) &lt;- levels(ann$condition) # name the color vector
+
+  top &lt;- Mt %&gt;% rowVars() %&gt;% order(decreasing=TRUE) %&gt;% head(nt)  # calculate variance for each row and sort
+  pca &lt;- Mt[top,] %&gt;% t() %&gt;% prcomp(scale=TRUE)                    # perform PCA
+
+  rld_PCA &lt;- as.data.frame(pca$x[,1:2])                     # only take PC1 and PC2 (column 1 + 2)
+  rld_PCA$condition &lt;- ann[rownames(rld_PCA),&quot;condition&quot;]   # add condition label from ann
+  rld_PCA$celltype  &lt;- ann[rownames(rld_PCA),&quot;celltype&quot;]    # add celltype label from ann
+
+  ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
+    geom_point(size=3) +
+    scale_colour_manual(values=cn_col)
+}
+
+
+myPlotPCA(dds)</code></pre>
+<p><img src="day02_files/figure-html/old_PCA-1.png" width="80%" style="display: block; margin: auto;" /></p>
 <blockquote>
-<p><strong>Poll 1:</strong> What do you think about this PCA plot? Does
-it need to be fixed? How would you do it? - 5 min</p>
+<p><strong>Poll 2.1:</strong> What should we do next ?</p>
 </blockquote>
-<p> </p>
-<blockquote>
-<p><strong>Task 1:</strong> Let’s fix the data by removing the
-problematic samples and visualize the resulting PCA:</p>
-</blockquote>
-<pre><code># select the wrong samples from the dds object (columns: 1 and 7), then drop it:
-dds_clean &lt;- dds[, -c(column_number_sample1, column_number_sample2)]
-
-# plot the PCA using the the new dds object (can use yesterday&#39;s code)
- # first get the counts out of the dds object (): counts(dds) 
- # use log2() on the counts  -  or use rlog() on the dds object!
- # plot the PCA</code></pre>
-<pre class="r"><code>#remove the samples from data and metadata:
-dds_clean &lt;- dds[, -c(1,7)]
-#or
-#dds_clean2 &lt;- dds[, -which(colnames(dds) %in% c(&quot;JJ_CTRL_1&quot;, &quot;BM_CTRL_1&quot;))]
-
-rld_PCA_clean &lt;- rlog(dds_clean, blind = TRUE) %&gt;% plotPCA(intgroup=c(&quot;condition&quot;, &quot;celltype&quot;), returnData=TRUE)
-
-# cosmetic changes:
-percentVar_clean &lt;- round(100 * attr(rld_PCA_clean, &quot;percentVar&quot;), 1)   # rounded values for each axis of PC variance
-
-rld_PCA_clean %&gt;% ggplot(aes(PC1, PC2, color=condition, shape=celltype)) +
-  geom_point(size=3) +
-  scale_shape_manual(values=c(3, 1))+    # change shapes of symbols
-  scale_size_manual(values=c(2, 2))+     # change sizes of symbols
-  xlab(paste0(&quot;PC1: &quot;,percentVar[1])) +
-  ylab(paste0(&quot;PC2: &quot;,percentVar[2]))</code></pre>
-<p><img src="day02_files/figure-html/fix_data_metadata-1.png" width="60%" style="display: block; margin: auto;" /></p>
-<p><br />
-<br />
-</p>
 </div>
-<div id="feature-filtering---10-min" class="section level3">
-<h3>1.2. Feature filtering - 10 min</h3>
+</div>
+<div id="filtering" class="section level2">
+<h2>Filtering</h2>
+<div id="filter-samples---10-min" class="section level3">
+<h3>Filter Samples - 10 min</h3>
+<p><strong>Task</strong>: Filter the problematic samples (columns 1 and
+7) from dds object and produce a new PCA plot.</p>
+<p>Hint: Although the <code>dds</code> object is a more complex data
+class it also has dimensions assigned – check <code>dim(dds)</code> –
+and samples can be un/selected like columns in a standard
+dataframes.</p>
+<pre class="r"><code>dds_clean &lt;- dds[, -c(1,7)] 
+myPlotPCA(dds_clean)</code></pre>
+<p><img src="day02_files/figure-html/filter_samples-1.png" width="80%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="filter-genes---10-min" class="section level3">
+<h3>Filter Genes - 10 min</h3>
 <ul>
-<li>filtering: manual or automatic</li>
-<li>helpful but not necessary to remove rows/genes that have very low
-counts (very unlikely to have biological meaning)
-<ul>
+<li>remove genes (rows) that have very low counts</li>
 <li>arbitrary threshold: &lt; 1, &lt; 10</li>
-<li>reduces the memory size that the ‘dds’ object occupies =&gt;
-increases the speed of transformations and calculations</li>
+<li>benefits:
+<ul>
+<li>increase robustness of analysis</li>
+<li>reduces memory size of ‘dds’ object =&gt; increases the speed</li>
 </ul></li>
 </ul>
-<p><br />
-</p>
+<p><strong>Task</strong> Filter out the genes that have a total amount
+of only zero or 1 counts.</p>
+<p>Hint: Have a look at the output of
+<code>dds_clean %&gt;% counts %&gt;% rowSums() %&gt;% head()</code></p>
+<pre class="r"><code>rs = dds_clean %&gt;% counts %&gt;% rowSums()
+dds_clean = dds_clean[rs&gt;1,]</code></pre>
 <blockquote>
-<p><strong>Task 2:</strong> Filter out the genes that have a total
-amount of only zero or 1 counts:</p>
+<p><strong>Poll 2.2</strong> How many samples and genes are left in the
+filtered data set?</p>
 </blockquote>
-<p><br />
-</p>
-<pre><code># find which rows in the counts of the dds object have only zero or 1 counts overall (= sum of rows is zero or 1)
-  # on the counts from dds object, find out the sum of rows; keep them if &gt; 1 
-    keep &lt;- rowSums() &gt; 1
-
-# filter out the unnecessary rows
-dds &lt;- dds[keep, ]</code></pre>
-<p><br />
-</p>
-<blockquote>
-<p><strong>Discussion:</strong> What type of object is ‘keep’?:</p>
-</blockquote>
-<p><br />
-</p>
-<pre class="r"><code>#decide on the threshold you want to use  (= the minimum number of counts you want to keep)
-keep2 &lt;- rowSums(counts(dds_clean)) &gt; 1
-cat(&#39;genes before filter: &#39;, nrow(dds_clean), &#39;\n&#39;)    # prints the number of rows you have before the filtering</code></pre>
-<pre><code>## genes before filter:  57905</code></pre>
-<pre class="r"><code># keep the desired rows
-fdds_clean &lt;- dds_clean[keep2, ]                     # most people keep the &#39;dds&#39; name, but I will change it to help you differentiate between the different steps and learn. But doing this will fill up your memory.
-cat(&#39;genes before filter: &#39;, nrow(fdds_clean), &#39;\n&#39;)    # prints the number of rows you have after the filtering</code></pre>
-<pre><code>## genes before filter:  27351</code></pre>
 </div>
 </div>
-<div
-id="notice-how-many-rows-you-have-dropped.-in-this-case-you-are-left-only-with-47.23-of-the-initial-number-of-rows"
-class="section level1">
-<h1>Notice how many rows you have dropped. In this case you are left
-only with <strong>47.23 %</strong> of the initial number of rows!</h1>
-<p><br />
-<br />
-<br />
-</p>
-<p><br />
-</p>
-<div id="brief-overview-and-semi-deep-dive-into-concepts---25-min"
-class="section level2">
-<h2>2. Brief overview and (semi-)deep dive into concepts - 25 min</h2>
-<p><br />
-</p>
-<p>The steps required to do differential expression analysis using
-DESeq2 package (with default parameters):</p>
-<p><br />
-</p>
-<pre><code># make the DESeqDataSet (dds) object:
-dds &lt;- DESeqDataSetFromMatrix(countData = matrix_with_count_data,
-                              colData = dataframe_with_sample_information,
-                              design = what_variables_interest_you)
-
-# explore data &amp; QC: transform data, plot (filtering, PCA, heatmap)
-
-***********************************************************************
-
-# perform statistical analysis
-dds &lt;- DESeq(dds)
-
-# extract results
-res &lt;- results(dds)</code></pre>
-<p><br />
-</p>
-<p>Things are a bit more complicated in reality - an interative
-process.</p>
-<p><br></p>
-<center>
-<div class="figure">
-<img src="images/part00_workflowdeseq2.png" style="width:80.0%"
-alt="" />
-<p class="caption">DESeq2 workflow</p>
-</div>
-</center>
-<p><br></p>
-<p><strong>Know your starting data and what you want to achieve with
-it</strong></p>
-<ul>
-<li><p>Have a <strong>working log</strong> where you keep track of all
-the information regarding the experimental design, the output from the
-sequencing, the purpose of the analyses, the analysis steps, the
-observations and all the decissions that you took during the
-analyses</p>
-<ul>
-<li><p>e.g. does the experimental design and the number of biological
-repeats allow you to apply certain statistical analyses? What did the QC
-report of the sequencing say? Do you see the expected sample separation
-on PCA? Did you find a problem that forced you to make decissions such
-as dropping samples? Using a certain unusual threshold?</p></li>
-<li><p>can use R notebooks as working logs - it is a place to
-experiment. But pay attention to not getting mixed up in the
-data!!</p></li>
-</ul></li>
-</ul>
-<p><br />
-</p>
-<ul>
-<li><p>For every step:</p>
-<ul>
-<li>examine what you have initially (data and the format)</li>
-<li>know your next step and how the outcome should look like</li>
-<li>apply the transformation to get the result</li>
-<li>examine what you got and see if it is what you wanted</li>
-</ul></li>
-</ul>
-<p><br />
-</p>
-<div id="a.-count-data" class="section level4">
-<h4>2.1.a. count data</h4>
-<ul>
-<li>usually named ‘data’, ‘counts’</li>
-<li>a matrix with <strong>raw counts</strong> - not normalized, not
-transformed; integers</li>
-<li>to explore: head(data), dim(data), str(data), summary(data)</li>
-</ul>
-<p><br />
-</p>
-</div>
-<div id="b.-information-about-the-samples" class="section level4">
-<h4>2.1.b. information about the samples</h4>
-<ul>
-<li>usually named ‘metadata’, ‘colData’</li>
-<li>dataframe with all known useful information about the samples: name,
-condition (control/treatment, WT/KO/KD/OE), batch/ sequencing day,
-gender, age</li>
-<li>to explore: head(metadata)
-<ul>
-<li>rows of the metadata should be named with sample names (important
-for downstream steps)</li>
-<li><strong>column names of the data should be identical and in the same
-order with the row names of the metadata!</strong>:
-<code>all(colnames(data)==rownames(metadata))</code> should output
-‘TRUE’</li>
-</ul></li>
-</ul>
-<div id="understanding-factors" class="section level5">
-<h5><strong>Understanding factors</strong></h5>
-<ul>
-<li><p>used to represent categorical data</p></li>
-<li><p>stored as integers that have associated labels: R sorts the
-labels alphabetically</p>
-<pre><code>1    2    3
-AMIL DMSO TG</code></pre></li>
-<li><p>can be:</p>
-<ul>
-<li>ordered: small &lt; normal &lt; large; sand &lt; pebels &lt; stones
-&lt; boulders;</li>
-<li>unordered: DMSO, TG, AMIL; WT, KO-1, KO-2;</li>
-</ul></li>
-<li><p>levels = predefined factors; reference level = the 1st
-level</p></li>
-<li><p>the order in which the factors are ordered matters:</p>
-<ul>
-<li>for plotting:
-<img src="day02_files/figure-html/bar1-1.png" width="60%" style="display: block; margin: auto;" /></li>
-<li>for statistics: for DE analysis, DESeq2 compares all other levels
-within a variable with the 1st level. So if they are mixed, instead of
-comparing ‘treatment1 to control’ and ‘treatment2 to control’, you might
-end up with unexpected results!</li>
-</ul></li>
-</ul>
-<p><br></p>
+<div id="relevel-factors---10-min" class="section level2">
+<h2>Relevel Factors - 10 min</h2>
+<p><strong>Remember</strong>: factors are used to represent categorical
+data !</p>
+<p>Internally they are stored as integers and per default they are
+sorted <em>alphanumerically</em>. It may be more convenient to sort them
+by some user defined order - this is called relevelling</p>
 <center>
 <div class="figure">
 <img src="images/day2_factor_order_comparison.png" style="width:60.0%"
@@ -697,490 +602,297 @@ alt="" />
 </div>
 </center>
 <p><br></p>
-<ul>
-<li>how to reorder factors:<br />
-</li>
-</ul>
-<pre><code># or in the dds object, if you only care about what is the reference level:
-dds$condition &lt;- relevel(dds$condition, ref=&#39;DMSO&#39;)   
-
-# or in the dds, if you want a specific order for all of them
-dds$condition &lt;- factor(dds$condition, levels = c (&#39;DMSO&#39;, &#39;TG&#39;, &#39;AMIL&#39;)) 
-
-# don&#39;t reorder the factors, but then remember to use the &#39;contrast&#39; arguments in the results() function </code></pre>
-<p><br />
-</p>
 <blockquote>
-<p><strong>Task 3:</strong> Please reorder factors with ‘DMSO’ as
-baseline - 2 min</p>
+<p><strong>Task</strong> Reorder the condition with ‘DMSO’ as baseline -
+2 min.</p>
 </blockquote>
-<p><br />
-</p>
+<p>Hint: Use the <code>relevel</code> function</p>
 <p>This is the order of the factors before and after re-arrangement:</p>
 <pre class="r"><code>#initial factor arrangement:
 dds_clean$condition</code></pre>
 <pre><code>##  [1] DMSO DMSO AMIL AMIL AMIL DMSO DMSO AMIL AMIL AMIL TG   TG   TG   TG   TG  
 ## [16] TG  
-## Levels: DMSO AMIL TG</code></pre>
-<pre class="r"><code>#rearrange factors
-dds_clean$condition &lt;- relevel(dds_clean$condition, ref=&#39;DMSO&#39;)
+## Levels: AMIL DMSO TG</code></pre>
+<pre class="r"><code>dds_clean$condition &lt;- relevel(dds_clean$condition, ref=&#39;DMSO&#39;)
+#dds_clean$condition &lt;- factor(dds_clean$condition, levels = c (&#39;DMSO&#39;, &#39;TG&#39;, &#39;AMIL&#39;)) # alternatively
 
 dds_clean$condition</code></pre>
 <pre><code>##  [1] DMSO DMSO AMIL AMIL AMIL DMSO DMSO AMIL AMIL AMIL TG   TG   TG   TG   TG  
 ## [16] TG  
 ## Levels: DMSO AMIL TG</code></pre>
-<p> </p>
+<p><strong>Notice:</strong> Per default DESeq2 will make comparisons
+with respect to the 1st level, unless specified more explicitly
+(contrasts, see tomorrow).</p>
 </div>
-</div>
-<div id="c.-experimental-design" class="section level4">
-<h4>2.1.c. experimental design</h4>
+<div id="preparation-summary" class="section level2">
+<h2>Preparation Summary</h2>
+<p>We have now covered the most important preparation steps:</p>
 <ul>
-<li>contains variables which will be used in data modeling for
-estimating dispersions and the log fold changes.</li>
-<li>formula:
+<li>load library and data</li>
+<li>define DESeq data object
 <ul>
-<li>the names used are the names of the columns of the metadata</li>
-<li>add the needed variables, with <strong>the one you are most
-interested in explaining at the end</strong>
-<ul>
-<li>e.g. ‘~ celltype + condition’ = measure the effect of condition,
-while controlling for cell type-induced differences</li>
+<li>count data: <code>counts()</code> – not normalized. data frame of
+integers</li>
+<li>meta data: <code>colData()</code> – added data on samples. data
+frame of numerical or categorical variables</li>
+<li>design: <code>design()</code> – variables to be modeled. formula
+will be converted to design matrix with dummy variables</li>
 </ul></li>
-</ul></li>
+<li>Filtering &amp; Transformation &amp; Relevel</li>
 </ul>
-<pre><code>my_design &lt;- ~ celltype + condition</code></pre>
-<p><br />
-</p>
-</div>
-<div id="d.-dds-object" class="section level4">
-<h4>2.1.d. dds object</h4>
-<p>All that is left now is to make the dds object:</p>
-<pre><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=my_design) </code></pre>
-<ul>
-<li>dds object stores:
-<ul>
-<li>read counts (data) - call it with <code>counts(dds)</code></li>
-<li>sample info (metadata) - call it with <code>colData(dds)</code></li>
-<li>intermediate estimated quantities - during statistical analysis</li>
-<li>more additional features that you can add manually to the metadata
-columns of a newly constructed object:
-<code>mcols(dds) &lt;- DataFrame(mcols(dds), my_dataframe)</code></li>
-<li><em>every time you change anything about the ‘data’, ‘metadata’ or
-‘design’, you have to re-create the dds object!</em></li>
-</ul></li>
-</ul>
-<p><br />
-<br />
-<br />
-</p>
-</div>
+<blockquote>
+<p>This is <strong>before</strong> any statistical analysis ! A
+real-world analysis would likely be iterative</p>
+</blockquote>
+<blockquote>
+<p><strong>Message</strong>: Document your decisions, parameters,
+workflows and software versions carefully - use notebooks !</p>
+</blockquote>
 </div>
 <div id="break---10-min" class="section level2">
 <h2>Break - 10 min</h2>
-<p><br />
-<br />
-<br />
-</p>
+<hr />
 </div>
-<div id="data-exploration-visualization-and-qc---20-min"
-class="section level2">
-<h2>3. Data exploration, visualization and QC - 20 min</h2>
-<p>To explore your data further and to create informative, easy to
-interpret visualizations, the data needs to be transformed before
-plotting.</p>
-<p><br />
-</p>
-<div id="data-transformation-log-and-rlog" class="section level3">
-<h3>Data transformation: log and rlog</h3>
-<p>DESeq2 needs as input <strong>raw counts</strong> for statistical
-testing, but for some stages of visualization or downstream analysis,
-you need <strong>transformed data</strong>.</p>
-<ol style="list-style-type: lower-alpha">
-<li><strong>logarithmic data</strong> - mostly in visualization because
-it reduces the large dynamic range of the data (usually
-log2(count+1)).</li>
-</ol>
-<blockquote>
-<p><strong>Task 4.a):</strong> Do a logarithmic transformation of the
-first 4 samples (columns) and look only at the output before and after,
-only for the first 4 samples</p>
-</blockquote>
-<pre><code># look at the first rows of the counts of the first 4 samples from the dds object
-# transform the *dds counts* using a log() function
-# look at the first rows of first 4 samples from the transformed data</code></pre>
-<pre class="r"><code>print(&#39;dataset with counts before transformation (raw counts):&#39; )  </code></pre>
-<pre><code>## [1] &quot;dataset with counts before transformation (raw counts):&quot;</code></pre>
-<pre class="r"><code>counts(dds_clean)[,1:4] %&gt;% head(n=3)</code></pre>
-<pre><code>##                 BM_CTRL_2 BM_CTRL_3 BM_AMIL_1 BM_AMIL_2
-## ENSG00000000419      1792      2368      2365      4808
-## ENSG00000000457       614       854       623       585
-## ENSG00000000460       961      1280       937      1247</code></pre>
-<pre class="r"><code>print(&#39;dataset with counts after logarithmic transformation:&#39; )  </code></pre>
-<pre><code>## [1] &quot;dataset with counts after logarithmic transformation:&quot;</code></pre>
-<pre class="r"><code>counts(dds_clean)[,1:4] %&gt;% log(base=2) %&gt;% head(n=3)</code></pre>
-<pre><code>##                 BM_CTRL_2 BM_CTRL_3 BM_AMIL_1 BM_AMIL_2
-## ENSG00000000419 10.807355 11.209453 11.207624 12.231221
-## ENSG00000000457  9.262095  9.738092  9.283088  9.192293
-## ENSG00000000460  9.908393 10.321928  9.871905 10.284246</code></pre>
-<p><br />
-<br />
-</p>
-<ol start="2" style="list-style-type: lower-alpha">
-<li><strong>Regularized logarithm (RLOG)</strong> transform takes in
-consideration prior information about all the samples in the experiment.
-It is slower.</li>
-</ol>
-<blockquote>
-<p><strong>Task 4.b):</strong> Do a rlog transformation of the first 4
-samples (columns) of the dds object and look at the output</p>
-</blockquote>
-<pre><code># transform the *dds object* using the rlog() function
-# look at the first rows of first 4 samples from the transformed data</code></pre>
-<pre><code>## [1] &quot;dataset with counts after RLOG transformation:&quot;</code></pre>
-<pre><code>##                 BM_CTRL_2 BM_CTRL_3 BM_AMIL_1 BM_AMIL_2
-## ENSG00000000419 10.741725 10.808387 11.074031 11.724421
-## ENSG00000000457  9.186347  9.311043  9.236005  9.036658
-## ENSG00000000460  9.860759  9.934575  9.866865 10.038373</code></pre>
-<p><br />
-<br />
-<br />
-</p>
-<pre class="r"><code>counts(dds_clean)[,c(3,10)] %&gt;% plot()
-
-counts(dds_clean)[,c(3,10)] %&gt;% log(base=2) %&gt;% plot()
-assay(rld_clean)[,c(3,10)] %&gt;% plot()               # &#39;assay()&#39; allows you to extract the counts from the &#39;rld&#39; object</code></pre>
-<p><img src="day02_files/figure-html/logs_plot-1.png" width="50%" /><img src="day02_files/figure-html/logs_plot-2.png" width="50%" /><img src="day02_files/figure-html/logs_plot-3.png" width="50%" /></p>
-<p><br />
-<br />
-<br />
-</p>
-<p>Where can we see the difference between the log and rlog
-transform?</p>
-<pre class="r"><code>df1 &lt;- data.frame(rlg_base2=log2(counts(dds_clean)[, 1]+1))
-df2 &lt;- data.frame(rlg=assay(rld_clean)[, 1])
-
-df &lt;- merge(df1, df2, by=0) # merge the 2 dataframes by rownames
-
-df %&gt;% ggplot(aes(x=rlg_base2, y=rlg)) +
-      geom_point(size=1, shape=3) +
-      ggtitle(&quot;Comparing &#39;log2(n+1)&#39; and &#39;rlog&#39; data transformation&quot;) +
-      xlab(&quot;log2(n+1) transformation&quot;) + ylab(&quot;rlog transformation&quot;) +
-      theme(plot.title = element_text(hjust=0.5))</code></pre>
-<p><img src="day02_files/figure-html/diff_log_vst_rlog-1.png" width="60%" style="display: block; margin: auto;" /></p>
-<p><br />
-<br />
-<br />
-</p>
-<p>Does it make a difference to the visualizations?</p>
-<pre class="r"><code>th &lt;- data.frame(round(log(counts(dds_clean)+1)))
-
-th.pca &lt;- prcomp(t(th))
-pca_data_perc=round(100*th.pca$sdev^2/sum(th.pca$sdev^2),1)
-
-df_pca_data=data.frame(PC1 = th.pca$x[,1], PC2 = th.pca$x[,2], sample = colData(dds_clean)$celltype, condition=colData(dds_clean)$celltype)  #! !Extract the needed info from dds with colData instead of using the &#39;metadata&#39; (&#39;metadata&#39; needs to be corrected too if you drop samples!)
-
-df_pca_data %&gt;% ggplot(aes(PC1, PC2, color=sample)) +
-  geom_point(size=3) +
-  geom_text(x = 0, y = -1, label=&quot;PCA done with log(n+1) transformation&quot;, color=&quot;black&quot;, size=5) +
-  xlab(paste0(&quot;PC1: &quot;,pca_data_perc[1])) +
-  ylab(paste0(&quot;PC2: &quot;,pca_data_perc[2]))
-
-#############################
-rld_new3 &lt;- rlog(dds_clean, blind = TRUE) %&gt;% plotPCA(intgroup=&#39;celltype&#39;, returnData=TRUE)  # &#39;plotPCA&#39; is a DESeq2 function used for plotting transformed data; can use ggplot code you learned yesterday
-percentVar &lt;- round(100 * attr(rld_new3, &quot;percentVar&quot;), 1)   # rounded values for each axis of PC variance
-
-rld_new3 %&gt;% ggplot(aes(PC1, PC2, color=celltype)) +
-  geom_point(size=3) +
-  geom_text(x = 0, y = -1, label=&quot;PCA done with rlog transformation&quot;, color=&quot;black&quot;, size=5) +
-  xlab(paste0(&quot;PC1: &quot;,percentVar[1])) +
-  ylab(paste0(&quot;PC2: &quot;,percentVar[2]))
-
-##ref: https://www.biostars.org/p/289333/</code></pre>
-<p><img src="day02_files/figure-html/ploc-1.png" width="50%" /><img src="day02_files/figure-html/ploc-2.png" width="50%" /></p>
-<p><br />
-<br />
-<br />
-</p>
-</div>
-</div>
-<div id="differential-expression-analysis---30-min"
-class="section level2">
-<h2>4. Differential expression analysis - 30 min</h2>
-<pre><code>dds &lt;- DESeq(dds)</code></pre>
-<p>There are several steps to generating the DE results, and they are
-wrapped together in the <strong>DESeq()</strong> function. The 3 main
-steps are estimations of:</p>
+<div id="the-deseq-workflow-60-min" class="section level2">
+<h2>The DESeq workflow (60 min)</h2>
+<p>Everything we did until now was before any statistical analysis.
+Quite some work stil needs to happen. Luckily, our life is made easy
+(again), as DESeq2 wrap up the rest in one convenient function: &gt; dds
+&lt;- DESeq(dds)</p>
+<pre class="r"><code>dds_clean &lt;- DESeq(dds_clean)</code></pre>
+<pre><code>## estimating size factors</code></pre>
+<pre><code>## estimating dispersions</code></pre>
+<pre><code>## gene-wise dispersion estimates</code></pre>
+<pre><code>## mean-dispersion relationship</code></pre>
+<pre><code>## final dispersion estimates</code></pre>
+<pre><code>## fitting model and testing</code></pre>
+<p>There are several steps to generating differential expression
+results, and they are wrapped together in the <strong>DESeq()</strong>
+function. The 3 main steps are of the workflow are:</p>
 <ul>
-<li>estimating size factors - <em>estimateSizeFactors()</em></li>
-<li>estimating gene-wise dispersions -
-<em>estimateDispersions()</em></li>
+<li>Normalization - <em>estimateSizeFactors()</em></li>
+<li>estimating dispersions - <em>estimateDispersions()</em></li>
 <li>general linear model fit for each gene and testing -
 <em>nbinomWaldTest()</em></li>
 </ul>
-<p> <br />
-</p>
-<div id="modeling-count-data---15-min" class="section level3">
-<h3>4.1. Modeling count data - 15 min</h3>
-<p><strong>Why is modeling needed?</strong></p>
-<p><br></p>
-<center>
+<div id="a.-normalization" class="section level3">
+<h3>a. Normalization</h3>
+<p>As mentioned yesterday, raw counts cannot be directly used to compare
+samples. To allow comparison we need to normalize. Note that this is
+also needed for exploratory analysis and visualisation.</p>
+<p>A couple of reasons for normalization include:</p>
+<hr />
+<p><em>sequencing depth</em></p>
 <div class="figure">
-<img src="images/day2_expression_model.png" style="width:80.0%"
+<img src="images/day2_normalization_seqdepth.png" style="width:50.0%"
 alt="" />
-<p class="caption">Distributions</p>
+<p class="caption">‘doubling of expression due to sequencing depth’.
+Image from github.com/hbctraining</p>
 </div>
-</center>
-<p><br></p>
-<p><br />
-<br />
-<br />
-</p>
-<ul>
-<li><p>data can be modeled with various distributions depending on its
-properties.</p></li>
-<li><p>terms:</p>
-<ul>
-<li>mean of the group: the average value of a sample</li>
-<li>variance: the expectation of the squared deviation (stdev^2) of a
-variable from its population mean.</li>
-</ul></li>
-</ul>
-<p>What properties can you attribute to RNA-seq data?</p>
-<pre><code>RNAseq data is: 
-   - discrete (counts) 
-   - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small 
-   - variance is higher than mean</code></pre>
-<p><br />
-<br />
-</p>
-<blockquote>
-<p><strong>Poll 2</strong>: what kind of distribution would you use for
-count data?</p>
-</blockquote>
-<p><br />
-<br />
-<br />
-</p>
-<blockquote>
-<p><strong>Task 5:</strong> Please plot the mean vs the variance of the
-genes. Use the following code as guide</p>
-</blockquote>
-<pre><code>#calculate the mean and the variance for each gene (the code for the mean is given bellow)
-mean_counts &lt;- apply(counts(dds)[,6:8], 1, mean) 
-
-# plot mean vs variance using plot() and smoothScatter()</code></pre>
-<p> </p>
-<pre class="r"><code>op &lt;- par( mar=c(2.3, 0, 0.3, 0), pty=&quot;s&quot;, fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0))
-
-mean_counts &lt;- apply(counts(dds_clean)[,3:5], 1, mean)        # &#39;1&#39; means that the function &#39;apply&#39; is applied to rows.
-
-variance_counts &lt;- apply(counts(dds_clean)[,3:5], 1, var)
-
-plot(log10(mean_counts), log10(variance_counts), xlim=c(-1, 10), ylim=c(-1, 10))
-abline(0,1, col=&quot;red&quot;)
-
-smoothScatter(log10(mean_counts), log10(variance_counts), xlim=c(-1, 10), ylim=c(-1, 10))
-abline(0,1, col=&quot;red&quot;)
-
-par(op)</code></pre>
-<p><img src="day02_files/figure-html/mean_vs_variation2-1.png" width="40%" /><img src="day02_files/figure-html/mean_vs_variation2-2.png" width="40%" /></p>
-<ul>
-<li>for genes with high mean expression, the variance across replicates
-tends to be greater that the mean =&gt; use a <strong>negative
-binomial</strong> distribution</li>
-<li>for genes with low mean expression, there is a large scatter =
-hetero-scedasti-city = for a given expression level in the low range, we
-obs a lot of variability in the variance values.</li>
-</ul>
-<p><br />
-<br />
-<br />
-</p>
-</div>
-<div id="size-factors---20-min" class="section level3">
-<h3>4.2. Size factors - 20 min</h3>
-<ul>
-<li>sequencing depth - the ratio between the total nr of bases and the
-size of the genome; the avg nr of times each base is measured in the
-genome</li>
-</ul>
-<p><br />
-</p>
-<p><br></p>
-<center>
+<hr />
+<p><em>gene length</em></p>
 <div class="figure">
-<img src="images/day2_coverage_depth.png" style="width:80.0%" alt="" />
-<p class="caption">Coverage depth</p>
-</div>
-</center>
-<p><br></p>
-<p><br />
-</p>
-<ul>
-<li>composition bias - e.g. if there are just a few highly expressed
-genes dominating in some of your samples</li>
-<li>normalization</li>
-</ul>
-<p><br />
-</p>
-<p><br></p>
-<center>
-<div class="figure">
-<img src="images/day2_comp_bias.png" style="width:80.0%" alt="" />
-<p class="caption">Compositional bias</p>
-</div>
-</center>
-<p><br></p>
-<p><br />
-</p>
-<blockquote>
-<p><strong>Task 6.a):</strong> Please print out the sizes of each sample
-(hint: library size is the sum of all counts)</p>
-</blockquote>
-<p><br />
-</p>
-<p><br />
-<br />
-</p>
-<p>How to calculate size factors in DESeq2?</p>
-<pre class="r"><code>dds_clean &lt;- estimateSizeFactors(dds_clean)
-sizeFactors(dds_clean)</code></pre>
-<pre><code>## BM_CTRL_2 BM_CTRL_3 BM_AMIL_1 BM_AMIL_2 BM_AMIL_3 JJ_CTRL_2 JJ_CTRL_3 JJ_AMIL_1 
-## 1.1433547 1.4178968 1.1081712 1.2521730 0.8317523 1.0132260 0.6720967 0.6667752 
-## JJ_AMIL_2 JJ_AMIL_3   BM_TG_1   BM_TG_2   BM_TG_3   JJ_TG_1   JJ_TG_2   JJ_TG_3 
-## 1.0994127 1.2136785 1.1125837 0.9072609 1.1596233 0.7719960 1.2800491 0.9103010</code></pre>
-<blockquote>
-<p><strong>Task 6.b):</strong> Please print out the sizes of each sample
-after normalization</p>
-</blockquote>
-<blockquote>
-<p><strong>Discuss</strong>: Can the size factors be used as quality
-control? At what value of the size factors should you go back and look
-at your data?</p>
-</blockquote>
-<p><br />
-<br />
-<br />
-</p>
-<p>NOTE: ‘DESeq()’ function estimates size factors automatically. But if
-you <em>run <code>estimateSizeFactors()</code></em> or another function
-to estimate factors <em>before <code>DESeq()</code></em>, those
-calculated values would be used instead.</p>
-<p>Why can you do this in 2 different ways? So you can integrate various
-methods to compensate for sources of bias within the DESeq2 workflow
-(e.g. <em>cqn</em>, <em>EDASeq</em>, etc)</p>
-<p><br></p>
-<center>
-<div class="figure">
-<img src="images/day2_expl_size_factors.png" style="width:80.0%"
+<img src="images/day2_normalization_genelength.png" style="width:35.0%"
 alt="" />
-<p class="caption">Size factors</p>
+<p class="caption">‘gene x and y have similar levels of expression,
+though gene x has way more reads aligned due to its length.’. Image from
+github.com/hbctraining</p>
 </div>
-</center>
-<p><br></p>
-<p> </p>
+<hr />
+<p><em>compositional bias</em></p>
+<div class="figure">
+<img src="images/day2_normalization_compbias.png" style="width:50.0%"
+alt="" />
+<p class="caption">‘compositional bias through contaminant (e.g. rRNA)’.
+Image from github.com/hbctraining</p>
 </div>
-<div id="dispersions---15-min" class="section level3">
-<h3>4.3. Dispersions - 15 min</h3>
+<hr />
+<p>A number of commonly used normalization techniques:</p>
+<table>
+<thead>
+<tr class="header">
+<th>method</th>
+<th align="left">factors taking into account</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CPM</td>
+<td align="left">sequencing depth</td>
+</tr>
+<tr class="even">
+<td>RPKM</td>
+<td align="left">sequencing depth and gene length</td>
+</tr>
+<tr class="odd">
+<td>DESeq2 median of ratios</td>
+<td align="left">sequencing depth and RNA composition</td>
+</tr>
+</tbody>
+</table>
+<p>Workflow for the ‘median of ratios’:</p>
+<ul>
+<li>Take geometric mean per gene (of all samples!) -&gt;
+‘pseudosample’</li>
+<li>calculate the count / pseudosample ratio</li>
+<li>‘sizefactor’ == median(ratios)</li>
+</ul>
+<p>and many others exist.</p>
+<p>Remember that DESeq2 needs <strong>raw counts</strong> as input (upon
+creating the dds object).</p>
+<blockquote>
+<p><strong>Task </strong>: Plot a heatmap of the first 10 rows of your
+counts (non-normalized), deseq normalized counts and if you are up for
+some manual labour, sequencing depth normalized counts.</p>
+</blockquote>
+<p>Hint, counts() can return DESeq normalized counts as well with the
+argument normalized=TRUE! Hint2: geometric mean of a vector x can be
+calculated with exp(mean(log(x)))</p>
+<pre class="r"><code>ann &lt;- data.frame(colData(dds_clean))
+ann$seq_depth &lt;- counts(dds_clean) %&gt;% colSums()/1e6    # sequencing depth in millions 
+
+pheatmap(
+  counts(dds_clean) %&gt;% head(10),
+  main=&quot;Raw&quot;,
+  cluster_cols=FALSE,
+  cluster_rows=FALSE,
+  annotation=ann
+)</code></pre>
+<p><img src="day02_files/figure-html/heatmap_raw-1.png" width="672" /></p>
+<pre class="r"><code>pheatmap(
+  counts(dds_clean, normalized=TRUE) %&gt;% head(10),
+  main=&quot;median of ratios&quot;,
+  cluster_cols=FALSE,
+  cluster_rows=FALSE,
+  annotation=ann
+)</code></pre>
+<p><img src="day02_files/figure-html/heatmap%20deseq_normalized-1.png" width="672" /></p>
+<pre class="r"><code>sfs &lt;- (counts(dds_clean) %&gt;% colSums()) / ((counts(dds_clean) %&gt;% colSums()) %&gt;% log() %&gt;% mean() %&gt;% exp())
+ann$sfs &lt;- sfs
+pheatmap(
+  sweep(counts(dds_clean), 2, sfs, FUN = &#39;/&#39;) %&gt;% head(10),
+  main=&quot;sequencing depth&quot;,
+  cluster_cols=FALSE,
+  cluster_rows=FALSE,
+  annotation=ann
+)</code></pre>
+<p><img src="day02_files/figure-html/heatmap%20sequencing_depth-1.png" width="672" /></p>
+<pre class="r"><code>ggplot(ann) +
+  geom_point(aes(x=sfs, sizeFactor)) +
+  geom_abline(intercept = 0, slope = 1, color=&quot;red&quot;) +
+  theme_minimal() +
+  xlab(&quot;Size factor sequencing depth&quot;) +
+  ylab(&quot;Median of ratios sizefactor&quot;)</code></pre>
+<p><img src="day02_files/figure-html/seq%20depth%20factors%20vs%20median%20of%20ratios%20factors-1.png" width="672" /></p>
+</div>
+<div id="b.-dispersions" class="section level3">
+<h3>b. Dispersions</h3>
+<p>Why do we need to model count data ?</p>
+<pre class="r"><code>ggplot(data=counts(dds_clean) %&gt;% data.frame()) +
+  geom_histogram(
+    aes(x=BM_CTRL_2),
+    stat=&#39;bin&#39;, bins=200
+  ) +
+  theme_minimal()</code></pre>
+<p><img src="day02_files/figure-html/plotcounts-1.png" width="672" /></p>
+<p>Recall that:</p>
+<ul>
+<li>Most genes have no counts (0-inflation)</li>
+<li>very large range of values</li>
+</ul>
+<p>Even a non-trained eye can see that this is not normally distributed,
+so what distribution do we use ? For count data in general:</p>
+<ul>
+<li>Binomial distribution: e.g. number of heads upon tossing a coin n
+times.</li>
+<li>Poisson distribution: ~= binomial though n = infinite and event is
+very small (e.g. lottery). Appropriate for data where mean ==
+variance</li>
+</ul>
+<p>In RNA-seq data we have a very large number of RNA molecules, finding
+a particular gene ~= winning the lottery ?</p>
+<p>Let’s have a look at the mean and variance of our counts within TG
+treated BM cells (the replicates).</p>
+<p><img src="day02_files/figure-html/mean%20vs%20variance-1.png" width="672" /></p>
+<blockquote>
+<p><strong>Poll 2.3 </strong>: what kind of distribution would be the
+most appropriate for this data ?</p>
+</blockquote>
+<p>A few remarks:</p>
+<ul>
+<li>Mean != variance</li>
+<li>higher expressed genes tend to have higher variances</li>
+<li>the variance in the ‘lower expressed regions’ is quite
+scattered</li>
+</ul>
+<p>“heteroscedasticity”</p>
+<p>If we would have money (and time) for a very large number of
+replicates, the high expression data points would move closer to the red
+line -&gt; Poisson.</p>
+<p>In practice, we stick to the negative binomial distribution as it’s a
+good approximation for data where mean &lt; variance</p>
+<p>Enter: <strong>Dispersion</strong></p>
+<div id="gene-wise-dispersion-estimates" class="section level4">
+<h4>gene-wise dispersion estimates</h4>
 <p>Within group variability (e.g. between replicates) is modeled by
 parameter <code>α</code>, which describes variance of counts with:
-<code>Var = μ + α*μ^2</code>, where <code>α</code> = dispersion,
+<code>Var = μ + α*μ²</code>, where <code>α</code> = dispersion,
 <code>Var</code> = variance, and <code>μ</code> = mean. Accurate
 estimation of <code>α</code> is critical:</p>
 <ul>
-<li><p>not a problem for large studies with many samples and
-replicates</p></li>
-<li><p>but usually we only have 2-3 replicates =&gt; highly variable
-<code>α</code> estimates for each gene.</p></li>
+<li>not a problem for large studies with many replicates</li>
+<li>but usually we only have 2-3 replicates =&gt; estimates of
+<code>α</code> per gene are usually unreliable (genes with similar means
+usually have different dispersion values).</li>
 </ul>
-<p><br />
-<br />
-<br />
-</p>
-<blockquote>
-<p><strong>Task 7:</strong> Visualize the dispersion in your analysis
-using the following functions:
-<code>dds &lt;- estimateDispersions(dds)</code> and
-<code>plotDispEsts(dds)</code></p>
-</blockquote>
-<p><br />
-<br />
-<br />
-</p>
-<p><br></p>
-<center>
-<div class="figure">
-<img src="images/day2_explain_dispersion.png" style="width:80.0%"
-alt="" />
-<p class="caption">Dispersion</p>
-</div>
-</center>
-<p><br></p>
-<p><br />
-</p>
+<p>What do the dispersions represent ?</p>
 <ul>
-<li><p>count data for each gene separately =&gt; get preliminary
-gene-wise dispersion estimates using maximum-likelihood estimation
-(black dots)</p></li>
-<li><p>fit the dispersion trend (red line)</p></li>
-<li><p>combine the likelihood with the trended prior to get a maximum
-<em>a posteriori</em> (MAP) values = final dispersion estimates (blue
-dots)</p></li>
+<li>dispersions are inversely related to the mean</li>
+<li>directly related to the variance</li>
 </ul>
-<p><br />
-</p>
-<p>Bad examples of dispersion plots:</p>
-<p><br></p>
-<center>
-<div class="figure">
-<img src="images/day2_initial_dispersion.png" style="width:80.0%"
-alt="" />
-<p class="caption">Bad dispersion example</p>
+<p>(Higher for small mean counts, lower for high mean counts)</p>
 </div>
-</center>
-<p><br></p>
-<p><br />
-<br />
-</p>
-</div>
-<div id="wald-test" class="section level3">
-<h3>4.4. Wald test</h3>
+<div id="mean-dispersion-relationship-shrinking" class="section level4">
+<h4>mean-dispersion relationship &amp; shrinking</h4>
+<p>DESeq2 shares dispersion information across genes to better estimate
+variation. The assumption here is that genes with <em>similar expression
+values</em> have <em>similar dispersion values</em>.</p>
+<pre class="r"><code>plotDispEsts(dds_clean)</code></pre>
+<p><img src="day02_files/figure-html/plot%20dispersions-1.png" width="672" /></p>
+<p>what would be ‘bad’ dispersion ?</p>
+<pre class="r"><code>metadata_thrash &lt;- metadata 
+metadata_thrash$celltype &lt;- sample(metadata$celltype)
+metadata_thrash$condition &lt;- sample(metadata$condition)
+dds_thrash &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata_thrash, design=~celltype+condition+celltype:condition)
+dds_thrash &lt;- DESeq(dds_thrash)</code></pre>
+<pre><code>## estimating size factors</code></pre>
+<pre><code>## estimating dispersions</code></pre>
+<pre><code>## gene-wise dispersion estimates</code></pre>
+<pre><code>## mean-dispersion relationship</code></pre>
+<pre><code>## final dispersion estimates</code></pre>
+<pre><code>## fitting model and testing</code></pre>
+<pre class="r"><code>plotDispEsts(dds_thrash)</code></pre>
+<p><img src="day02_files/figure-html/baddisp-1.png" width="672" /></p>
+<p>Signs of a ‘good’ dispersion plot:</p>
 <ul>
-<li>gene-wise dispersion by fitting a negative binomial general linear
-model (GLM) to the data and then returning the results using Wald
-statistics (<strong>nbinomWaldTest</strong>) &gt; tomorrow</li>
-<li>default parameters: obtain DE genes for the last variable in the
-design formula (‘TG/DMSO’)</li>
+<li>data should scatter around the curve</li>
+<li>dispersion should decrease with increasing mean of counts</li>
+<li>‘clouds’ or ‘wonky shapes’ often indicate contamination /
+outliers</li>
 </ul>
-<blockquote>
-<p><strong>Task 8:</strong> Please run the DESeq() function on the dds
-object to do the DE analysis:</p>
-</blockquote>
-<pre class="r"><code>dds_clean &lt;- DESeq(dds_clean)</code></pre>
-<p><br />
-<br />
-<br />
-</p>
 </div>
 </div>
-<div id="extracting-results---10-min" class="section level2">
-<h2>5. Extracting results - 10 min</h2>
-<p><br />
-</p>
-<p>To extract the results, use:</p>
-<pre><code># default use gives results only for the last variable in the design formula (in this case &#39;TG/DMSO&#39;)
-dds_res &lt;- results(dds)
-
-# complex use to extract the specified contrast: (DO NOT RUN THIS!)
-resultsName(dds)
-dds_res &lt;- results(dds, contrast)</code></pre>
-<p>it gives you the <strong>log2 fold changes</strong> and the
-<strong>adjusted p-values</strong> for the specified contrasts (the
-estimates are of the logarithmic fold change log2(treated/untreated). In
-our case it will AMIL/DMSO and TG/DMSO.</p>
+<div id="d.-fitting-model-and-testing" class="section level3">
+<h3>d. fitting model and testing</h3>
+<p>Finally we get a fit for each gene, and a Wald test can be used to
+test for significance of coefficients of interest.</p>
+<p>Luckily DESeq2 wraps this in a convenient function as well:
+<em>results()</em>. By default we obtain DE genes for the last
+coefficient, though you can specify contrasts to get your comparison of
+interest (see tomorrow).</p>
 <blockquote>
-<p><strong>Task 9:</strong> Please run the results() function on the dds
-object:</p>
+<p><strong>Task</strong> Please run results() on the dds_clean object
+and have a look at the result.</p>
 </blockquote>
 <pre class="r"><code>dds_res &lt;- results(dds_clean)
 dds_res</code></pre>
@@ -1190,29 +902,29 @@ dds_res</code></pre>
 ##                   baseMean log2FoldChange     lfcSE      stat      pvalue
 ##                  &lt;numeric&gt;      &lt;numeric&gt; &lt;numeric&gt; &lt;numeric&gt;   &lt;numeric&gt;
 ## ENSG00000000419 2285.01560       0.317449 0.1790600  1.772863 7.62514e-02
-## ENSG00000000457  775.42002       0.334962 0.0873551  3.834486 1.25827e-04
+## ENSG00000000457  775.42002       0.334962 0.0873551  3.834485 1.25827e-04
 ## ENSG00000000460 1300.43696       0.963262 0.0939353 10.254526 1.12928e-24
 ## ENSG00000000938    2.45443      -0.325046 0.7933991 -0.409688 6.82035e-01
-## ENSG00000000971 1626.92877       0.309394 0.1271819  2.432686 1.49873e-02
+## ENSG00000000971 1626.92877       0.309393 0.1271822  2.432678 1.49876e-02
 ## ...                    ...            ...       ...       ...         ...
 ## ENSG00000273486  40.217168      0.0672792  0.204936  0.328295    0.742689
-## ENSG00000273487   0.162242      0.5041349  3.950877  0.127601    0.898465
-## ENSG00000273488  13.780769      0.4674107  0.375660  1.244237    0.213412
-## ENSG00000273489   1.064893     -1.1261063  1.341504 -0.839436    0.401225
-## ENSG00000273492   0.856644      0.9590379  1.652038  0.580518    0.561565
+## ENSG00000273487   0.162242      0.5041292  3.950877  0.127599    0.898466
+## ENSG00000273488  13.780769      0.4674108  0.375660  1.244237    0.213412
+## ENSG00000273489   1.064893     -1.1261042  1.341504 -0.839434    0.401226
+## ENSG00000273492   0.856644      0.9590323  1.652038  0.580515    0.561568
 ##                        padj
 ##                   &lt;numeric&gt;
 ## ENSG00000000419 1.59065e-01
 ## ENSG00000000457 5.89362e-04
 ## ENSG00000000460 2.57159e-23
 ## ENSG00000000938 7.98272e-01
-## ENSG00000000971 4.10210e-02
+## ENSG00000000971 4.10219e-02
 ## ...                     ...
 ## ENSG00000273486    0.840324
 ## ENSG00000273487          NA
 ## ENSG00000273488    0.356482
-## ENSG00000273489    0.565373
-## ENSG00000273492    0.707107</code></pre>
+## ENSG00000273489    0.565374
+## ENSG00000273492    0.707109</code></pre>
 <ul>
 <li>baseMean: mean of normalized counts for all samples</li>
 <li><strong>log2FoldChange: log2 fold change</strong></li>
@@ -1221,101 +933,65 @@ dds_res</code></pre>
 <li>pvalue: Wald test p-value</li>
 <li><strong>padj: BH adjusted p-values</strong></li>
 </ul>
-<p><br />
-</p>
 <blockquote>
-<p><strong>Discussion:</strong> What are the NA values in the ‘padj’
-column?</p>
+<p><strong>Poll 2.4:</strong> What does a positive log2 foldChange and a
+significant padj value reflect ?</p>
 </blockquote>
-<p><br />
-<br />
-</p>
 <ul>
 <li>how many genes do we get with padj &lt; 0.05?</li>
 </ul>
-<pre class="r"><code>table(dds_res$padj &lt; 0.05)</code></pre>
-<pre><code>## 
-## FALSE  TRUE 
-## 14035  8532</code></pre>
+<pre class="r"><code>dds_res %&gt;% subset(padj &lt; 0.05) %&gt;% nrow()</code></pre>
+<pre><code>## [1] 8532</code></pre>
 <ul>
-<li>sort the list to have at the top the genes with the lowest padj
-values:</li>
+<li>get the 20 significantly expressed genes with the highest
+log2FoldChange.</li>
 </ul>
-<pre class="r"><code>dds_res.1 &lt;- subset(dds_res, padj &lt; 0.1)                 # find all rows that have a padj &lt; 0.1; helps to remove the NAs and insignificant values
-dds_res_ordered &lt;- dds_res.1[order(dds_res.1$padj),]     # sort the subset</code></pre>
-<p><br />
-<br />
-<br />
-</p>
+<pre class="r"><code>dds_res %&gt;% 
+  data.frame() %&gt;% 
+  subset(padj &lt; 0.05) %&gt;% 
+  arrange(abs(log2FoldChange), descending=TRUE) %&gt;% head(20)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"3790.108","2":"-0.1169817","3":"0.04563335","4":"-2.563513","5":"0.010361893","6":"0.029868034","_rn_":"ENSG00000144579"},{"1":"1980.431","2":"-0.1225237","3":"0.03846077","4":"-3.185680","5":"0.001444143","6":"0.005304359","_rn_":"ENSG00000114125"},{"1":"3277.863","2":"-0.1242576","3":"0.05213396","4":"-2.383429","5":"0.017152178","6":"0.046008939","_rn_":"ENSG00000118900"},{"1":"14936.948","2":"-0.1276037","3":"0.05209341","4":"-2.449517","5":"0.014304811","6":"0.039363087","_rn_":"ENSG00000122565"},{"1":"3170.810","2":"-0.1279751","3":"0.04920218","4":"-2.601005","5":"0.009295104","6":"0.027220686","_rn_":"ENSG00000223380"},{"1":"4694.747","2":"-0.1301570","3":"0.05270412","4":"-2.469578","5":"0.013527234","6":"0.037497739","_rn_":"ENSG00000168175"},{"1":"3840.813","2":"0.1328259","3":"0.05611064","4":"2.367214","5":"0.017922571","6":"0.047743321","_rn_":"ENSG00000100568"},{"1":"3160.154","2":"0.1338326","3":"0.05504994","4":"2.431113","5":"0.015052508","6":"0.041164559","_rn_":"ENSG00000108443"},{"1":"1600.127","2":"0.1355010","3":"0.05397121","4":"2.510616","5":"0.012052082","6":"0.034005919","_rn_":"ENSG00000174227"},{"1":"2092.895","2":"0.1393615","3":"0.05729098","4":"2.432520","5":"0.014994144","6":"0.041029810","_rn_":"ENSG00000061936"},{"1":"2226.112","2":"-0.1424242","3":"0.05893415","4":"-2.416667","5":"0.015663356","6":"0.042582215","_rn_":"ENSG00000084112"},{"1":"7396.732","2":"-0.1433622","3":"0.05843881","4":"-2.453201","5":"0.014159107","6":"0.039032256","_rn_":"ENSG00000005844"},{"1":"1373.535","2":"0.1436665","3":"0.05855470","4":"2.453543","5":"0.014145655","6":"0.039001223","_rn_":"ENSG00000105875"},{"1":"3070.223","2":"0.1448491","3":"0.06021732","4":"2.405439","5":"0.016153041","6":"0.043755333","_rn_":"ENSG00000172943"},{"1":"2260.323","2":"-0.1465682","3":"0.05499220","4":"-2.665254","5":"0.007693022","6":"0.023147791","_rn_":"ENSG00000179933"},{"1":"3790.109","2":"-0.1473921","3":"0.05275600","4":"-2.793846","5":"0.005208529","6":"0.016494650","_rn_":"ENSG00000103018"},{"1":"2266.977","2":"-0.1494905","3":"0.06285824","4":"-2.378217","5":"0.017396596","6":"0.046542854","_rn_":"ENSG00000157014"},{"1":"12880.910","2":"-0.1536982","3":"0.06026682","4":"-2.550295","5":"0.010763189","6":"0.030859216","_rn_":"ENSG00000120948"},{"1":"6005.095","2":"-0.1547289","3":"0.06350332","4":"-2.436549","5":"0.014828163","6":"0.040624883","_rn_":"ENSG00000149187"},{"1":"2621.111","2":"-0.1553704","3":"0.05656124","4":"-2.746942","5":"0.006015380","6":"0.018690497","_rn_":"ENSG00000147789"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
 </div>
-<div id="exporting-results-and-further-analyses---15-min"
-class="section level2">
-<h2>6. Exporting results and further analyses - 15 min</h2>
-<p><br />
-</p>
-<ul>
-<li>why export data?</li>
-</ul>
-<p><br></p>
-<center>
+</div>
+<div id="e.-exporting-results-and-further-analyses"
+class="section level3">
+<h3>e. Exporting results and further analyses</h3>
 <div class="figure">
 <img src="images/day2_analysis_tools.png" style="width:80.0%" alt="" />
 <p class="caption">Export data</p>
 </div>
-</center>
-<p><br></p>
-<ul>
-<li>you can save your results in a ‘tsv’ file:</li>
-</ul>
 <blockquote>
-<p><strong>Task 9:</strong> Please export your data as a tsv:</p>
+<p><strong>Task</strong>: Please export your results table to a csv /
+tsv file.</p>
 </blockquote>
-<pre class="r"><code># change the location of the saved file!!
-write.table(dds_res_ordered, file=&quot;day2_results.tsv&quot;, col.names=T, row.names = T, sep = &quot;\t&quot;, quote=F)  #tab-sep
-#write.csv(dds_res_ordered, file=wfile, row.names=TRUE)                                      #comma-sep</code></pre>
-<p><br />
-</p>
-<ul>
-<li>use the exported data for downstream analysis:
-<ul>
-<li>shiny apps on MPI-IE website:</li>
-</ul></li>
-</ul>
-<p><br></p>
-<center>
+<p>hint: write_tsv, write_csv(), write.table(), write_delim() ,…</p>
+<pre class="r"><code>write.table(dds_res %&gt;% data.frame, file=&quot;DMSO_vs_TG_BMcells.tsv&quot;, col.names=T, row.names = T, sep = &quot;\t&quot;, quote=F)</code></pre>
+<p>shiny apps on MPI-IE website (<a
+href="https://rsconnect.ie-freiburg.mpg.de/shiny/"
+class="uri">https://rsconnect.ie-freiburg.mpg.de/shiny/</a>)</p>
 <div class="figure">
-<img src="images/day2_shiny_apps.png" style="width:80.0%" alt="" />
+<img src="images/day2_shinyapps.png" style="width:80.0%" alt="" />
 <p class="caption">Shiny apps</p>
 </div>
-</center>
-<p><br></p>
-<ul>
-<li>ClusterProfiler:</li>
-</ul>
-<p><br></p>
-<center>
+<p><em>Genes2Functions</em></p>
 <div class="figure">
-<img src="images/day2_gene2functions.png" style="width:80.0%" alt="" />
-<p class="caption">ClusterProfile</p>
+<img src="images/day2_genes2functions_maplot.png" style="width:80.0%"
+alt="" />
+<p class="caption">genes2functions_maplot</p>
 </div>
-</center>
-<p><br></p>
-<ul>
-<li>Ingenuity Pathway Analysis (IPA): tool to help interprete and
-analyze omics data (e.g. functional enrichment of DEGs)</li>
-</ul>
-<p><br></p>
-<center>
 <div class="figure">
-<img src="images/day2_ipa_example.jpg" style="width:80.0%" alt="" />
-<p class="caption">IPA</p>
+<img src="images/day2_genes2functions_computing.png" style="width:80.0%"
+alt="" />
+<p class="caption">genes2functions_GO</p>
 </div>
-</center>
-<p><br></p>
-<blockquote>
-<p><strong>Task 10:</strong> Please reorder factors with ‘AMIL’ as
-baseline, for next day’s analysis - 2 min</p>
-</blockquote>
+<div class="figure">
+<img src="images/day2_genes2functions_dotplot.png" style="width:80.0%"
+alt="" />
+<p class="caption">genes2functions_GO</p>
+</div>
 </div>
 </div>
 
@@ -1373,7 +1049,7 @@ $(document).ready(function ()  {
 
     // establish options
     var options = {
-      selectors: "h1,h2,h3,h4",
+      selectors: "h1,h2,h3",
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {
