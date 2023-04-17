@@ -13,34 +13,17 @@ output:
     highlight: textmate
 ---
 
-## Goals:
-- going over the DESeq2 workflow
-- indepth explanations for:
-  - general formating for data and metadata 
-  - factorization
-  - pre-filtering
-  - RNA-seq data distribution
-  - modelling data
-  - data transformation
-  - size factors and normalization
-  - dispersions
+## Goals: DESeq2 workflow
+- repeat: generaing DESeq-object (data, metaadata, design)
+- filterig: samples and genes
+- transformation: normalization and sizefactors
+- modelling data: variance + dispersion
 - extracting the results
-\
-\
-\
 
 
-## 1. Filtering data - 25 min
+## Preparation (Repeat)
 
-
-**Load data, metadata, check samples**
-
-\
-
-```dds <- data + metadata + design```
-
-\
-
+### Load Libraries
 ``` {r load_libraries}
 suppressPackageStartupMessages({
 library("tidyverse")
@@ -50,26 +33,24 @@ library("ashr")
 })
 ```
 
-b) Load data and metadata
-
+### Load data
 ```{r load_data, message=FALSE, echo = TRUE, results = 'hide'}
-
-#loading data with tidyverse
-data <- readr::read_tsv("../data/myeloma/myeloma_counts.tsv", col_types = cols(gene_id="c", .default= "i"), col_names=TRUE)
+data <- readr::read_tsv("data/myeloma/myeloma_counts.tsv", col_types = cols(gene_id="c", .default= "i"), col_names=TRUE)
 data <- column_to_rownames(data, var="gene_id")
 
-#loading metadata (sample sheet) with tidyverse
-metadata <- readr::read_tsv("../data/myeloma/myeloma_meta.tsv", col_types = list("c", "f", "f"), col_names=TRUE)
+data %>% head()
+data %>% dim()
+```
+
+### Load Metadata
+```{r load_meta_data, message=FALSE, echo = TRUE, results = 'hide'}
+
+metadata <- readr::read_tsv("data/myeloma/myeloma_meta.tsv", col_types = list("c", "f", "f"), col_names=TRUE)
 # Same as:
 # metadata %>% mutate(celltype = factor(celltype))
 # metadata %>% mutate(condition = factor(condition))
 
 metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
-
-#preview your data and metadata
-data %>% head()
-data %>% dim()
-
 metadata %>% head()
 metadata %>% dim()
 
@@ -77,166 +58,139 @@ metadata %>% dim()
 all(rownames(metadata) == colnames(data))
 ```
 
-
-
-
-c) Make design and create the DDS object
-
+### Create Design
 ```{r make_dds_obj, message=FALSE, echo = TRUE, results = 'hide'}
-#create a more complex experimental design
 my_design <- ~celltype + condition
-
-#make dds obj
-dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_design)
 ```
 
+### Create DESeq Object
+```{r deseq_object}
+dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=my_design)
+```
 
-
-
-
-
-### 1.1. Sample filtering - 15 min
+### First Inspection (PCA)
 
 Previously you noticed that the PCA shows a problem with our data. 
 
 ```{r old_PCA, echo=FALSE, out.width = '60%', fig.align="center"}
-#plotPCA is the DESeq2 function to plot automatically your samples on a PCA. However, the images don't look too nice. So we use it to extract the values needed for plotting and then using them with ggplot to get a better PCA.
 
-rld_PCA <- rlog(dds, blind = TRUE) %>% plotPCA(intgroup=c("condition", "celltype"), returnData=TRUE)
+# define function (see day 1)
+myPlotPCA = function(dds, nt=500) {
+  M <- counts(dds)                 # get counts from dds
+  Mt <- log2(M + 1)                # a simple (and fast) transformation
+  ann <- data.frame(colData(dds))  # get annotations from colData = metadata
+  cn_col <- c("#1B9E77", "#D95F02", "#7570B3")   # condition colours
+  names(cn_col) <- levels(ann$condition) # name the color vector
 
-percentVar <- round(100 * attr(rld_PCA, "percentVar"), 1)   # rounded values for each axis of PC variance
+  top <- Mt %>% rowVars() %>% order(decreasing=TRUE) %>% head(nt)  # calculate variance for each row and sort
+  pca <- Mt[top,] %>% t() %>% prcomp(scale=TRUE)                    # perform PCA
 
-rld_PCA %>% ggplot(aes(PC1, PC2, color=condition, shape=celltype)) +
-  geom_point(size=3) +
-  scale_shape_manual(values=c(3, 1))+    # change shapes of symbols
-  scale_size_manual(values=c(2, 2))+     # change sizes of symbols
-  xlab(paste0("PC1: ",percentVar[1])) +
-  ylab(paste0("PC2: ",percentVar[2])) +
-  geom_point(aes(x = rld_PCA["JJ_CTRL_1","PC1"], y = rld_PCA["JJ_CTRL_1","PC2"]), shape=3, size=3, color="black") +
-  geom_point(aes(x = rld_PCA["BM_CTRL_1", "PC1"], y = rld_PCA["BM_CTRL_1", "PC2"]), shape=1, size=3, color="black")+
-  geom_text(x = 0, y = -1, label="what does the sample mixing mean?", color="black", size=5) +
-  geom_segment(aes(x = -25, y = -3, xend = -60, yend = -8), arrow = arrow(length = unit(0.5, "cm")), color="black", show.legend = FALSE) +   #arrow1
-  geom_segment(aes(x = 25, y = -3, xend = 60, yend = -8), arrow = arrow(length = unit(0.5, "cm")), color="black", show.legend = FALSE)      #arrow2
+  rld_PCA <- as.data.frame(pca$x[,1:2])                     # only take PC1 and PC2 (column 1 + 2)
+  rld_PCA$condition <- ann[rownames(rld_PCA),"condition"]   # add condition label from ann
+  rld_PCA$celltype  <- ann[rownames(rld_PCA),"celltype"]    # add celltype label from ann
+
+  ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
+    geom_point(size=3) +
+    scale_colour_manual(values=cn_col)
+}
+
+
+myPlotPCA(dds)
 ```
 
-> **Poll 1:** What do you think about this PCA plot? Does it need to be fixed? How would you do it? - 5 min
+> **Poll 1:** Do you notice any issue from this PCA plot? What would you do about it - 5 min
 
-\ 
 
-> **Task 1:** Let's fix the data by removing the problematic samples and visualize the resulting PCA:
 
-```
-# select the wrong samples from the dds object (columns: 1 and 7), then drop it:
-dds_clean <- dds[, -c(column_number_sample1, column_number_sample2)]
 
-# plot the PCA using the the new dds object (can use yesterday's code)
- # first get the counts out of the dds object (): counts(dds) 
- # use log2() on the counts  -  or use rlog() on the dds object!
- # plot the PCA
-```
+## Filtering data
 
-```{r fix_data_metadata, out.width = '60%', fig.align="center"}
-#remove the samples from data and metadata:
-dds_clean <- dds[, -c(1,7)]
-#or
-#dds_clean2 <- dds[, -which(colnames(dds) %in% c("JJ_CTRL_1", "BM_CTRL_1"))]
 
-rld_PCA_clean <- rlog(dds_clean, blind = TRUE) %>% plotPCA(intgroup=c("condition", "celltype"), returnData=TRUE)
+### Filter Samples - 15 min
 
-# cosmetic changes:
-percentVar_clean <- round(100 * attr(rld_PCA_clean, "percentVar"), 1)   # rounded values for each axis of PC variance
 
-rld_PCA_clean %>% ggplot(aes(PC1, PC2, color=condition, shape=celltype)) +
-  geom_point(size=3) +
-  scale_shape_manual(values=c(3, 1))+    # change shapes of symbols
-  scale_size_manual(values=c(2, 2))+     # change sizes of symbols
-  xlab(paste0("PC1: ",percentVar[1])) +
-  ylab(paste0("PC2: ",percentVar[2]))
+**Task**: Filter the problematic samples (columns 1 and 7) from dds object and produce a new PCA plot.
+
+Hint: Although the `dds` object is more complex data class it also has dimensions assigned -- check `dim(dds)` -- and samples can be un/selected like columns in a standard dataframes.
+
+
+```{r filter_samples, out.width = '60%', fig.align="center"}
+dds_clean <- dds[, -c(1,7)] 
+myPlotPCA(dds_clean)
 ```
 
-\
-\
+### Filter Genes - 10 min
 
-### 1.2. Feature filtering - 10 min
-
-- filtering: manual or automatic
-- helpful but not necessary to remove rows/genes that have very low counts (very unlikely to have biological meaning)
-  - arbitrary threshold: < 1, < 10
-  - reduces the memory size that the 'dds' object occupies => increases the speed of transformations and calculations
+- remove genes (rows) that have very low counts (very unlikely to have biological meaning)
+- arbitrary threshold: < 1, < 10
+- benefit: reduces the memory size that the 'dds' object occupies => increases the speed
   
-\
-
-> **Task 2:** Filter out the genes that have a total amount of only zero or 1 counts:
-
-\
 
 
+**Task 2:** Filter out the genes that have a total amount of only zero or 1 counts.
+
+Hint: Define first `dds_clean %>% counts %>% rowSums() %>% head()`
+
+```{r filter_genes}
+rs = dds_clean %>% counts %>% rowSums()
+dds_clean = dds_clean[rs>1,]
 ```
-# find which rows in the counts of the dds object have only zero or 1 counts overall (= sum of rows is zero or 1)
-  # on the counts from dds object, find out the sum of rows; keep them if > 1 
-    keep <- rowSums() > 1
 
-# filter out the unnecessary rows
-dds <- dds[keep, ]
-```
  
-\
- 
- 
-> **Discussion:** What type of object is 'keep'?:
-
-\
+> **Poll 2** How many samples and genes are left in the filtered data set?
 
 
-```{r DESeq2_filtering, fig.align="center"}
-#decide on the threshold you want to use  (= the minimum number of counts you want to keep)
-keep2 <- rowSums(counts(dds_clean)) > 1
-cat('genes before filter: ', nrow(dds_clean), '\n')    # prints the number of rows you have before the filtering
 
-# keep the desired rows
-fdds_clean <- dds_clean[keep2, ]                     # most people keep the 'dds' name, but I will change it to help you differentiate between the different steps and learn. But doing this will fill up your memory.
-cat('genes before filter: ', nrow(fdds_clean), '\n')    # prints the number of rows you have after the filtering
+### Relevel Factors
+
+**Remember**: factors are used to represent categorical data ! 
+
+Internally they are stored as integers and per default they aree sorted *alphanumerically*. 
+It may be more convenient to sort them by some user defined order - this is called releveling
+
+<center>
+
+![Factor order](images/day2_factor_order_comparison.png){width=60%}
+
+</center>
+
+<br>
+
+
+> **Task** Reorder factors with 'DMSO' as baseline - 2 min.
+
+Hint: Use the `relevel` function
+
+This is the order of the factors before and after re-arrangement:
+```{r rearrange_factors}
+#initial factor arrangement:
+dds_clean$condition
+
+#rearrange factors
+dds_clean$condition <- relevel(dds_clean$condition, ref='DMSO')
+#dds_clean$condition <- factor(dds_clean$condition, levels = c ('DMSO', 'TG', 'AMIL')) 
+
+
+dds_clean$condition
 ```
 
-# Notice how many rows you have dropped. In this case you are left only with **`r round(nrow(fdds_clean) * 100 / nrow(dds), digits=2)` %** of the initial number of rows!
+**Notice:** Per default DESeq2 will make comparisons with respect to the 1st level,
+unless specified more explicitly as contrasts.
+  
 
-```{r needed_for_fixing_code, echo = FALSE, results = 'hide', message=FALSE}
-dds_clean <-fdds_clean
-```
-\
-\
-\
+### Summary
+We have covered the most important
+- load library and data
+- define DESeq data object
+  - count data: 'counts()' -- not normalized. data frame of integers
+  - meta data: 'colData()' -- added data on samples. data frame of numerical or categorical variables
+  - design: `~condition`   -- which variable to be modeled. formula will be converted to design matrix with dummy variables
+- Filtering & Transformation & Relevel
 
-\
+> This is **before** any statistical analysis !
 
-## 2. Brief overview and (semi-)deep dive into concepts - 25 min
-
-\
-
-The steps required to do differential expression analysis using DESeq2 package (with default parameters): 
-
-\
-
-```
-# make the DESeqDataSet (dds) object:
-dds <- DESeqDataSetFromMatrix(countData = matrix_with_count_data,
-                              colData = dataframe_with_sample_information,
-                              design = what_variables_interest_you)
-
-# explore data & QC: transform data, plot (filtering, PCA, heatmap)
-
-***********************************************************************
-
-# perform statistical analysis
-dds <- DESeq(dds)
-
-# extract results
-res <- results(dds)
-```
-\
-
-Things are a bit more complicated in reality - an interative process.
-
+> A real-world analysis would likely be iterative
+  
 <br>
 
 <center>
@@ -247,139 +201,10 @@ Things are a bit more complicated in reality - an interative process.
 
 <br>
 
-**Know your starting data and what you want to achieve with it**
 
-- Have a **working log** where you keep track of all the information regarding the experimental design, the output from the sequencing, the purpose of the analyses, the analysis steps, the observations and all the decissions that you took during the analyses 
+**Message**:
+> Document your decisions, parameters, workflows and software version carefully - use notebooks !
 
-  - e.g. does the experimental design and the number of biological repeats allow you to apply certain statistical analyses? What did the QC report of the sequencing say? Do you see the expected sample separation on PCA? Did you find a problem that forced you to make decissions such as dropping samples? Using a certain unusual threshold? 
-  
-  - can use R notebooks as working logs - it is a place to experiment. But pay attention to not getting mixed up in the data!!
-
-\
-
-- For every step:
-
-  - examine what you have initially (data and the format)
-  - know your next step and how the outcome should look like
-  - apply the transformation to get the result
-  - examine what you got and see if it is what you wanted
-
-\
-
-#### 2.1.a. count data
-- usually named 'data', 'counts'
-- a matrix with **raw counts** - not normalized, not transformed; integers
-- to explore: head(data), dim(data), str(data), summary(data)
-  
-\
-
-#### 2.1.b. information about the samples
-- usually named 'metadata', 'colData'
-- dataframe with all known useful information about the samples: name, condition (control/treatment, WT/KO/KD/OE), batch/ sequencing day, gender, age
-- to explore: head(metadata)
-  - rows of the metadata should be named with sample names (important for downstream steps)
-  - **column names of the data should be identical and in the same order with the row names of the metadata!**: `all(colnames(data)==rownames(metadata))` should output 'TRUE'
-
-##### **Understanding factors**
-  - used to represent categorical data 
-  - stored as integers that have associated labels: R sorts the labels alphabetically
-
-
-        1    2    3
-        AMIL DMSO TG
-  - can be: 
-    - ordered: small < normal < large; sand < pebels < stones < boulders;
-    - unordered: DMSO, TG, AMIL; WT, KO-1, KO-2;
-  - levels = predefined factors; reference level = the 1st level
-  - the order in which the factors are ordered matters: 
-      - for plotting:
-```{r bar1, echo=FALSE, out.width = '60%', fig.align="center"}
-par(mfrow = c(1,2))
-
-my_numbers1 <- c(25, 12, 34)
-my_names1 <- c('treat.2', 'control', 'treat.1')
-barplot(my_numbers1, names.arg = my_names1, main = 'Not what you want')
-
-my_numbers2 <- c(12, 34, 25)
-my_names2 <- c('control', 'treat.1', 'treat.2')
-barplot(my_numbers2, names.arg=my_names2, main = "The correct display")
-par(mfrow = c(1,1))
-```
-      - for statistics: for DE analysis, DESeq2 compares all other levels within a variable with the 1st level. So if they are mixed, instead of comparing 'treatment1 to control' and 'treatment2 to control', you might end up with unexpected results! 
-
-<br>
-
-<center>
-
-![Factor order](images/day2_factor_order_comparison.png){width=60%}
-
-</center>
-
-<br>
-
-  - how to reorder factors:  
-```
-# or in the dds object, if you only care about what is the reference level:
-dds$condition <- relevel(dds$condition, ref='DMSO')   
-
-# or in the dds, if you want a specific order for all of them
-dds$condition <- factor(dds$condition, levels = c ('DMSO', 'TG', 'AMIL')) 
-
-# don't reorder the factors, but then remember to use the 'contrast' arguments in the results() function 
-```
-
-\
-
-> **Task 3:** Please reorder factors with 'DMSO' as baseline - 2 min
-
-\
-
-This is the order of the factors before and after re-arrangement:
-```{r rearrange_factors}
-#initial factor arrangement:
-dds_clean$condition
-
-#rearrange factors
-dds_clean$condition <- relevel(dds_clean$condition, ref='DMSO')
-
-dds_clean$condition
-```
-
-
-\ 
-
-#### 2.1.c. experimental design
-- contains variables which will be used in data modeling for estimating dispersions and the log fold changes.
-- formula:
-  - the names used are the names of the columns of the metadata
-  - add the needed variables, with **the one you are most interested in explaining at the end**
-    - e.g. '~ celltype + condition' = measure the effect of condition, while controlling for cell type-induced differences
-
-```
-my_design <- ~ celltype + condition
-```
-
-\
-
-#### 2.1.d. dds object
-
-All that is left now is to make the dds object:
-
-```
-dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=my_design) 
-```
-
-- dds object stores:
-  - read counts (data) - call it with `counts(dds)`
-  - sample info (metadata) - call it with `colData(dds)`
-  - intermediate estimated quantities - during statistical analysis
-  - more additional features that you can add manually to the metadata columns of a newly constructed object: `mcols(dds) <- DataFrame(mcols(dds), my_dataframe)`
-  - *every time you change anything about the 'data', 'metadata' or 'design', you have to re-create the dds object!*
-  
-\
-\
-\
-  
 
 
 ## Break - 10 min
@@ -550,13 +375,13 @@ cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs a
 \
 \
 
-> **Poll 2**: what kind of distribution would you use for count data?
+> **Poll 3**: what kind of distribution would you use for count data?
 
 \
 \
 \
 
-> **Task 5:** Please plot the mean vs the variance of the genes. Use the following code as guide 
+> **Task 4:** Please plot the mean vs the variance of the genes. Use the following code as guide 
 
 ```
 #calculate the mean and the variance for each gene (the code for the mean is given bellow)
