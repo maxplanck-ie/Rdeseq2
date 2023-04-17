@@ -15,11 +15,11 @@ output:
 
 ## Goals: DESeq2 workflow
 - repeat: generaing DESeq-object (data, metaadata, design)
-- filterig: samples and genes
-- transformation: normalization and sizefactors
-- modelling data: variance + dispersion
+- filtering: samples and genes
+- transformations: normalization and sizefactors
+- modelling: variance + dispersion
+- statistical tests
 - extracting the results
-
 
 ## Preparation (Repeat)
 
@@ -34,45 +34,54 @@ library("ashr")
 ```
 
 ### Load data
-```{r load_data, message=FALSE, echo = TRUE, results = 'hide'}
-data <- readr::read_tsv("data/myeloma/myeloma_counts.tsv", col_types = cols(gene_id="c", .default= "i"), col_names=TRUE)
-data <- column_to_rownames(data, var="gene_id")
+```{r load_data}
+data <- readr::read_tsv("data/myeloma/myeloma_counts.tsv")
 
-data %>% head()
+data <- data %>% 
+  column_to_rownames(var="gene_id") %>%
+  mutate(across(where(is.double), as.integer))
+
+data %>% str()
 data %>% dim()
+data %>% head()
 ```
 
 ### Load Metadata
-```{r load_meta_data, message=FALSE, echo = TRUE, results = 'hide'}
+```{r load_meta_data}
 
-metadata <- readr::read_tsv("data/myeloma/myeloma_meta.tsv", col_types = list("c", "f", "f"), col_names=TRUE)
-# Same as:
-# metadata %>% mutate(celltype = factor(celltype))
-# metadata %>% mutate(condition = factor(condition))
+metadata <- readr::read_tsv("data/myeloma/myeloma_meta.tsv")
 
-metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
-metadata %>% head()
+metadata <- metadata %>% 
+  mutate(celltype = factor(celltype)) %>%
+  mutate(condition = factor(condition)) %>%
+  column_to_rownames("sample")  
+
+metadata %>% str()
 metadata %>% dim()
+metadata %>% head()
 
 #check if the col and rows are in the same order:
 all(rownames(metadata) == colnames(data))
 ```
 
 ### Create Design
-```{r make_dds_obj, message=FALSE, echo = TRUE, results = 'hide'}
+```{r create_design}
 my_design <- ~celltype + condition
 ```
 
 ### Create DESeq Object
-```{r deseq_object}
+```{r create_deseq_object}
 dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=my_design)
+
+class(dds)
+dim(dds)
 ```
 
 ### First Inspection (PCA)
 
 Previously you noticed that the PCA shows a problem with our data. 
 
-```{r old_PCA, echo=FALSE, out.width = '60%', fig.align="center"}
+```{r old_PCA, out.width = '80%', fig.align="center"}
 
 # define function (see day 1)
 myPlotPCA = function(dds, nt=500) {
@@ -98,15 +107,14 @@ myPlotPCA = function(dds, nt=500) {
 myPlotPCA(dds)
 ```
 
-> **Poll 1:** Do you notice any issue from this PCA plot? What would you do about it - 5 min
+> **Poll 1:** Does the PCA show a problem ? What should we do next ?
 
 
 
+## Filtering
 
-## Filtering data
 
-
-### Filter Samples - 15 min
+### Filter Samples - 10 min
 
 
 **Task**: Filter the problematic samples (columns 1 and 7) from dds object and produce a new PCA plot.
@@ -114,22 +122,23 @@ myPlotPCA(dds)
 Hint: Although the `dds` object is more complex data class it also has dimensions assigned -- check `dim(dds)` -- and samples can be un/selected like columns in a standard dataframes.
 
 
-```{r filter_samples, out.width = '60%', fig.align="center"}
+```{r filter_samples, out.width = '80%', fig.align="center"}
 dds_clean <- dds[, -c(1,7)] 
 myPlotPCA(dds_clean)
 ```
 
 ### Filter Genes - 10 min
 
-- remove genes (rows) that have very low counts (very unlikely to have biological meaning)
+- remove genes (rows) that have very low counts 
 - arbitrary threshold: < 1, < 10
-- benefit: reduces the memory size that the 'dds' object occupies => increases the speed
+- benefits:
+  - increase robustness of analysis
+  - reduces memory size of 'dds' object => increases the speed
   
-
 
 **Task 2:** Filter out the genes that have a total amount of only zero or 1 counts.
 
-Hint: Define first `dds_clean %>% counts %>% rowSums() %>% head()`
+Hint: Have a look at the output of `dds_clean %>% counts %>% rowSums() %>% head()`
 
 ```{r filter_genes}
 rs = dds_clean %>% counts %>% rowSums()
@@ -140,13 +149,12 @@ dds_clean = dds_clean[rs>1,]
 > **Poll 2** How many samples and genes are left in the filtered data set?
 
 
-
-### Relevel Factors
+## Relevel Factors - 10 min
 
 **Remember**: factors are used to represent categorical data ! 
 
-Internally they are stored as integers and per default they aree sorted *alphanumerically*. 
-It may be more convenient to sort them by some user defined order - this is called releveling
+Internally they are stored as integers and per default they are sorted *alphanumerically*. 
+It may be more convenient to sort them by some user defined order - this is called relevelling
 
 <center>
 
@@ -157,7 +165,7 @@ It may be more convenient to sort them by some user defined order - this is call
 <br>
 
 
-> **Task** Reorder factors with 'DMSO' as baseline - 2 min.
+> **Task** Reorder the condition with 'DMSO' as baseline - 2 min.
 
 Hint: Use the `relevel` function
 
@@ -166,10 +174,8 @@ This is the order of the factors before and after re-arrangement:
 #initial factor arrangement:
 dds_clean$condition
 
-#rearrange factors
 dds_clean$condition <- relevel(dds_clean$condition, ref='DMSO')
-#dds_clean$condition <- factor(dds_clean$condition, levels = c ('DMSO', 'TG', 'AMIL')) 
-
+#dds_clean$condition <- factor(dds_clean$condition, levels = c ('DMSO', 'TG', 'AMIL')) # alternatively
 
 dds_clean$condition
 ```
@@ -178,33 +184,21 @@ dds_clean$condition
 unless specified more explicitly as contrasts.
   
 
-### Summary
-We have covered the most important
+## Preparation Summary
+We have now covered the most important preparation steps:
+
 - load library and data
 - define DESeq data object
-  - count data: 'counts()' -- not normalized. data frame of integers
-  - meta data: 'colData()' -- added data on samples. data frame of numerical or categorical variables
-  - design: `~condition`   -- which variable to be modeled. formula will be converted to design matrix with dummy variables
+  - count data: `counts()` -- not normalized. data frame of integers
+  - meta data: `colData()` -- added data on samples. data frame of numerical or categorical variables
+  - design: `design()` -- variables to be modeled. formula will be converted to design matrix with dummy variables
 - Filtering & Transformation & Relevel
 
-> This is **before** any statistical analysis !
-
-> A real-world analysis would likely be iterative
-  
-<br>
-
-<center>
-
-![DESeq2 workflow](images/part00_workflowdeseq2.png){width=80%}
-
-</center>
-
-<br>
+> This is **before** any statistical analysis ! A real-world analysis would likely be iterative
 
 
-**Message**:
-> Document your decisions, parameters, workflows and software version carefully - use notebooks !
 
+> **Message**: Document your decisions, parameters, workflows and software versions carefully - use notebooks !
 
 
 ## Break - 10 min
