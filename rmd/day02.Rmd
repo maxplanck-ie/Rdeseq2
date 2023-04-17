@@ -1,25 +1,25 @@
 ---
 title: "DESeq2 Analysis with R: Part 02"
-author: "Mirela Balan"
+author: "Bioinfo-Core @ MPI-IE"
 date: "`r date() `"
 output:
   html_document:
-    code_folding: hide
-    toc: true
-    toc_depth: 4
-    toc_float: true
-    df_print: paged
     theme: cosmo
     highlight: textmate
+    code_folding: hide
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    df_print: paged
 ---
 
 ## Goals: DESeq2 workflow
-- repeat: generaing DESeq-object (data, metaadata, design)
+- repeat: generaing DESeq-object (data, metadata, design)
 - filtering: samples and genes
 - transformations: normalization and sizefactors
-- modelling: variance + dispersion
+- modeling: variance + dispersion
 - statistical tests
-- extracting the results
+- extracting results
 
 ## Preparation (Repeat)
 
@@ -62,6 +62,10 @@ metadata %>% head()
 
 #check if the col and rows are in the same order:
 all(rownames(metadata) == colnames(data))
+
+# Convert to factors
+metadata$celltype <- metadata$celltype %>% as.factor()
+metadata$condition <- metadata$condition %>% as.factor()
 ```
 
 ### Create Design
@@ -119,7 +123,7 @@ myPlotPCA(dds)
 
 **Task**: Filter the problematic samples (columns 1 and 7) from dds object and produce a new PCA plot.
 
-Hint: Although the `dds` object is more complex data class it also has dimensions assigned -- check `dim(dds)` -- and samples can be un/selected like columns in a standard dataframes.
+Hint: Although the `dds` object is a more complex data class it also has dimensions assigned -- check `dim(dds)` -- and samples can be un/selected like columns in a standard dataframes.
 
 
 ```{r filter_samples, out.width = '80%', fig.align="center"}
@@ -203,305 +207,173 @@ We have now covered the most important preparation steps:
 
 ## Break - 10 min
 
-\
-\
-\
+***
 
-## 3.  Data exploration, visualization and QC  - 20 min
-
-To explore your data further and to create informative, easy to interpret visualizations, the data needs to be transformed before plotting. 
-
-\
-
-### Data transformation: log and rlog
-
-DESeq2 needs as input **raw counts** for statistical testing, but for some stages of visualization or downstream analysis, you need **transformed data**. 
-
-a) **logarithmic data** - mostly in visualization because it reduces the large dynamic range of the data (usually log2(count+1)).
-
-> **Task 4.a):** Do a logarithmic transformation of the first 4 samples (columns) and look only at the output before and after, only for the first 4 samples
-
-```
-# look at the first rows of the counts of the first 4 samples from the dds object
-# transform the *dds counts* using a log() function
-# look at the first rows of first 4 samples from the transformed data
-```
-
-```{r log, message=FALSE}
-print('dataset with counts before transformation (raw counts):' )  
-counts(dds_clean)[,1:4] %>% head(n=3)
-
-print('dataset with counts after logarithmic transformation:' )  
-counts(dds_clean)[,1:4] %>% log(base=2) %>% head(n=3)
-```
-
-\
-\
-
-b) **Regularized logarithm (RLOG)** transform takes in consideration prior information about all the samples in the experiment. It is slower.
-
-> **Task 4.b):** Do a rlog transformation of the first 4 samples (columns) of the dds object and look at the output 
-
-```
-# transform the *dds object* using the rlog() function
-# look at the first rows of first 4 samples from the transformed data
-```
-
-```{r rlog, echo = FALSE, message=FALSE}
-print('dataset with counts after RLOG transformation:' )  
-#rld_clean <- rlog(dds_clean, blind = TRUE)
-rld_clean <- dds_clean %>% rlog(blind = TRUE)
-assay(rld_clean)[,1:4] %>% head(n=3)
-```
-
-\
-\
-\
-
-```{r logs_plot, fig.show="hold", out.width = '50%'}
-counts(dds_clean)[,c(3,10)] %>% plot()
-
-counts(dds_clean)[,c(3,10)] %>% log(base=2) %>% plot()
-assay(rld_clean)[,c(3,10)] %>% plot()               # 'assay()' allows you to extract the counts from the 'rld' object
-```
-
-\
-\
-\
-
-Where can we see the difference between the log and rlog transform?
-```{r diff_log_vst_rlog, out.width = '60%', fig.align="center"}
-df1 <- data.frame(rlg_base2=log2(counts(dds_clean)[, 1]+1))
-df2 <- data.frame(rlg=assay(rld_clean)[, 1])
-
-df <- merge(df1, df2, by=0) # merge the 2 dataframes by rownames
-
-df %>% ggplot(aes(x=rlg_base2, y=rlg)) +
-      geom_point(size=1, shape=3) +
-      ggtitle("Comparing 'log2(n+1)' and 'rlog' data transformation") +
-      xlab("log2(n+1) transformation") + ylab("rlog transformation") +
-      theme(plot.title = element_text(hjust=0.5))
-```
-
-\
-\
-\
-
-Does it make a difference to the visualizations?
-
-```{r ploc, fig.show="hold", out.width = '50%'}
-th <- data.frame(round(log(counts(dds_clean)+1)))
-
-th.pca <- prcomp(t(th))
-pca_data_perc=round(100*th.pca$sdev^2/sum(th.pca$sdev^2),1)
-
-df_pca_data=data.frame(PC1 = th.pca$x[,1], PC2 = th.pca$x[,2], sample = colData(dds_clean)$celltype, condition=colData(dds_clean)$celltype)  #! !Extract the needed info from dds with colData instead of using the 'metadata' ('metadata' needs to be corrected too if you drop samples!)
-
-df_pca_data %>% ggplot(aes(PC1, PC2, color=sample)) +
-  geom_point(size=3) +
-  geom_text(x = 0, y = -1, label="PCA done with log(n+1) transformation", color="black", size=5) +
-  xlab(paste0("PC1: ",pca_data_perc[1])) +
-  ylab(paste0("PC2: ",pca_data_perc[2]))
-
-#############################
-rld_new3 <- rlog(dds_clean, blind = TRUE) %>% plotPCA(intgroup='celltype', returnData=TRUE)  # 'plotPCA' is a DESeq2 function used for plotting transformed data; can use ggplot code you learned yesterday
-percentVar <- round(100 * attr(rld_new3, "percentVar"), 1)   # rounded values for each axis of PC variance
-
-rld_new3 %>% ggplot(aes(PC1, PC2, color=celltype)) +
-  geom_point(size=3) +
-  geom_text(x = 0, y = -1, label="PCA done with rlog transformation", color="black", size=5) +
-  xlab(paste0("PC1: ",percentVar[1])) +
-  ylab(paste0("PC2: ",percentVar[2]))
-
-##ref: https://www.biostars.org/p/289333/
-```
+## The DESeq workflow (60 min)
 
 
-\
-\
-\
-
-## 4. Differential expression analysis - 30 min
-
-```
 dds <- DESeq(dds)
-```
 
-There are several steps to generating the DE results, and they are wrapped together in the **DESeq()** function. The 3 main steps are estimations of:
+There are several steps to generating differential expression results, and they are wrapped together in the **DESeq()** function. The 3 main steps are of the workflow are:
 
-- estimating size factors                 - *estimateSizeFactors()*
+- Normalization                 - *estimateSizeFactors()*
 - estimating gene-wise dispersions        - *estimateDispersions()*
 - general linear model fit for each gene and testing - *nbinomWaldTest()*
 
-\ 
-\
+### a. Normalization
 
-### 4.1. Modeling count data - 15 min
+As mentioned yesterday, raw counts cannot be directly used to compare samples. 
+To allow comparison we need to normalize. Note that this is also needed for exploratory analysis and visualisation.
 
-**Why is modeling needed?** 
+A couple of reasons for normalization include:
 
-<br>
+***
 
-<center>
+ * sequencing depth.
 
-![Distributions](images/day2_expression_model.png){width=80%}
+!['doubling of expression due to sequencing depth'. Image from github.com/hbctraining ](images/day2_normalization_seqdepth.png) 
 
-</center>
-
-<br>
-
-\
-\
-\
-
-- data can be modeled with various distributions depending on its properties.
-
-- terms:
-  - mean of the group: the average value of a sample
-  - variance: the expectation of the squared deviation (stdev^2) of a variable from its population mean. 
-
-What properties can you attribute to RNA-seq data?
-
-```{r print_out, echo=FALSE, comment=''}
-cat('RNAseq data is: \n   - discrete (counts) \n   - very large number of RNAs are represented and the probability of pulling out a particular transcript is very small \n   - variance is higher than mean')
-```
-
-\
-\
-
-> **Poll 3**: what kind of distribution would you use for count data?
-
-\
-\
-\
-
-> **Task 4:** Please plot the mean vs the variance of the genes. Use the following code as guide 
-
-```
-#calculate the mean and the variance for each gene (the code for the mean is given bellow)
-mean_counts <- apply(counts(dds)[,6:8], 1, mean) 
-
-# plot mean vs variance using plot() and smoothScatter()
-```
-
-\ 
-
-```{r mean_vs_variation2, warning=FALSE, out.width = '40%', fig.show='hold'}
-op <- par( mar=c(2.3, 0, 0.3, 0), pty="s", fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0))
-
-mean_counts <- apply(counts(dds_clean)[,3:5], 1, mean)        # '1' means that the function 'apply' is applied to rows.
-
-variance_counts <- apply(counts(dds_clean)[,3:5], 1, var)
-
-plot(log10(mean_counts), log10(variance_counts), xlim=c(-1, 10), ylim=c(-1, 10))
-abline(0,1, col="red")
-
-smoothScatter(log10(mean_counts), log10(variance_counts), xlim=c(-1, 10), ylim=c(-1, 10))
-abline(0,1, col="red")
-
-par(op)
-```
-
-
-- for genes with high mean expression, the variance across replicates tends to be greater that the mean => use a **negative binomial** distribution
-- for genes with low mean expression, there is a large scatter = hetero-scedasti-city = for a given expression level in the low range, we obs a lot of variability in the variance values.
-
-
-
-\
-\
-\
-
-
-
-### 4.2. Size factors - 20 min
-
-- sequencing depth - the ratio between the total nr of bases and the size of the genome; the avg nr of times each base is measured in the genome
-
-\
  
- 
-<br>
+***
 
-<center>
+ * gene length
 
-![Coverage depth](images/day2_coverage_depth.png){width=80%}
+!['gene x and y have similar levels of expression, though gene x has way more reads aligned due to its length.'. Image from github.com/hbctraining](images/day2_normalization_genelength.png) 
 
-</center>
+***
 
-<br>
+* compositional bias
 
+!['compositional bias through contaminant (e.g. rRNA)'. Image from github.com/hbctraining ](images/day2_normalization_compbias.png) 
 
+***
 
-\
- 
-- composition bias - e.g. if there are just a few highly expressed genes dominating in some of your samples
-- normalization 
+A number of commonly used normalization techniques:
 
-\
- 
-<br>
-
-<center>
-
-![Compositional bias](images/day2_comp_bias.png){width=80%}
-
-</center>
-
-<br>
- 
- 
-\
-
-> **Task 6.a):** Please print out the sizes of each sample (hint: library size is the sum of all counts)
-
-\
-
-```{r size_libraries, echo=FALSE, results = 'hide'}
-colSums(counts(dds))
-```
-
-\
-\
-
-How to calculate size factors in DESeq2?
+| method | factors taking into account |
+|-------|:-----|
+CPM | sequencing depth
+RPKM | sequencing depth and gene length
+DESeq2 median of ratios | sequencing depth and RNA composition
 
 
-```{r size_factors}
-dds_clean <- estimateSizeFactors(dds_clean)
-sizeFactors(dds_clean)
+and many others exist.
+
+Remember that DESeq2 needs **raw counts** as input (upon creating the dds object).
+
+
+> **Task **: Plot a heatmap of the first 10 rows of your counts (non-normalized), log2 transformed counts, and rlog transformed counts (using 'rlog' function from DESeq2').
+
+
+```{r heatmap_raw}
+pheatmap(
+  counts(dds) %>% head(10),
+  main="Raw",
+  cluster_cols=FALSE,
+  cluster_rows=FALSE
+)
 ```
 
 
-> **Task 6.b):** Please print out the sizes of each sample after normalization
-
-```{r normalized, echo=FALSE, results = 'hide'}
-colSums(counts(dds_clean, normalized=T))
+```{r heatmap_log2}
+log2counts <- log2(counts(dds) + 1)
+pheatmap(
+  log2counts %>% head(10),
+  main='log2 transformed counts',
+  cluster_cols=FALSE,
+  cluster_rows=FALSE
+)
 ```
 
-> **Discuss**: Can the size factors be used as quality control? At what value of the size factors should you go back and look at your data?
+```{r heatmap_log2}
+rld <- rlog(dds, blind=TRUE)
+pheatmap(
+  assay(rld) %>% head(10),
+  main="rlog normalized counts",
+  cluster_cols=FALSE,
+  cluster_rows=FALSE
+)
+```
 
-\
-\
-\
+Plot log2 transformed vs rlog normalized counts.
 
-NOTE: 'DESeq()' function estimates size factors automatically. But if you *run `estimateSizeFactors()`* or another function to estimate factors *before `DESeq()`*, those calculated values would be used instead. 
+```{r rlog vs log2}
+ggplot() +
+  geom_point(
+    aes(
+      x=assay(rld) %>% data.frame() %>% pull("JJ_CTRL_1"),
+      y=log2counts %>% data.frame() %>% pull('JJ_CTRL_1')
+    )
+  ) +
+  theme_minimal() +
+  xlab("rlog") +
+  ylab("log2")
 
-Why can you do this in 2 different ways? So you can integrate various methods to compensate for sources of bias within the DESeq2 workflow (e.g. *cqn*, *EDASeq*, etc)
-
-
-<br>
-
-<center>
-
-![Size factors](images/day2_expl_size_factors.png){width=80%}
-
-</center>
-
-<br>
+```
 
 
-\ 
+## 4. Differential expression analysis - 30 min
+
+### a. Modeling count data.
+
+Why is modeling needed ?
+
+```{r plotcounts}
+ggplot(data=counts(dds) %>% data.frame()) +
+  geom_histogram(
+    aes(x=JJ_CTRL_1),
+    stat='bin', bins=200
+  ) +
+  theme_minimal()
+
+```
+
+Recall that:
+
+ * Most genes have no counts (0-inflation)
+ * very large range of values
+
+Even a non-trained eye can see that this is not normally distributed, so what distribution do we use ?
+For count data in general:
+
+ * Binomial distribution: e.g. number of heads upon tossing a coin n times.
+ * Poisson distribution: ~= binomial though n = infinite and event is very small (e.g. lottery). Appropriate for data where mean == variance
+
+In RNA-seq data we have a very large number of RNA molecules, finding a particular gene ~= winning the lottery ?
+
+```{r mean vs variance}
+means <- counts(dds) %>% data.frame() %>% select("BM_AMIL_1", "BM_AMIL_2", "BM_AMIL_3") %>% apply(1, mean)
+vars <- counts(dds) %>% data.frame() %>% select("BM_AMIL_1", "BM_AMIL_2", "BM_AMIL_3") %>% apply(1, var)
+ggplot(data.frame(means,vars)) +
+  geom_point(size=0.5, aes(x=means, y=vars)) +
+  scale_y_log10(limits=c(1,1e8)) +
+  scale_x_log10(limits=c(1,1e8)) +
+  geom_abline(intercept = 0, slope = 1, color="red") +
+  theme_minimal()
+```
+
+> **Poll 2.2 **: what kind of distribution would be the most appropriate for this data ?
+
+
+A few remarks:
+
+ * Mean != variance
+ * higher expressed genes tend to have higher variances
+ * the variance in the 'lower expressed regions' is quite scattered
+
+"heteroscedasticity"
+
+If we would have money (and time) for a very large number of replicates, the high expression data points would move closer to the red line -> Poisson.
+
+In practice, we stick to the negative binomial distribution as it's a good approximation for data where mean < variance
+
+```
+
+
+
+
+
+
 
 ### 4.3. Dispersions - 15 min
 
