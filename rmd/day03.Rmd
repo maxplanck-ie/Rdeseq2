@@ -428,7 +428,7 @@ Contrasts can be specified in three different ways:
 
 Let's try!
 
-```{r contrast, message=FALSE, warning=FALSE}
+```{r contrast1, message=FALSE, warning=FALSE}
 resultsNames(dds) # to see what names to use
 contrast <- c("condition", "AMIL", "DMSO")
 res <- results(dds, contrast = contrast, alpha = 0.05)
@@ -451,7 +451,7 @@ Columns of results dataframe:
 
   * padj: BH adjusted p-values
   
-```{r contrast, message=FALSE, warning=FALSE}
+```{r contrast2, message=FALSE, warning=FALSE}
 resultsNames(dds) # to see what names to use
 res2 <- results(dds, contrast = c("condition", "AMIL", "TG"), alpha = 0.05)
 res2
