@@ -510,7 +510,7 @@ ggplot(data=res_shrink %>% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldCh
 ```
 
 ***
-# Break (10 min)
+## Break (10 min)
 ***
 
 ## 3. Biological interpretation (60 min)
