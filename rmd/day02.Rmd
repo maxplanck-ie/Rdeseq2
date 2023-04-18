@@ -213,7 +213,8 @@ We have now covered the most important preparation steps:
 
 Everything we did until now was before any statistical analysis. 
 Quite some work stil needs to happen. Luckily, our life is made easy (again), as DESeq2 wrap up the rest in one convenient function:
- > dds <- DESeq(dds)
+
+> dds <- DESeq(dds)
 
 ```{r run deseq2}
 dds_clean <- DESeq(dds_clean)
