@@ -398,40 +398,37 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Mon Apr 17 21:28:04 2023</h4>
+<h4 class="date">Tue Apr 18 15:39:00 2023</h4>
 
 </div>
 
 
-<div id="goals" class="section level1">
-<h1>Goals:</h1>
+<div id="goals-exploring-and-defining-deseq2-results"
+class="section level2">
+<h2>Goals: Exploring and defining ‘DESeq2 results’</h2>
 <ul>
-<li>Different steps of a differential gene expression analysis
-<ul>
-<li>multi-factor design</li>
-<li>Normalisation: Estimating size factors (has been explained
-before)</li>
-<li>Dispersion estimation (has been explained before)</li>
-<li>Building up contrasts</li>
-<li>Make a results table</li>
-<li>Summarize and extract a list of significant differentially expressed
-genes</li>
-<li>Visualize the results</li>
-<li>LRT vs. Wald test</li>
+<li>repeat: generating DESeq-object (data, metadata, design)</li>
+<li>repeat: run DESeq workflow</li>
+<li>coefficients and contrasts</li>
+<li>summarize and visualize results</li>
+<li>LRT vs Wald test</li>
 <li>Biological interpretation</li>
-</ul></li>
 </ul>
-<pre class="r"><code>library(&quot;DESeq2&quot;)
+<pre class="r"><code>suppressPackageStartupMessages({
+library(&quot;DESeq2&quot;)
 library(&quot;tidyverse&quot;)
-library(&quot;ggrepel&quot;)
 library(&quot;pheatmap&quot;)
+library(&quot;ggrepel&quot;)
 library(&quot;EnsDb.Hsapiens.v75&quot;)
 library(&quot;UpSetR&quot;)
-library(&quot;ashr&quot;)</code></pre>
+library(&quot;ashr&quot;)
+})</code></pre>
 <pre class="r"><code># Get the data directory
 dfile &lt;- &quot;data/myeloma/myeloma_counts.tsv&quot;
 data &lt;- read_tsv(file=dfile)
-data &lt;- data %&gt;% column_to_rownames(&quot;gene_id&quot;) 
+data &lt;- data %&gt;%
+  column_to_rownames(&quot;gene_id&quot;) %&gt;%
+  mutate(across(where(is.double), as.integer))
 
 # Read samplesheet , detects conditions, generate the formula
 mfile &lt;- &quot;data/myeloma/myeloma_meta.tsv&quot;
@@ -451,20 +448,38 @@ metadata</code></pre>
 all(rownames(metadata) == colnames(data))</code></pre>
 <pre><code>## [1] TRUE</code></pre>
 </div>
-<div id="creating-a-dds-object.-30-minutes" class="section level1">
-<h1>Creating a DDS object. (30 minutes)</h1>
-<div id="factors-and-design" class="section level2">
-<h2>1. factors and design</h2>
-<p>A design formula takes all sources of variation to control for
-(remember day 1). The first factor is considered as “the factor of
-interest” to test for during the differential expression testing.</p>
-<p>DESeq2 uses the design as a model for each gene, and fits a
-normalized count based on that.</p>
+<div id="coefficients-explained-30-minutes" class="section level2">
+<h2>1. Coefficients explained (30 minutes)</h2>
+<div id="a.-factors-and-design" class="section level3">
+<h3>a. factors and design</h3>
+<p>Remember:</p>
+<ul>
+<li>that all sources of variation to control are specified in the
+design.</li>
+<li>the first factor level is considered as “the factor of interest” to
+test for during the differential expression testing.</li>
+</ul>
+<pre class="r"><code>meta_releveled &lt;- metadata
+meta_releveled$condition &lt;- relevel(meta_releveled$condition, ref=&#39;DMSO&#39;)
+pheatmap(
+  model.matrix(~condition, data=metadata),
+  cluster_cols = FALSE,
+  cluster_rows=FALSE,
+  main=&quot;amiloride base&quot;
+)</code></pre>
+<p><img src="day03_files/figure-html/plot_designs-1.png" width="672" /></p>
+<pre class="r"><code>pheatmap(
+  model.matrix(~condition, data=meta_releveled),
+  cluster_cols = FALSE,
+  cluster_rows=FALSE,
+  main=&quot;DMSO base&quot;
+)</code></pre>
+<p><img src="day03_files/figure-html/plot_designs-2.png" width="672" /></p>
 </div>
-<div id="design-examples" class="section level2">
-<h2>2. design examples</h2>
-<div id="a-single-factor-with-two-levels." class="section level3">
-<h3>A single factor with two levels.</h3>
+<div id="b.-design-examples" class="section level3">
+<h3>b. design examples</h3>
+<div id="a-single-factor-with-two-levels." class="section level4">
+<h4>A single factor with two levels.</h4>
 <table>
 <thead>
 <tr class="header">
@@ -491,9 +506,12 @@ normalized count based on that.</p>
 </tr>
 </tbody>
 </table>
-<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~celltype)</code></pre>
-<pre><code>## converting counts to integer mode</code></pre>
-<pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(
+  countData=data,
+  colData=metadata,
+  design= ~celltype
+)
+dds &lt;- DESeq(dds)</code></pre>
 <pre><code>## estimating size factors</code></pre>
 <pre><code>## estimating dispersions</code></pre>
 <pre><code>## gene-wise dispersion estimates</code></pre>
@@ -558,6 +576,7 @@ celltype effect versus the base level.</p>
 beta1 = 0</code></pre>
 <hr />
 </div>
+</div>
 <div id="a-single-factor-with-more-then-two-levels."
 class="section level3">
 <h3>A single factor with more then two levels.</h3>
@@ -603,9 +622,8 @@ that incorporates ‘condition’ (alone!)</p>
 <p><strong>Poll 3.2</strong> What coefficients do we get when we specify
 ‘condition’ alone as a design?</p>
 </blockquote>
-<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~condition)</code></pre>
-<pre><code>## converting counts to integer mode</code></pre>
-<pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~condition)
+dds &lt;- DESeq(dds)</code></pre>
 <pre><code>## estimating size factors</code></pre>
 <pre><code>## estimating dispersions</code></pre>
 <pre><code>## gene-wise dispersion estimates</code></pre>
@@ -768,9 +786,10 @@ as the effect of celltype on the condition (celltype:condtion)</p>
   beta3 = condition_TG_vs_AMIL
   beta4 = celltypeBM.conditionDMSO
   beta5 = celltypeBM.conditionTG</code></pre>
-<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~celltype+condition+celltype:condition)</code></pre>
-<pre><code>## converting counts to integer mode</code></pre>
-<pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(
+  countData=data, colData=metadata, design= ~celltype+condition+celltype:condition
+)
+dds &lt;- DESeq(dds)</code></pre>
 <pre><code>## estimating size factors</code></pre>
 <pre><code>## estimating dispersions</code></pre>
 <pre><code>## gene-wise dispersion estimates</code></pre>
@@ -805,9 +824,9 @@ in Hugo Tavares’ <a
 href="https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing">slides</a></li>
 </ul>
 </div>
+<div id="c.-recap" class="section level3">
+<h3>c. Recap</h3>
 </div>
-<div id="recap" class="section level2">
-<h2>3. Recap</h2>
 <div id="build-object" class="section level3">
 <h3>Build object</h3>
 <pre class="r"><code>my_design &lt;- as.formula(~celltype + condition + celltype:condition)
@@ -834,11 +853,10 @@ calculated size factors).</p>
 <pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
 </div>
 </div>
-</div>
-<div id="get-some-actual-results-20-min" class="section level1">
-<h1>Get some actual results ! (20 min)</h1>
-<div id="wald-test" class="section level2">
-<h2>1. Wald test</h2>
+<div id="give-me-results" class="section level2">
+<h2>2. Give me results!</h2>
+<div id="a.-wald-test" class="section level3">
+<h3>a. Wald test</h3>
 <p>By default DESeq2 uses the Wald test to identify genes that are
 differentially expressed between two groups of samples. This is done
 through the following steps:</p>
@@ -853,7 +871,8 @@ the p-values,</li>
 <li>P values are adjusted for multiple testing using the procedure of
 Benjamini and Hochberg.</li>
 </ul>
-<pre class="r"><code>res.df &lt;- results(dds) %&gt;% data.frame() %&gt;% drop_na</code></pre>
+<pre class="r"><code>res_dds &lt;- results(dds)
+res.df &lt;- res_dds %&gt;% data.frame() %&gt;% drop_na</code></pre>
 <p>P-value distribution</p>
 <pre class="r"><code>ggplot(res.df) +
     geom_histogram(aes(res.df$pvalue, fill = &quot;a&quot;), colour = &quot;grey20&quot;, alpha = 0.5, stat = &quot;bin&quot;) +
@@ -875,7 +894,7 @@ vignette</a>)</p>
 </li>
 <li>A row is filtered by automatic filtering</li>
 </ul>
-<pre class="r"><code>head(res.df)</code></pre>
+<pre class="r"><code>res.df %&gt;% head()</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"2285.015595","2":"0.2361191","3":"0.2769812","4":"0.8524732","5":"3.939515e-01","6":"5.767269e-01","_rn_":"ENSG00000000419"},{"1":"775.420019","2":"-0.2831426","3":"0.1339399","4":"-2.1139519","5":"3.451937e-02","6":"8.110421e-02","_rn_":"ENSG00000000457"},{"1":"1300.436964","2":"-0.1636797","3":"0.1566099","4":"-1.0451427","5":"2.959570e-01","6":"4.715645e-01","_rn_":"ENSG00000000460"},{"1":"2.454431","2":"-4.6057612","3":"1.8436144","4":"-2.4982238","5":"1.248174e-02","6":"3.343809e-02","_rn_":"ENSG00000000938"},{"1":"1626.928772","2":"-0.2326115","3":"1.1090479","4":"-0.2097398","5":"8.338707e-01","6":"9.158617e-01","_rn_":"ENSG00000000971"},{"1":"992.805073","2":"1.6289399","3":"0.1839380","4":"8.8559201","5":"8.299632e-19","6":"2.583544e-17","_rn_":"ENSG00000001036"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
@@ -893,6 +912,37 @@ the second group over the first group (the reference level).</p>
 <pre><code>## [1] &quot;Intercept&quot;                &quot;celltype_JJ_vs_BM&quot;       
 ## [3] &quot;condition_DMSO_vs_AMIL&quot;   &quot;condition_TG_vs_AMIL&quot;    
 ## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
+<pre class="r"><code>res_dds</code></pre>
+<pre><code>## log2 fold change (MLE): celltypeJJ.conditionTG 
+## Wald test p-value: celltypeJJ.conditionTG 
+## DataFrame with 27351 rows and 6 columns
+##                   baseMean log2FoldChange     lfcSE      stat    pvalue
+##                  &lt;numeric&gt;      &lt;numeric&gt; &lt;numeric&gt; &lt;numeric&gt; &lt;numeric&gt;
+## ENSG00000000419 2285.01560       0.236119  0.276981  0.852473 0.3939515
+## ENSG00000000457  775.42002      -0.283143  0.133940 -2.113952 0.0345194
+## ENSG00000000460 1300.43696      -0.163680  0.156610 -1.045143 0.2959570
+## ENSG00000000938    2.45443      -4.605761  1.843614 -2.498224 0.0124817
+## ENSG00000000971 1626.92877      -0.232611  1.109048 -0.209740 0.8338707
+## ...                    ...            ...       ...       ...       ...
+## ENSG00000273486  40.217168      -0.449550  0.399165 -1.126228  0.260069
+## ENSG00000273487   0.162242      -2.661881  7.046961 -0.377735  0.705628
+## ENSG00000273488  13.780769      -0.119263  0.749400 -0.159145  0.873555
+## ENSG00000273489   1.064893       0.402817  2.946545  0.136708  0.891262
+## ENSG00000273492   0.856644       1.177575  3.649863  0.322635  0.746971
+##                      padj
+##                 &lt;numeric&gt;
+## ENSG00000000419 0.5767269
+## ENSG00000000457 0.0811042
+## ENSG00000000460 0.4715645
+## ENSG00000000938 0.0334381
+## ENSG00000000971 0.9158617
+## ...                   ...
+## ENSG00000273486  0.428143
+## ENSG00000273487        NA
+## ENSG00000273488  0.937512
+## ENSG00000273489        NA
+## ENSG00000273492        NA</code></pre>
+</div>
 </div>
 <div id="contrasts-and-results" class="section level2">
 <h2>2. Contrasts and results</h2>
@@ -960,6 +1010,48 @@ res %&gt;% data.frame() %&gt;% head() %&gt;% drop_na()</code></pre>
 <li><p>pvalue: Wald test p-value</p></li>
 <li><p>padj: BH adjusted p-values</p></li>
 </ul>
+<pre class="r"><code>resultsNames(dds) # to see what names to use</code></pre>
+<pre><code>## [1] &quot;Intercept&quot;                &quot;celltype_JJ_vs_BM&quot;       
+## [3] &quot;condition_DMSO_vs_AMIL&quot;   &quot;condition_TG_vs_AMIL&quot;    
+## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
+<pre class="r"><code>res2 &lt;- results(dds, contrast = c(&quot;condition&quot;, &quot;AMIL&quot;, &quot;TG&quot;), alpha = 0.05)
+res2</code></pre>
+<pre><code>## log2 fold change (MLE): condition AMIL vs TG 
+## Wald test p-value: condition AMIL vs TG 
+## DataFrame with 27351 rows and 6 columns
+##                   baseMean log2FoldChange     lfcSE        stat      pvalue
+##                  &lt;numeric&gt;      &lt;numeric&gt; &lt;numeric&gt;   &lt;numeric&gt;   &lt;numeric&gt;
+## ENSG00000000419 2285.01560       0.396003 0.1957656    2.022843 4.30894e-02
+## ENSG00000000457  775.42002      -0.593184 0.0961676   -6.168235 6.90564e-10
+## ENSG00000000460 1300.43696      -0.873953 0.1108129   -7.886745 3.10169e-15
+## ENSG00000000938    2.45443      -3.983687 1.5055823   -2.645944 8.14632e-03
+## ENSG00000000971 1626.92877      -0.420341 1.1054519   -0.380244 7.03764e-01
+## ...                    ...            ...       ...         ...         ...
+## ENSG00000273486  40.217168    -0.47016312  0.277408 -1.69484215   0.0901054
+## ENSG00000273487   0.162242    -0.95486773  4.997268 -0.19107796   0.8484645
+## ENSG00000273488  13.780769    -0.24577136  0.498255 -0.49326428   0.6218259
+## ENSG00000273489   1.064893     2.35862076  1.953689  1.20726501   0.2273301
+## ENSG00000273492   0.856644     0.00678294  2.759476  0.00245805   0.9980388
+##                        padj
+##                   &lt;numeric&gt;
+## ENSG00000000419 6.83508e-02
+## ENSG00000000457 2.23371e-09
+## ENSG00000000460 1.37712e-14
+## ENSG00000000938 1.45873e-02
+## ENSG00000000971 7.87282e-01
+## ...                     ...
+## ENSG00000273486    0.134081
+## ENSG00000273487          NA
+## ENSG00000273488    0.713929
+## ENSG00000273489    0.306619
+## ENSG00000273492          NA</code></pre>
+<pre class="r"><code># What is in the results?
+res2 %&gt;% data.frame() %&gt;% head() %&gt;% drop_na()</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"2285.015595","2":"0.3960029","3":"0.19576557","4":"2.022843","5":"4.308939e-02","6":"6.835082e-02","_rn_":"ENSG00000000419"},{"1":"775.420019","2":"-0.5931845","3":"0.09616761","4":"-6.168235","5":"6.905639e-10","6":"2.233714e-09","_rn_":"ENSG00000000457"},{"1":"1300.436964","2":"-0.8739533","3":"0.11081292","4":"-7.886745","5":"3.101694e-15","6":"1.377123e-14","_rn_":"ENSG00000000460"},{"1":"2.454431","2":"-3.9836871","3":"1.50558235","4":"-2.645944","5":"8.146322e-03","6":"1.458733e-02","_rn_":"ENSG00000000938"},{"1":"1626.928772","2":"-0.4203414","3":"1.10545192","4":"-0.380244","5":"7.037643e-01","6":"7.872820e-01","_rn_":"ENSG00000000971"},{"1":"992.805073","2":"1.9398971","3":"0.16178164","4":"11.990836","5":"3.968801e-33","6":"4.163868e-32","_rn_":"ENSG00000001036"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
 <pre class="r"><code>ggplot(data=res %&gt;% data.frame()) +
   geom_point(size=0.5, aes(x=log10(baseMean+1), y=-log10(padj))) +
   theme_minimal()</code></pre>
@@ -1013,15 +1105,13 @@ setups, including contrasts.</p>
 <p><img src="day03_files/figure-html/MA%20plot-2.png" width="672" /></p>
 <hr />
 </div>
-</div>
 <div id="break-10-min" class="section level1">
 <h1>Break (10 min)</h1>
 <hr />
-</div>
-<div id="biological-interpretation-60-min" class="section level1">
-<h1>Biological interpretation (60 min)</h1>
-<div id="visualisation" class="section level2">
-<h2>1. Visualisation</h2>
+<div id="biological-interpretation-60-min" class="section level2">
+<h2>3. Biological interpretation (60 min)</h2>
+<div id="a.-visualisation" class="section level3">
+<h3>a. Visualisation</h3>
 <p>Several ways to visualise the DESeq2 outputs:</p>
 <ul>
 <li><p>Plot a single gene</p>
@@ -1056,7 +1146,7 @@ the ‘top 20’ genes from our previously generated results table.</p>
 <ul>
 <li>convert the res_shrink object to a dataframe ( data.frame() ), sort
 by padj( arrange() ), take the top 20 ( head() )</li>
-<li>Extract the normalised (!) counts from the dds object and convert to
+<li>Extract the normalized (!) counts from the dds object and convert to
 dataframe ( counts(dds) )</li>
 <li>subset the dataframe with normalised counts for the gene ID’s in the
 top20 ( filter() )</li>
@@ -1067,21 +1157,21 @@ top20 ( filter() )</li>
 EnsDb.Hsapiens.v79) and dplyr overlap. Explicitely state the library
 when calling them to avoid errors.</p>
 <pre class="r"><code>top20 &lt;- res_shrink %&gt;% data.frame() %&gt;% subset(padj &lt; 0.05) %&gt;% arrange(padj, descending=FALSE) %&gt;% head(20)
-head(top20)</code></pre>
+top20 %&gt;% head()</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"2539.423","2":"-4.097763","3":"0.11225249","4":"8.368892e-294","5":"1.711690e-289","_rn_":"ENSG00000114779"},{"1":"2975.832","2":"-3.345543","3":"0.10381676","4":"2.172113e-229","5":"2.221311e-225","_rn_":"ENSG00000131778"},{"1":"10837.741","2":"-3.151205","3":"0.10551776","4":"1.770231e-197","5":"1.206884e-193","_rn_":"ENSG00000134824"},{"1":"1448.943","2":"-2.973073","3":"0.10097460","4":"4.642644e-192","5":"2.373900e-188","_rn_":"ENSG00000100596"},{"1":"4855.847","2":"-2.777564","3":"0.09841187","4":"8.201833e-177","5":"3.355042e-173","_rn_":"ENSG00000116133"},{"1":"9839.925","2":"-5.751354","3":"0.20598414","4":"8.627241e-175","5":"2.940883e-171","_rn_":"ENSG00000237973"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
-<pre class="r"><code>normcounts &lt;- counts(dds, normalized=TRUE) %&gt;% data.frame()
-head(normcounts)</code></pre>
+<pre class="r"><code>normcounts &lt;- dds %&gt;% counts(normalized=TRUE) %&gt;% data.frame()
+normcounts %&gt;% head()</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["BM_CTRL_2"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_3"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_1"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_2"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_3"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_2"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_3"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_1"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_2"],"name":[9],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_3"],"name":[10],"type":["dbl"],"align":["right"]},{"label":["BM_TG_1"],"name":[11],"type":["dbl"],"align":["right"]},{"label":["BM_TG_2"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["BM_TG_3"],"name":[13],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_1"],"name":[14],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_2"],"name":[15],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_3"],"name":[16],"type":["dbl"],"align":["right"]}],"data":[{"1":"1567.3176845","2":"1670.07924","3":"2134.146839","4":"3839.7249","5":"2522.3854","6":"1853.485838","7":"2033.933641","8":"1732.217979","9":"2746.92113","10":"3158.991366","11":"2211.968391","12":"2162.553323","13":"2084.297540","14":"2073.845035","15":"2429.59430","16":"2338.786888","_rn_":"ENSG00000000419"},{"1":"537.0162156","2":"602.30054","3":"562.187518","4":"467.1878","5":"518.1831","6":"857.656653","7":"920.998481","8":"767.874983","9":"866.82644","10":"864.314539","11":"759.493413","12":"834.379646","13":"740.757794","14":"1066.067748","15":"1048.39728","16":"993.078134","_rn_":"ENSG00000000457"},{"1":"840.5090931","2":"902.74554","3":"845.537247","4":"995.8687","5":"1024.3434","6":"1044.189572","7":"916.534838","8":"1259.794894","9":"1200.64102","10":"956.595977","11":"1747.284255","12":"1684.190355","13":"1816.107001","14":"1748.713802","15":"2006.95427","16":"1816.981453","_rn_":"ENSG00000000460"},{"1":"2.6238577","2":"4.23162","3":"0.000000","4":"0.0000","5":"0.0000","6":"3.947787","7":"1.487881","8":"4.499267","9":"2.72873","10":"4.119707","11":"4.494044","12":"1.102219","13":"2.587047","14":"2.590687","15":"1.56244","16":"3.295613","_rn_":"ENSG00000000938"},{"1":"0.8746192","2":"1.41054","3":"2.707163","4":"0.0000","5":"0.0000","6":"2822.667464","7":"2962.371529","8":"3410.444748","9":"2907.91618","10":"3144.984363","11":"2.696426","12":"0.000000","13":"0.862349","14":"3778.517157","15":"3394.40104","16":"3601.006773","_rn_":"ENSG00000000971"},{"1":"66.4710625","2":"69.11646","3":"162.429781","4":"140.5557","5":"195.9718","6":"2136.739531","7":"2251.164301","8":"1892.691852","9":"2060.19085","10":"1986.522740","11":"47.636865","12":"44.088753","13":"37.081007","14":"1658.039753","15":"1560.87763","16":"1575.303146","_rn_":"ENSG00000001036"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>top20_counts &lt;- normcounts %&gt;% dplyr::filter(rownames(normcounts) %in% rownames(top20))
-head(top20_counts)</code></pre>
+top20_counts %&gt;% head()</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["BM_CTRL_2"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_3"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_1"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_2"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_3"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_2"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_3"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_1"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_2"],"name":[9],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_3"],"name":[10],"type":["dbl"],"align":["right"]},{"label":["BM_TG_1"],"name":[11],"type":["dbl"],"align":["right"]},{"label":["BM_TG_2"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["BM_TG_3"],"name":[13],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_1"],"name":[14],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_2"],"name":[15],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_3"],"name":[16],"type":["dbl"],"align":["right"]}],"data":[{"1":"983.072","2":"1141.127","3":"4067.96362","4":"3822.15542","5":"4056.49593","6":"4595.2237","7":"4786.5139","8":"6787.8949","9":"6850.0209","10":"6826.3546","11":"1125.309","12":"1146.308","13":"1052.066","14":"4743.5481","15":"4742.7868","16":"4457.8662","_rn_":"ENSG00000083799"},{"1":"1823.581","2":"1935.966","3":"269.81391","4":"226.00710","5":"214.00601","6":"1278.0959","7":"1230.4778","8":"1061.8271","9":"1096.9493","10":"1222.7291","11":"3046.063","12":"2884.507","13":"2898.355","14":"1290.1622","15":"1398.3839","16":"1306.1614","_rn_":"ENSG00000100596"},{"1":"1070.534","2":"1026.168","3":"64.06952","4":"64.68754","5":"49.29352","6":"935.6254","7":"796.0165","8":"547.4109","9":"688.5494","10":"647.6179","11":"1244.850","12":"1111.037","13":"1019.297","14":"1314.7737","15":"1231.2028","16":"1287.4863","_rn_":"ENSG00000101246"},{"1":"2141.068","2":"2368.296","3":"311.32375","4":"231.59738","5":"283.73830","6":"844.8263","7":"931.4137","8":"502.4182","9":"522.0969","10":"458.9354","11":"1541.457","12":"1405.329","13":"1480.653","14":"720.2110","15":"671.8492","16":"659.1227","_rn_":"ENSG00000111684"},{"1":"1138.754","2":"1044.505","3":"139.87009","4":"104.61813","5":"84.15967","6":"991.8814","7":"999.8562","8":"715.3835","9":"684.0016","10":"705.2938","11":"1233.166","12":"1194.805","13":"1234.021","14":"944.3055","15":"819.4998","16":"873.3375","_rn_":"ENSG00000114395"},{"1":"4381.842","2":"4223.156","3":"270.71630","4":"241.18072","5":"232.04022","6":"3377.3315","7":"3340.2934","8":"931.3484","9":"1071.4812","10":"1247.4473","11":"3640.176","12":"3934.921","13":"4078.048","14":"3238.3589","15":"3149.8792","16":"3272.5440","_rn_":"ENSG00000114779"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
@@ -1107,9 +1197,14 @@ genes differently</p>
   ylim(c(0,10)) +
   theme_minimal()</code></pre>
 <p><img src="day03_files/figure-html/volcano%20plot-1.png" width="672" /></p>
+<pre class="r"><code>ggplot(data=res_shrink %&gt;% data.frame(), aes(x=log2FoldChange, -log10(padj))) +
+  geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj &lt; 0.05, &#39;red&#39;, &#39;black&#39;)) +
+  ylim(c(0,10)) +
+  theme_minimal()</code></pre>
+<p><img src="day03_files/figure-html/volcano%20plot-2.png" width="672" /></p>
 </div>
-<div id="likelihood-ratio-test" class="section level2">
-<h2>2. Likelihood ratio test</h2>
+<div id="b.-likelihood-ratio-test" class="section level3">
+<h3>b. Likelihood ratio test</h3>
 <p>DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative
 to Wald test when evaluating expression change across more than two
 levels. Rather than evaluating whether a gene’s expression is up- or
@@ -1181,8 +1276,8 @@ pheatmap(lrtcounts,
          height = 20)</code></pre>
 <p><img src="day03_files/figure-html/detect%20lrt%20sig%20genes%20and%20plot%20heatmap-2.png" width="672" /></p>
 </div>
-<div id="back-to-square-one." class="section level2">
-<h2>3. Back to square one.</h2>
+<div id="c.-back-to-square-one." class="section level3">
+<h3>c. Back to square one.</h3>
 <p>We now have an idea on how we can extract pair-wise comparisons from
 a multi-factor DESeq2 analysis, and we got a primer on comparisons
 beyond pair-wise comparisons. What now ? Let’s try to extract something
@@ -1218,8 +1313,8 @@ inhibitor)</li>
 good candidate for repurposing in multiple myeloma.</li>
 </ul>
 </div>
-<div id="amiloride-vs-tg" class="section level2">
-<h2>4. amiloride vs TG</h2>
+<div id="d.-amiloride-vs-tg" class="section level3">
+<h3>d. amiloride vs TG</h3>
 <p>Let’s start by assessing the difference between amiloride treated
 cells and TG treated cells.</p>
 <p>Remember our coefficients:</p>
@@ -1326,8 +1421,8 @@ print(compl1 - compl2)</code></pre>
 ##              conditionTG celltypeJJ:conditionDMSO   celltypeJJ:conditionTG 
 ##                     -1.0                      0.0                     -0.5</code></pre>
 </div>
-<div id="clean-annotate" class="section level2">
-<h2>5. Clean &amp; Annotate</h2>
+<div id="e.-clean-annotate" class="section level3">
+<h3>e. Clean &amp; Annotate</h3>
 <ul>
 <li>we only have transcript IDs, not actual gene names.</li>
 <li>Commonly used package to convert between them is <a
@@ -1399,8 +1494,8 @@ pheatmap(
 upset(fromList(upsetList), order.by = &quot;freq&quot;)</code></pre>
 <p><img src="day03_files/figure-html/UpsetPlot-1.png" width="672" /></p>
 </div>
-<div id="apoptosis-spliceosome" class="section level2">
-<h2>6. Apoptosis &amp; Spliceosome</h2>
+<div id="f.-apoptosis-spliceosome" class="section level3">
+<h3>f. Apoptosis &amp; Spliceosome</h3>
 <p>Finally, look at two specific geneSets. - genes involved in splicing
 - genes involved in apoptosis</p>
 <p>Note that we will read in the txt files as a vector (with gene
@@ -1438,8 +1533,8 @@ pheatmap(
 )</code></pre>
 <p><img src="day03_files/figure-html/Pathways-2.png" width="672" /></p>
 </div>
-<div id="lrt" class="section level2">
-<h2>7. LRT</h2>
+<div id="g.-lrt" class="section level3">
+<h3>g. LRT</h3>
 <p>Finally, let’s look at the treatment factor using LRT. For this we’ll
 use ~celltype as the reduced model.</p>
 <pre class="r"><code># which model are we interested in as reduced?
@@ -1474,6 +1569,7 @@ pheatmap(
   fontsize=5
 )</code></pre>
 <p><img src="day03_files/figure-html/parse%20lrt-2.png" width="672" /></p>
+</div>
 </div>
 </div>
 
