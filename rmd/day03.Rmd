@@ -363,7 +363,7 @@ dds <- estimateDispersions(dds)
 ```{r deseq analysis, message=FALSE, warning=FALSE}
 dds <- DESeq(dds)
 ```
-## 2. Give me results!
+## 2. Give me results! (30 min)
 
 ### a. Wald test
 
@@ -415,7 +415,7 @@ resultsNames(dds)
 res_dds
 ```
 
-## 2. Contrasts and results
+### b. Contrasts and results
 
 Contrasts are used in our results call to get a specific pairwise comparison.
 If there is only two factor levels, There is no need to  specify contrasts, DESeq2 will choose the base factor level based on the alphabetical order of the levels.
@@ -472,7 +472,7 @@ ggplot(data=res %>% data.frame()) +
 ```
 
 
-## 3. Shrinking
+### c. Shrinking
 
 To generate more accurate log2 foldchange (LFC) estimates, DESeq2 allows for the shrinkage of the LFC estimates toward zero when the information for a gene is low, which could include:
 
@@ -510,7 +510,7 @@ ggplot(data=res_shrink %>% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldCh
 ```
 
 ***
-# Break (10 min)
+## Break (10 min)
 ***
 
 ## 3. Biological interpretation (60 min)
