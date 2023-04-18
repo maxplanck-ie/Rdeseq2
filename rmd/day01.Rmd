@@ -22,7 +22,7 @@ output:
 The story we'll work with is a 'drug repurposing' effort to use an old diuretic drug as a cancer treatment:
 <br> 
 [Amiloride to treat multiple myeloma](https://pubmed.ncbi.nlm.nih.gov/28790111/)
-
+Note that this is publically available data under GEO accession ID GSE95077, but the data shipped with this repository is altered for educational purposes.  
 In this study, RNA-seq data is available to compare amiloride to a state-of-the-art drug (TG003) in two cancer (multiple myeloma) cell lines with different mutations (BM: p53mut, JJ: del(17p)).
 <br> 
 
