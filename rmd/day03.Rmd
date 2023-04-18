@@ -13,33 +13,33 @@ output:
     df_print: paged
 ---
 
-# Goals:
-* Different steps of a differential gene expression analysis
-  * multi-factor design
-  * Normalisation: Estimating size factors (has been explained before)
-  * Dispersion estimation (has been explained before)
-  * Building up contrasts
-  * Make a results table
-  * Summarize and extract a list of significant differentially expressed genes
-  * Visualize the results
-  * LRT vs. Wald test
-  * Biological interpretation
+## Goals: Exploring and defining 'DESeq2 results'
+ - repeat: generating DESeq-object (data, metadata, design)
+ - repeat: run DESeq workflow
+ - coefficients and contrasts
+ - summarize and visualize results
+ - LRT vs Wald test
+ - Biological interpretation
 
 ```{r load libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
+suppressPackageStartupMessages({
 library("DESeq2")
 library("tidyverse")
-library("ggrepel")
 library("pheatmap")
+library("ggrepel")
 library("EnsDb.Hsapiens.v75")
 library("UpSetR")
 library("ashr")
+})
 ```
 
 ```{r read_data, message=FALSE, warning=FALSE}
 # Get the data directory
 dfile <- "data/myeloma/myeloma_counts.tsv"
 data <- read_tsv(file=dfile)
-data <- data %>% column_to_rownames("gene_id") 
+data <- data %>%
+  column_to_rownames("gene_id") %>%
+  mutate(across(where(is.double), as.integer))
 
 # Read samplesheet , detects conditions, generate the formula
 mfile <- "data/myeloma/myeloma_meta.tsv"
@@ -55,16 +55,37 @@ metadata
 all(rownames(metadata) == colnames(data))
 ```
 
-# Creating a DDS object. (30 minutes)
-## 1. factors and design
-A design formula takes all sources of variation to control for (remember day 1).
-The first factor is considered as "the factor of interest" to test for during the differential expression testing.
+## 1. Coefficients explained (30 minutes)
 
-DESeq2 uses the design as a model for each gene, and fits a normalized count based on that. 
+### a. factors and design
 
-## 2. design examples
+Remember:
 
-### A single factor with two levels.
+ - that all sources of variation to control are specified in the design.
+ - the first factor level is considered as "the factor of interest" to test for during the differential expression testing.
+
+```{r plot_designs}
+meta_releveled <- metadata
+meta_releveled$condition <- relevel(meta_releveled$condition, ref='DMSO')
+pheatmap(
+  model.matrix(~condition, data=metadata),
+  cluster_cols = FALSE,
+  cluster_rows=FALSE,
+  main="amiloride base"
+)
+
+pheatmap(
+  model.matrix(~condition, data=meta_releveled),
+  cluster_cols = FALSE,
+  cluster_rows=FALSE,
+  main="DMSO base"
+)
+```
+
+
+### b. design examples
+
+#### A single factor with two levels.
 
 |samples |celltype<factor> |
 |:-------|:-----|
@@ -74,7 +95,11 @@ DESeq2 uses the design as a model for each gene, and fits a normalized count bas
 |sample4 |BM |
 
 ```{r simplefactordesign}
-dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~celltype)
+dds <- DESeqDataSetFromMatrix(
+  countData=data,
+  colData=metadata,
+  design= ~celltype
+)
 dds <- DESeq(dds)
 resultsNames(dds)
 ```
@@ -246,7 +271,9 @@ Design:
 
 
 ```{r fulldesign}
-dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~celltype+condition+celltype:condition)
+dds <- DESeqDataSetFromMatrix(
+  countData=data, colData=metadata, design= ~celltype+condition+celltype:condition
+)
 dds <- DESeq(dds)
 resultsNames(dds)
 ```
@@ -306,7 +333,7 @@ Null hypothesis:
 
 * Multi-factor design with increasing complexity are nicely explained in Hugo Tavares' [slides](https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing)
 
-## 3. Recap
+### c. Recap
 
 ### Build object
 ```{r build the matrix, message=FALSE, warning=FALSE}
@@ -336,10 +363,10 @@ dds <- estimateDispersions(dds)
 ```{r deseq analysis, message=FALSE, warning=FALSE}
 dds <- DESeq(dds)
 ```
+## 2. Give me results!
 
-# Get some actual results ! (20 min)
+### a. Wald test
 
-## 1. Wald test
 By default DESeq2 uses the Wald test to identify genes that are differentially expressed between two groups of samples. This is done through the following steps:
   
   * A regression model fits to each gene (glm.nb),
@@ -347,8 +374,10 @@ By default DESeq2 uses the Wald test to identify genes that are differentially e
   * The shrunken estimate of LFC is divided by its standard error, resulting in a z-statistic,
   * z-statistic is compared to a standard normal distribution to compute the p-values,
   * P values are adjusted for multiple testing using the procedure of Benjamini and Hochberg.
+  
 ```{r getresults!, eval=TRUE}
-res.df <- results(dds) %>% data.frame() %>% drop_na
+res_dds <- results(dds)
+res.df <- res_dds %>% data.frame() %>% drop_na
 ```
 
 P-value distribution
@@ -371,7 +400,7 @@ There are three reasons to set p-values to NA (From the [DESeq2 vignette](https:
    * A row is filtered by automatic filtering  
 
 ```{r showres}
-head(res.df)
+res.df %>% head()
 ```
 We have called results here, but what did we actually compare ?
 
@@ -383,6 +412,7 @@ For example, for a simple two-group comparison, this would return the log2 fold 
 Remember now our coefficients:
 ```{r showcoeff}
 resultsNames(dds)
+res_dds
 ```
 
 ## 2. Contrasts and results
@@ -398,7 +428,7 @@ Contrasts can be specified in three different ways:
 
 Let's try!
 
-```{r contrast, message=FALSE, warning=FALSE}
+```{r contrast1, message=FALSE, warning=FALSE}
 resultsNames(dds) # to see what names to use
 contrast <- c("condition", "AMIL", "DMSO")
 res <- results(dds, contrast = contrast, alpha = 0.05)
@@ -420,6 +450,14 @@ Columns of results dataframe:
   * pvalue: Wald test p-value
 
   * padj: BH adjusted p-values
+  
+```{r contrast2, message=FALSE, warning=FALSE}
+resultsNames(dds) # to see what names to use
+res2 <- results(dds, contrast = c("condition", "AMIL", "TG"), alpha = 0.05)
+res2
+# What is in the results?
+res2 %>% data.frame() %>% head() %>% drop_na()
+```
 
 ```{r plot norm_count vs p values}
 ggplot(data=res %>% data.frame()) +
@@ -475,9 +513,9 @@ ggplot(data=res_shrink %>% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldCh
 # Break (10 min)
 ***
 
-# Biological interpretation (60 min)
+## 3. Biological interpretation (60 min)
 
-## 1. Visualisation
+### a. Visualisation
   Several ways to visualise the DESeq2 outputs:
   
   * Plot a single gene
@@ -504,7 +542,7 @@ ggplot(d, aes(x = celltype, y = count, color = celltype)) +
 > **Task**: Plot a heatmap of the normalised counts for the 'top 20' genes from our previously generated results table.
 
   * convert the res_shrink object to a dataframe ( data.frame() ), sort by padj( arrange() ), take the top 20 ( head() )
-  * Extract the normalised (!) counts from the dds object and convert to dataframe ( counts(dds) )
+  * Extract the normalized (!) counts from the dds object and convert to dataframe ( counts(dds) )
   * subset the dataframe with normalised counts for the gene ID's in the top20 ( filter() )
   * plot with pheatmap, note that you can scale the values per row (scale='row')!
 
@@ -513,11 +551,11 @@ ggplot(d, aes(x = celltype, y = count, color = celltype)) +
 
 ```{r heatmap, message=FALSE, warning=FALSE}
 top20 <- res_shrink %>% data.frame() %>% subset(padj < 0.05) %>% arrange(padj, descending=FALSE) %>% head(20)
-head(top20)
-normcounts <- counts(dds, normalized=TRUE) %>% data.frame()
-head(normcounts)
+top20 %>% head()
+normcounts <- dds %>% counts(normalized=TRUE) %>% data.frame()
+normcounts %>% head()
 top20_counts <- normcounts %>% dplyr::filter(rownames(normcounts) %in% rownames(top20))
-head(top20_counts)
+top20_counts %>% head()
 pheatmap(top20_counts,
          cluster_rows = T,
          show_rownames = F,
@@ -540,10 +578,14 @@ ggplot(data=res_shrink %>% data.frame(), aes(x=log2FoldChange, -log10(padj))) +
   ylim(c(0,10)) +
   theme_minimal()
 
+ggplot(data=res_shrink %>% data.frame(), aes(x=log2FoldChange, -log10(padj))) +
+  geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj < 0.05, 'red', 'black')) +
+  ylim(c(0,10)) +
+  theme_minimal()
 ```
 
 
-## 2. Likelihood ratio test
+### b. Likelihood ratio test
 
 DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative to Wald test when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one class compared to another, it identifies genes which are changing in expression in any direction across the different factor levels. Therefore, there is no need for contrasts since we are not making a pair-wise comparison.
 
@@ -590,7 +632,7 @@ pheatmap(lrtcounts,
          height = 20)
 ```
 
-## 3. Back to square one.
+### c. Back to square one.
 
 We now have an idea on how we can extract pair-wise comparisons from a multi-factor DESeq2 analysis,
 and we got a primer on comparisons beyond pair-wise comparisons. What now ?
@@ -625,7 +667,7 @@ A couple of other relevant notes:
  - TG003 is a drug commonly used in this disease (clk1 kinase inhibitor)
  - Amiloride is an old drug (diuretic) that is hypothesized to be a good candidate for repurposing in multiple myeloma.
 
-## 4. amiloride vs TG
+### d. amiloride vs TG
 
 Let's start by assessing the difference between amiloride treated cells and TG treated cells.
 
@@ -718,7 +760,7 @@ print(compl1 - compl2)
 ```
 
 
-## 5. Clean & Annotate
+### e. Clean & Annotate
 
  * we only have transcript IDs, not actual gene names.
  * Commonly used package to convert between them is [biomaRt](https://bioconductor.org/packages/release/bioc/html/biomaRt.html). 
@@ -791,7 +833,7 @@ upsetList <- list(
 upset(fromList(upsetList), order.by = "freq")
 ```
 
-## 6. Apoptosis & Spliceosome
+### f. Apoptosis & Spliceosome
 
 Finally, look at two specific geneSets.
  - genes involved in splicing
@@ -836,7 +878,7 @@ pheatmap(
 ```
 
 
-## 7. LRT
+### g. LRT
 
 Finally, let's look at the treatment factor using LRT. For this we'll use ~celltype as the reduced model.
 

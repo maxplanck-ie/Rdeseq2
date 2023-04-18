@@ -1,66 +1,101 @@
-# Poll Questions
+# Poll Day 1
+0.1 How will you keep track of the code, course material and notes during this course ?
+   a) With a pen and paper.
+   b) I will use the console, and save my session often !
+   c) I will simply remember everything.
+   d) An R notebook to easily store code and comments together.
+   e) I will not keep track of the code, course material and notes during this course.
 
-## Day 1
 1.1. How do you get information about the current R-version and loaded packages
    a) summary()
-   b) sessionInfo()*
+   b) sessionInfo()
    c) getwd()
+   d) installed.packages()
 
-1.2. Who has successfully installed the packages
+1.2. Did you manage to load DESeq2, tidyverse & pheatmap ?
+   a) yes.
+   b) no.
 
 1.3. What is the median expression count in sample "BM_CTRL_3"?
    a) 520.3338
    b) 873.331
-   c) 0*
+   c) 0
+   d) NA
 
 1.4. What is a factor in R?
    a) A numerical variable to be multiplied with another (e.g. scale factor)
    b) A categorical variable that can only assume specific values (e.g. treatment)
    c) A nuisance variable that is of no specific interest (e.g. batch)
+   d) A brand of bicycles (developed and engineered to be the best in the world).
 
 1.5. What is n from y_i = f(x_i) in our example ?
    a) number of genes
-   b) number of samples*
+   b) number of samples
    c) total number of reads
 
 1.6. You are planning an experiment with 3 treatment levels $(X_1, X_2, X_3)$ and aim for 3 replicates each. Unfortunately, you can process at most 3 samples per day. So you'll need three days $(Z_1, Z_2, Z_3)$. How should you assign your samples to different treatments?
 
-   3 Figures:
-   1. complete confounding
-   2. completely randomized design
-   3. randomized complete block design*
+   (3 Figures)
+   a) complete confounding
+   b) completely randomized design
+   c) randomized complete block design*
 
-## Day 2
-2.1 What do you think about this PCA plot? Does it need to be fixed? How would you do it?
-   a) The PCA is correct by showing the current clustering of the samples. No fixing is needed
-   b) The PCA is showing that there is a problem because our samples do not cluster by category. We need to go back and swap the 2 samples
-   c) There is a mixup in the samples. We need to talk with the sequencing facility so that they change the samples and sequence again
-   d) The PCA shows that there is a problem with our samples. We delete the data from our dataset
+# Poll Day 2
 
-2.2 What kind of distribution would you use for count data?
-   a) Poisson distribution
-   b) Binomial distribution
-   c) Negative binomial distribution
-   d) Normal distribution
+2.1.  What should we do next ?
 
-## Day 3
-3.1 What is the relation between the size factors and the values of the columns?
-    a) Larger size factors correspond to the samples with higher sequencing depth.
-    b) Larger size factors correspond to the samples with lower sequencing depth.
-    c) Size factors are independent of the sequencing depth.
+   a) PCA looks good, we can move on with the analysis.
+   b) PCA shows a celltype swap in 2 samples. We should swap the labels before going forward.
+   c) PCA shows a celltype swap in 2 samples. We should omit these samples from our dataset.
+   d) PCA shows a celltype swap in 2 samples. We should talk to the sequencing facility and ask them to resequence.
 
-3.2 Is there a difference in specifying ~celltype*condition and ~celltype + condition + celltype:condition ?
+2.2 How many samples and genes are left in the filtered data set ?
+
+   a) 18, 30231
+   b) 16, 27674
+   c) 16, 27351
+   d) 0, 0
+
+2.3 What kind of distribution would be appropriate for this data ?
+
+   a) The poisson distribution
+   b) Not the poisson distribution
+
+2.4 What does a positive log2 foldChange and a significant padj value reflect ?
+
+   a) an upregulated gene in TG treated BM cells.
+   b) an upregulated gene in TG treated JJ cells.
+   c) an upregulated gene in DMSO treated BM cells.
+   d) an upregulated gene in DMSO treated JJ cells.
+
+# Poll day 3
+
+3.1 What does the intercept value reflect ?
+
+   a) The average gene counts for celltype JJ
+   b) The average gene counts for celltype BM
+
+3.2 What coefficients will we have when we specify ~condition as the design ?
+
+   a) intercept, amiloride condition, DMSO condition, TG condition
+   b) intercept, amiloride vs DMSO condition, TG vs DMSO condition
+   c) intercept, DMSO vs amiloride condition, TG vs amiloride condition
+
+3.3 What does the intercept value reflect ?
+
+   a) The average gene counts for celltype BM
+   b) The average gene counts for treatment amiloride
+   c) The average gene counts for amiloride treated BM cells
+   d) The average gene counts for dmso treated JJ cells
+
+3.4 Is there a difference in specifying ~celltype * condition and ~celltype + condition + celltype:condition ?
+
    a) Yes
    b) No
-   c) Maybe
+   c) It depends
 
-3.3 Given our design (~celltype*condition), what comparison do we look at by specifying results(dds, contrast = c("condition", "TG", "DMSO")) ?
-   a) A comparison between TG-treated cells and DMSO-treated cells.
-   b) A comparison between TG-treated BM cells and DMSO-treated BM cells.
-   c) A comparison between TG-treated JJ cells and DMSO-treated JJ cells.
-   d) A comparison between TG-treated JJ cells and DMSO-treated BM cells.
+3.5 Given our contrast c('condition', 'TG', 'AMIL'), what would a significant positive foldchange correspond to ?
 
-3.4 Given our contrast c('condition', 'TG', 'AMIL'), what would a (significant) positive foldchange correspond to?
-   a) Higher expression in TG-treated BM cells
-   b) Higher expression AMIL-treated BM cells
-   c) Higher expression in TG- and AMIL-treated BM cells relative to DMSO.
+   a) Higher expression in TG-treated cells
+   b) Higher expression in AMIL-treated cells
+

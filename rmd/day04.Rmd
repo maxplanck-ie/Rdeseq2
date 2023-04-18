@@ -21,7 +21,9 @@ output:
 # Introduction
 Dataset: MPPs
 
-with:
+Note that this is publically available data under GEO accession ID GSE162607 with DOI: [10.1038/s41467-022-30440-2](https://pubmed.ncbi.nlm.nih.gov/35577813/).
+
+with count matrix and meta data:
 
 > data/mpp/mpp_counts.tsv
 
