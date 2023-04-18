@@ -29,7 +29,6 @@ suppressPackageStartupMessages({
 library("tidyverse")
 library("DESeq2")
 library("pheatmap")
-library("ashr")
 })
 ```
 
@@ -425,7 +424,7 @@ Signs of a 'good' dispersion plot:
  * 'clouds' or 'wonky shapes' often indicate contamination / outliers
 
 
-### d. fitting model and testing
+### c. fitting model and testing
 
 Finally we get a fit for each gene, and a Wald test can be used to test for significance of coefficients of interest.
 
@@ -464,7 +463,7 @@ dds_res %>%
 ```
 
 
-### e. Exporting results and further analyses
+### d. Exporting results and further analyses
 
 ![Export data](images/day2_analysis_tools.png){width=80%}
 
