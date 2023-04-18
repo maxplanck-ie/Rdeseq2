@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Tue Apr 18 15:39:47 2023</h4>
+<h4 class="date">Tue Apr 18 16:05:49 2023</h4>
 
 </div>
 
@@ -853,8 +853,8 @@ calculated size factors).</p>
 <pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
 </div>
 </div>
-<div id="give-me-results" class="section level2">
-<h2>2. Give me results!</h2>
+<div id="give-me-results-30-min" class="section level2">
+<h2>2. Give me results! (30 min)</h2>
 <div id="a.-wald-test" class="section level3">
 <h3>a. Wald test</h3>
 <p>By default DESeq2 uses the Wald test to identify genes that are
@@ -943,9 +943,8 @@ the second group over the first group (the reference level).</p>
 ## ENSG00000273489        NA
 ## ENSG00000273492        NA</code></pre>
 </div>
-</div>
-<div id="contrasts-and-results" class="section level2">
-<h2>2. Contrasts and results</h2>
+<div id="b.-contrasts-and-results" class="section level3">
+<h3>b. Contrasts and results</h3>
 <p>Contrasts are used in our results call to get a specific pairwise
 comparison. If there is only two factor levels, There is no need to
 specify contrasts, DESeq2 will choose the base factor level based on the
@@ -1063,8 +1062,8 @@ res2 %&gt;% data.frame() %&gt;% head() %&gt;% drop_na()</code></pre>
 <pre><code>## Warning: Removed 6898 rows containing missing values (`geom_point()`).</code></pre>
 <p><img src="day03_files/figure-html/plot%20l2fc%20vs%20p%20values-1.png" width="672" /></p>
 </div>
-<div id="shrinking" class="section level2">
-<h2>3. Shrinking</h2>
+<div id="c.-shrinking" class="section level3">
+<h3>c. Shrinking</h3>
 <p>To generate more accurate log2 foldchange (LFC) estimates, DESeq2
 allows for the shrinkage of the LFC estimates toward zero when the
 information for a gene is low, which could include:</p>
@@ -1105,9 +1104,11 @@ setups, including contrasts.</p>
 <p><img src="day03_files/figure-html/MA%20plot-2.png" width="672" /></p>
 <hr />
 </div>
-<div id="break-10-min" class="section level1">
-<h1>Break (10 min)</h1>
+</div>
+<div id="break-10-min" class="section level2">
+<h2>Break (10 min)</h2>
 <hr />
+</div>
 <div id="biological-interpretation-60-min" class="section level2">
 <h2>3. Biological interpretation (60 min)</h2>
 <div id="a.-visualisation" class="section level3">
@@ -1569,7 +1570,6 @@ pheatmap(
   fontsize=5
 )</code></pre>
 <p><img src="day03_files/figure-html/parse%20lrt-2.png" width="672" /></p>
-</div>
 </div>
 </div>
 
