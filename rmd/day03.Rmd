@@ -261,14 +261,14 @@ The formula for the model includes all sources of variation in the data. Thus, i
 Design:
 
     ~1 + celltype + condition + celltype:condition
-    = beta0 + beta1 * BM + beta2 * DMSO + beta3 * TG + beta4 * BM.DMSO + beta4 * BM.TG
+    = beta0 + beta1 * JJ + beta2 * DMSO + beta3 * TG + beta4 * JJ.DMSO + beta4 * JJ.TG
 
       beta0 = Intercept
-      beta1 = celltype_BM_vs_JJ
+      beta1 = celltype_JJ_vs_BM
       beta2 = condition_DMSO_vs_AMIL
       beta3 = condition_TG_vs_AMIL
-      beta4 = celltypeBM.conditionDMSO
-      beta5 = celltypeBM.conditionTG
+      beta4 = celltypeJJ.conditionDMSO
+      beta5 = celltypeJJ.conditionTG
 
 
 
