@@ -5,7 +5,7 @@
  - [x] outline  
  - [x] day1  
  - [x] day2  
- - [ ] day3  
+ - [x] day3  
  - [ ] day4  
  - [ ] summary / template  
 
