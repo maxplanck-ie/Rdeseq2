@@ -398,33 +398,23 @@ div.tocify {
 
 <h1 class="title toc-ignore">deseq2 - applied</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Thu Apr 20 07:25:27 2023</h4>
+<h4 class="date">Thu Apr 20 07:43:12 2023</h4>
 
 </div>
 
 
-<div id="apply-what-was-learned-through-the-course."
-class="section level1">
-<h1>Apply what was learned through the course.</h1>
+<div id="goals-apply-what-was-learned-through-the-course."
+class="section level2">
+<h2>Goals: Apply what was learned through the course.</h2>
 <ul>
+<li>repeat: generating DESeq-object (data, metadata, design)</li>
 <li>Initial QC and visualisation.</li>
 <li>Run the DESeq workflow</li>
-<li>Interpret some of the results.</li>
+<li>Interpret some of the results</li>
 </ul>
 </div>
-<div id="introduction" class="section level1">
-<h1>Introduction</h1>
-<p>Dataset: MPPs</p>
-<p>Note that this is publically available data under GEO accession ID
-GSE162607 with DOI: <a
-href="https://pubmed.ncbi.nlm.nih.gov/35577813/">10.1038/s41467-022-30440-2</a>.</p>
-<p>with count matrix and meta data:</p>
-<blockquote>
-<p>data/mpp/mpp_counts.tsv</p>
-</blockquote>
-<blockquote>
-<p>data/mpp/mpp_meta.tsv</p>
-</blockquote>
+<div id="introduction" class="section level2">
+<h2>1. Introduction</h2>
 <p>Background:</p>
 <p>We are looking in murine bone marrow cells. More specifically, the
 stem- and multipotent progenitor cells. A (very expensive) experiment
@@ -445,17 +435,28 @@ to see:</p>
 <blockquote>
 <p>data/genesets/KEGG_cellcycle.txt</p>
 </blockquote>
-<p><span style="color:red">Cave!: rownames in the count object are
+<p>Dataset: MPP Note that this is publically available data under GEO
+accession ID GSE162607 with DOI: <a
+href="https://pubmed.ncbi.nlm.nih.gov/35577813/">10.1038/s41467-022-30440-2</a>.</p>
+<p>with count matrix and meta data:</p>
+<blockquote>
+<p>data/mpp/mpp_counts.tsv</p>
+</blockquote>
+<blockquote>
+<p>data/mpp/mpp_meta.tsv</p>
+</blockquote>
+<p><span style="color:red">Note: rownames in the count object are
 lowercase-capitalized, the KEGG_cellcycle ones are fully
-capitalized.</span></p>
+capitalized).</span></p>
 <blockquote>
 <p>Good luck and have fun!</p>
 </blockquote>
 <hr />
 </div>
-<div id="hands-on" class="section level1">
-<h1>Hands-on</h1>
-<p>Load some libraries.</p>
+<div id="lets-go." class="section level2">
+<h2>2. Let’s go.</h2>
+<div id="a.-libraries-data-factors" class="section level3">
+<h3>a. Libraries, data &amp; factors</h3>
 <pre class="r"><code>library(&quot;DESeq2&quot;)
 library(&quot;dplyr&quot;)
 library(&quot;tibble&quot;)
@@ -486,37 +487,43 @@ metadata$celltype  &lt;- as.factor(metadata$celltype)</code></pre>
 print(metadata$condition)</code></pre>
 <pre><code>##  [1] Aged  Aged  Aged  Aged  Aged  Aged  Young Young Young Young Young Young
 ## Levels: Young Aged</code></pre>
-<div id="build-deseq-object." class="section level2">
-<h2>1. Build DESeq object.</h2>
+</div>
+<div id="b.-build-deseq-object." class="section level3">
+<h3>b. Build DESeq object.</h3>
 <pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data,
                               colData=metadata,
                               design = ~celltype*condition
                               )</code></pre>
 </div>
-<div id="plotpca" class="section level2">
-<h2>2. plotPCA</h2>
+<div id="c.-plotpca" class="section level3">
+<h3>c. plotPCA</h3>
 <pre class="r"><code>plotPCA(rlog(dds, blind=TRUE),
         intgroup=c(&quot;celltype&quot;, &quot;condition&quot;)
         ) + theme_minimal()</code></pre>
 <p><img src="day04_files/figure-html/PCA-1.png" width="672" /></p>
 </div>
-<div id="run-deseq2" class="section level2">
-<h2>3. run DESeq2</h2>
+<div id="d.-run-deseq2" class="section level3">
+<h3>d. run DESeq2</h3>
 <pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
 </div>
-<div id="plot-dispersion" class="section level2">
-<h2>4. plot dispersion</h2>
+<div id="e.-sizefactors-dispersion" class="section level3">
+<h3>e. sizeFactors &amp; dispersion</h3>
+<pre class="r"><code>sizeFactors(dds)</code></pre>
+<pre><code>##  Young_HSC_1  Young_HSC_2 Young_MPP1_1 Young_MPP1_2 Young_MPP2_1 Young_MPP2_2 
+##    0.8741664    1.0907894    1.0501099    1.0596767    0.9307710    0.9863305 
+##   Aged_HSC_1   Aged_HSC_2  Aged_MPP1_1  Aged_MPP1_2  Aged_MPP2_1  Aged_MPP2_2 
+##    0.9004813    1.0741130    0.9827498    1.1019995    1.0009257    1.0478315</code></pre>
 <pre class="r"><code>plotDispEsts(dds)</code></pre>
 <p><img src="day04_files/figure-html/Dispersion-1.png" width="672" /></p>
 </div>
-<div id="lrt-for-age." class="section level2">
-<h2>5. LRT for age.</h2>
+<div id="f.-lrt-for-age." class="section level3">
+<h3>f. LRT for age.</h3>
 <pre class="r"><code># which model are we interested in as reduced?
 dds_lrt &lt;- DESeq(dds, test=&quot;LRT&quot;, reduced = ~celltype)
 res_lrt &lt;- results(dds_lrt)</code></pre>
 </div>
-<div id="results." class="section level2">
-<h2>6. results.</h2>
+<div id="g.-results." class="section level3">
+<h3>g. results.</h3>
 <pre class="r"><code>cleanDF &lt;- function(RESobj){
   RESdf &lt;- data.frame(RESobj) %&gt;%
     drop_na() %&gt;%
@@ -532,9 +539,8 @@ head(res_lrt_clean)</code></pre>
   </script>
 </div>
 </div>
-<div id="look-at-the-25-genes-with-lowest-p-values"
-class="section level2">
-<h2>7. Look at the 25 genes with lowest p-values</h2>
+<div id="h.-look-at-the-lrt-results" class="section level3">
+<h3>h. Look at the LRT results</h3>
 <pre class="r"><code>normcounts &lt;- counts(dds, normalized=TRUE) %&gt;% data.frame()
 top_25_genes &lt;- res_lrt_clean %&gt;% arrange(padj) %&gt;% head(25) %&gt;% rownames()
 pheatmap(
@@ -566,6 +572,12 @@ pheatmap(
   show_rownames = FALSE
 )</code></pre>
 <p><img src="day04_files/figure-html/cell%20cycle-1.png" width="672" /></p>
+</div>
+<div
+id="i.-pairwise-comparisons-for-age-effect-under-different-celltypes"
+class="section level3">
+<h3>i. Pairwise comparisons for age effect under different
+celltypes</h3>
 <pre class="r"><code># Remember our base levels and our coefficients.
 print(resultsNames(dds))</code></pre>
 <pre><code>## [1] &quot;Intercept&quot;                  &quot;celltype_MPP1_vs_HSC&quot;      
