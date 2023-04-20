@@ -161,7 +161,7 @@ Null hypothesis:
 
 ***
 
-### A single factor with more then two levels.
+#### A single factor with more then two levels.
 
 |samples |condition<factor> |
 |:-------|:-----|
@@ -234,6 +234,8 @@ Null hypothesis:
     beta1 - beta2 = 0
 
 ***
+
+#### two factors, with an interaction
 
 What about celltype and condition?
 

@@ -13,21 +13,13 @@ output:
     df_print: paged
 ---
 
-# Apply what was learned through the course.
-  * Initial QC and visualisation.
-  * Run the DESeq workflow
-  * Interpret some of the results.
+## Goals: Apply what was learned through the course.
+  - repeat: generating DESeq-object (data, metadata, design)
+  - Initial QC and visualisation.
+  - Run the DESeq workflow
+  - Interpret some of the results
 
-# Introduction
-Dataset: MPPs
-
-Note that this is publically available data under GEO accession ID GSE162607 with DOI: [10.1038/s41467-022-30440-2](https://pubmed.ncbi.nlm.nih.gov/35577813/).
-
-with count matrix and meta data:
-
-> data/mpp/mpp_counts.tsv
-
-> data/mpp/mpp_meta.tsv
+## 1. Introduction
 
 Background:
 
@@ -48,15 +40,24 @@ Hint: a list of cell-cycle genes (KEGG) are available under:
 
 > data/genesets/KEGG_cellcycle.txt
 
+Dataset: MPP
+Note that this is publically available data under GEO accession ID GSE162607 with DOI: [10.1038/s41467-022-30440-2](https://pubmed.ncbi.nlm.nih.gov/35577813/).
 
-<span style="color:red">Cave!: rownames in the count object are lowercase-capitalized, the KEGG_cellcycle ones are fully capitalized.</span> 
+with count matrix and meta data:
+
+> data/mpp/mpp_counts.tsv
+
+> data/mpp/mpp_meta.tsv
+
+<span style="color:red">Note: rownames in the count object are lowercase-capitalized, the KEGG_cellcycle ones are fully capitalized).</span> 
 
 > Good luck and have fun!
 
 ***
 
-# Hands-on
-Load some libraries.
+## 2. Let's go.
+
+### a. Libraries, data & factors
 
 ```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
 library("DESeq2")
@@ -93,7 +94,7 @@ levels(metadata$condition) <- c("Young","Aged")
 print(metadata$condition)
 ```
 
-## 1. Build DESeq object.
+### b. Build DESeq object.
 
 ```{r build DESeq, message=FALSE, warning=FALSE, paged.print=FALSE}
 dds <- DESeqDataSetFromMatrix(countData=data,
@@ -102,26 +103,30 @@ dds <- DESeqDataSetFromMatrix(countData=data,
                               )
 ```
 
-## 2. plotPCA
+### c. plotPCA
 ```{r PCA, message=FALSE, warning=FALSE, paged.print=FALSE}
 plotPCA(rlog(dds, blind=TRUE),
         intgroup=c("celltype", "condition")
         ) + theme_minimal()
 ```
 
-## 3. run DESeq2
+### d. run DESeq2
 
 ```{r Run deseq, message=FALSE, warning=FALSE, paged.print=FALSE}
 dds <- DESeq(dds)
 ```
 
-## 4. plot dispersion
+### e. sizeFactors & dispersion
+
+```{r sizeFactors, message=FALSE, warning=FALSE, paged.print=FALSE}
+sizeFactors(dds)
+```
 
 ```{r Dispersion, message=FALSE, warning=FALSE, paged.print=FALSE}
 plotDispEsts(dds)
 ```
 
-## 5. LRT for age.
+### f. LRT for age.
 
 ```{r lrt-condition, message=FALSE, warning=FALSE}
 # which model are we interested in as reduced?
@@ -129,7 +134,7 @@ dds_lrt <- DESeq(dds, test="LRT", reduced = ~celltype)
 res_lrt <- results(dds_lrt)
 ```
 
-## 6. results.
+### g. results.
 ```{r parseResults, message=FALSE, warning=FALSE}
 cleanDF <- function(RESobj){
   RESdf <- data.frame(RESobj) %>%
@@ -142,7 +147,7 @@ res_lrt_clean <- cleanDF(res_lrt)
 head(res_lrt_clean)
 ```
 
-## 7. Look at the 25 genes with lowest p-values
+### h. Look at the LRT results
 ```{r heatmap_lrt, message=FALSE, warning=FALSE, fig.height=8, fig.weight=6}
 normcounts <- counts(dds, normalized=TRUE) %>% data.frame()
 top_25_genes <- res_lrt_clean %>% arrange(padj) %>% head(25) %>% rownames()
@@ -182,6 +187,9 @@ pheatmap(
 )
 
 ```
+
+### i. Pairwise comparisons for age effect under different celltypes
+
 
 ```{r Age effect under cellTypes, message=FALSE, warning=FALSE}
 # Remember our base levels and our coefficients.
