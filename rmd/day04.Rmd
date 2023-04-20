@@ -61,13 +61,10 @@ with count matrix and meta data:
 
 ```{r add libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
 library("DESeq2")
-library("dplyr")
-library("tibble")
-library("ggplot2")
+library("ashr")
+library("tidyverse")
 library("pheatmap")
 library("UpSetR")
-library("tidyverse")
-library("stringr")
 ```
 
 Read in the data.
@@ -105,6 +102,8 @@ dds <- DESeqDataSetFromMatrix(countData=data,
 
 ### c. plotPCA
 ```{r PCA, message=FALSE, warning=FALSE, paged.print=FALSE}
+#plotPCA(vst(dds, blind=TRUE))
+
 plotPCA(rlog(dds, blind=TRUE),
         intgroup=c("celltype", "condition")
         ) + theme_minimal()
@@ -124,6 +123,23 @@ sizeFactors(dds)
 
 ```{r Dispersion, message=FALSE, warning=FALSE, paged.print=FALSE}
 plotDispEsts(dds)
+```
+```{r bad_dispers}
+
+set.seed(42)
+metadata_thrash <- metadata 
+metadata_thrash$celltype <- sample(metadata$celltype)
+metadata_thrash$condition <- sample(metadata$condition)
+
+MM=model.matrix(design(dds), metadata)
+pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
+
+MM_thrash=model.matrix(design(dds), metadata_thrash)
+pheatmap(MM_thrash, cluster_cols = FALSE, cluster_rows=FALSE)
+
+dds_thrash <- DESeqDataSetFromMatrix(countData=data, colData=metadata_thrash, design=design(dds))
+dds_thrash <- DESeq(dds_thrash)
+plotDispEsts(dds_thrash)
 ```
 
 ### f. LRT for age.
@@ -148,6 +164,8 @@ head(res_lrt_clean)
 ```
 
 ### h. Look at the LRT results
+
+Top 25 for sanity check:
 ```{r heatmap_lrt, message=FALSE, warning=FALSE, fig.height=8, fig.weight=6}
 normcounts <- counts(dds, normalized=TRUE) %>% data.frame()
 top_25_genes <- res_lrt_clean %>% arrange(padj) %>% head(25) %>% rownames()
@@ -157,34 +175,59 @@ pheatmap(
   main='Age effect - LRT top 25'
 )
 
-```
-
-```{r heatmap_lrt_full, message=FALSE, warning=FALSE}
 pheatmap(
-  normcounts %>% subset(rownames(normcounts) %in% rownames(res_lrt_clean %>% subset(padj < 0.05))),
+  normcounts %>% filter(rownames(.) %in% top_25_genes),
   scale = 'row',
-  main='Age effect - LRT',
-  show_rownames = FALSE
+  main='b: Age effect - LRT top 25'
 )
+```
+
+
+All "signifcant"
+```{r heatmap_lrt_full, message=FALSE, warning=FALSE}
+normcounts %>% 
+  subset(rownames(normcounts) %in% rownames(res_lrt_clean %>% subset(padj < 0.05))) %>%
+  pheatmap(
+    scale = 'row',
+    main='Age effect - LRT',
+    show_rownames = FALSE
+    )
 
 ```
 
+# Make clusters
+```{r heatmap_lrt_full_clusters, message=FALSE, warning=FALSE}
+normcounts %>% 
+  subset(rownames(normcounts) %in% rownames(res_lrt_clean %>% subset(padj < 0.05))) %>%
+  pheatmap(
+    scale = 'row',
+    kmeans_k = 4,
+    main='Age effect - LRT',
+    show_rownames = FALSE
+  )
+
+```
+
+Overlap with pre-defined group:
 ```{r cell cycle, message=FALSE, warning=FALSE}
 # Get cell cycle genes.
-# Get the data directory
 ccf <- "data/genesets/KEGG_cellcycle.txt"
 cellcycle <- read_tsv(file=ccf, col_names=FALSE)
-cellcycle <- cellcycle$X1
 
-rownames(res_lrt_clean) <- res_lrt_clean %>% rownames() %>% toupper()
-res_lrt_clean_cycle <- res_lrt_clean %>% subset(rownames(res_lrt_clean) %in% cellcycle) %>% subset(padj < 0.05)
+# character vector  of cellcycle genes with proper naming convention
+cellcycle <- cellcycle$X1 %>% str_to_title()
 
-pheatmap(
-  normcounts %>% subset(rownames(normcounts) %in% str_to_title(rownames(res_lrt_clean_cycle))),
-  scale = 'row',
-  main='cell cycle genes - LRT',
-  show_rownames = FALSE
-)
+res_lrt_clean_cycle <- res_lrt_clean %>% 
+  filter(rownames(res_lrt_clean) %in% cellcycle) %>% 
+  filter(padj < 0.05)
+
+normcounts %>% 
+  filter(rownames(normcounts) %in% rownames(res_lrt_clean_cycle)) %>%
+  pheatmap(
+    scale = 'row',
+    main='cell cycle genes - LRT',
+    show_rownames = FALSE
+  )
 
 ```
 
@@ -201,8 +244,10 @@ mod_mat <- model.matrix(design(dds), colData(dds))
 
 HSC_young <- colMeans(mod_mat[dds$celltype == 'HSC' & dds$condition == "Young",])
 HSC_old <- colMeans(mod_mat[dds$celltype == 'HSC' & dds$condition == "Aged",])
+
 MPP1_young <- colMeans(mod_mat[dds$celltype == 'MPP1' & dds$condition == "Young",])
 MPP1_old <- colMeans(mod_mat[dds$celltype == 'MPP1' & dds$condition == "Aged",])
+
 MPP2_young <- colMeans(mod_mat[dds$celltype == 'MPP2' & dds$condition == "Young",])
 MPP2_old <- colMeans(mod_mat[dds$celltype == 'MPP2' & dds$condition == "Aged",])
 
@@ -218,8 +263,11 @@ ageEffect_MPP2 <- cleanDF( lfcShrink(dds, contrast = MPP2_old-MPP2_young, type='
 ```
 
 ```{r LTHSC, message=FALSE, warning=FALSE, fig.height=8, fig.width=6}
-pheatmap(
-  normcounts %>% subset(rownames(normcounts) %in% rownames(head(ageEffect_HSC, 25))) %>% dplyr::select(1,2,7,8),
+normcounts %>% 
+  subset(rownames(normcounts) %in% rownames(head(ageEffect_HSC, 25))) %>% 
+  dplyr::select(1,2,7,8) %>%
+
+  pheatmap(
   scale = 'row',
   main='age effect - HSCs',
   show_rownames = TRUE,
@@ -227,12 +275,14 @@ pheatmap(
   )
 
 # cell cycle
-ageEffect_HSC_cycle <- ageEffect_HSC
-rownames(ageEffect_HSC_cycle) <- ageEffect_HSC %>% rownames() %>% toupper()
-ageEffect_HSC_cycle <- ageEffect_HSC_cycle %>% subset(rownames(ageEffect_HSC_cycle) %in% cellcycle) %>% subset(padj < 0.05)
+ageEffect_HSC_cycle <- ageEffect_HSC %>% 
+  subset(rownames(.) %in% cellcycle) %>% 
+  subset(padj < 0.05)
 
-pheatmap(
-  normcounts %>% subset(rownames(normcounts) %in% str_to_title(rownames(ageEffect_HSC_cycle))) %>% dplyr::select(1,2,7,8),
+normcounts %>% 
+  subset(rownames(normcounts) %in% rownames(ageEffect_HSC_cycle)) %>% 
+  dplyr::select(1,2,7,8) %>%
+  pheatmap(
   scale = 'row',
   main='cell cycle genes - HSC',
   show_rownames = TRUE
@@ -251,12 +301,18 @@ pheatmap(
   )
 
 # cell cycle
-ageEffect_MPP1_cycle <- ageEffect_MPP1
-rownames(ageEffect_MPP1_cycle) <- ageEffect_MPP1_cycle %>% rownames() %>% toupper()
-ageEffect_MPP1_cycle <- ageEffect_MPP1_cycle %>% subset(rownames(ageEffect_MPP1_cycle) %in% cellcycle) %>% subset(padj < 0.05)
+# cell cycle
+ageEffect_HSC_cycle <- ageEffect_HSC %>% 
+  subset(rownames(.) %in% cellcycle) %>% 
+  subset(padj < 0.05)
+
+
+ageEffect_MPP1_cycle <- ageEffect_MPP1 %>% 
+  subset(rownames(.) %in% cellcycle) %>% 
+  subset(padj < 0.05)
 
 pheatmap(
-  normcounts %>% subset(rownames(normcounts) %in% str_to_title(rownames(ageEffect_MPP1_cycle))) %>% dplyr::select(3,4,9,10),
+  normcounts %>% subset(rownames(normcounts) %in% rownames(ageEffect_MPP1_cycle)) %>% dplyr::select(3,4,9,10),
   scale = 'row',
   main='cell cycle genes - MPP1s',
   show_rownames = TRUE
@@ -274,12 +330,12 @@ pheatmap(
   )
 
 # cell cycle
-ageEffect_MPP2_cycle <- ageEffect_MPP2
-rownames(ageEffect_MPP2_cycle) <- ageEffect_MPP2_cycle %>% rownames() %>% toupper()
-ageEffect_MPP2_cycle <- ageEffect_MPP2_cycle %>% subset(rownames(ageEffect_MPP2_cycle) %in% cellcycle) %>% subset(padj < 0.05)
+ageEffect_MPP2_cycle <- ageEffect_MPP2 %>% 
+  subset(rownames(.) %in% cellcycle) %>% 
+  subset(padj < 0.05)
 
 pheatmap(
-  normcounts %>% subset(rownames(normcounts) %in% str_to_title(rownames(ageEffect_MPP2_cycle))) %>% dplyr::select(5,6,11,12),
+  normcounts %>% subset(rownames(normcounts) %in% rownames(ageEffect_MPP2_cycle)) %>% dplyr::select(5,6,11,12),
   scale = 'row',
   main='cell cycle genes - MPP2s',
   show_rownames = TRUE
