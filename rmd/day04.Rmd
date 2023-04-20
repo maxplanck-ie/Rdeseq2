@@ -176,7 +176,7 @@ pheatmap(
 )
 
 pheatmap(
-  normcounts %>% filter(rownames(.) %in% top_25_genes),
+  normcounts %>% dplyr::filter(rownames(.) %in% top_25_genes),
   scale = 'row',
   main='b: Age effect - LRT top 25'
 )
@@ -218,11 +218,11 @@ cellcycle <- read_tsv(file=ccf, col_names=FALSE)
 cellcycle <- cellcycle$X1 %>% str_to_title()
 
 res_lrt_clean_cycle <- res_lrt_clean %>% 
-  filter(rownames(res_lrt_clean) %in% cellcycle) %>% 
-  filter(padj < 0.05)
+  dplyr::filter(rownames(res_lrt_clean) %in% cellcycle) %>% 
+  dplyr::filter(padj < 0.05)
 
 normcounts %>% 
-  filter(rownames(normcounts) %in% rownames(res_lrt_clean_cycle)) %>%
+  dplyr::filter(rownames(normcounts) %in% rownames(res_lrt_clean_cycle)) %>%
   pheatmap(
     scale = 'row',
     main='cell cycle genes - LRT',
