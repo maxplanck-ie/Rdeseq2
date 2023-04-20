@@ -39,8 +39,8 @@
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 <link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
 <script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
-<link href="site_libs/font-awesome-6.2.1/css/all.min.css" rel="stylesheet" />
-<link href="site_libs/font-awesome-6.2.1/css/v4-shims.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.0/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.0/css/v4-shims.min.css" rel="stylesheet" />
 
 <style type="text/css">
   code{white-space: pre-wrap;}
@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Tue Apr 18 16:05:49 2023</h4>
+<h4 class="date">Thu Apr 20 07:22:26 2023</h4>
 
 </div>
 
@@ -778,14 +778,14 @@ data. Thus, it should contain the celltype, condition and the difference
 as the effect of celltype on the condition (celltype:condtion)</p>
 <p>Design:</p>
 <pre><code>~1 + celltype + condition + celltype:condition
-= beta0 + beta1 * BM + beta2 * DMSO + beta3 * TG + beta4 * BM.DMSO + beta4 * BM.TG
+= beta0 + beta1 * JJ + beta2 * DMSO + beta3 * TG + beta4 * JJ.DMSO + beta4 * JJ.TG
 
   beta0 = Intercept
-  beta1 = celltype_BM_vs_JJ
+  beta1 = celltype_JJ_vs_BM
   beta2 = condition_DMSO_vs_AMIL
   beta3 = condition_TG_vs_AMIL
-  beta4 = celltypeBM.conditionDMSO
-  beta5 = celltypeBM.conditionTG</code></pre>
+  beta4 = celltypeJJ.conditionDMSO
+  beta5 = celltypeJJ.conditionTG</code></pre>
 <pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(
   countData=data, colData=metadata, design= ~celltype+condition+celltype:condition
 )
