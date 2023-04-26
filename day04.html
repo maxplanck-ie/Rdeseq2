@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">deseq2 - applied</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Thu Apr 20 07:43:12 2023</h4>
+<h4 class="date">Wed Apr 26 08:32:44 2023</h4>
 
 </div>
 
@@ -458,13 +458,10 @@ capitalized).</span></p>
 <div id="a.-libraries-data-factors" class="section level3">
 <h3>a. Libraries, data &amp; factors</h3>
 <pre class="r"><code>library(&quot;DESeq2&quot;)
-library(&quot;dplyr&quot;)
-library(&quot;tibble&quot;)
-library(&quot;ggplot2&quot;)
-library(&quot;pheatmap&quot;)
-library(&quot;UpSetR&quot;)
+library(&quot;ashr&quot;)
 library(&quot;tidyverse&quot;)
-library(&quot;stringr&quot;)</code></pre>
+library(&quot;pheatmap&quot;)
+library(&quot;UpSetR&quot;)</code></pre>
 <p>Read in the data.</p>
 <pre class="r"><code>dfile &lt;- &quot;data/mpp/mpp_counts.tsv&quot;
 data &lt;- read_tsv(file=dfile)
@@ -497,7 +494,9 @@ print(metadata$condition)</code></pre>
 </div>
 <div id="c.-plotpca" class="section level3">
 <h3>c. plotPCA</h3>
-<pre class="r"><code>plotPCA(rlog(dds, blind=TRUE),
+<pre class="r"><code>#plotPCA(vst(dds, blind=TRUE))
+
+plotPCA(rlog(dds, blind=TRUE),
         intgroup=c(&quot;celltype&quot;, &quot;condition&quot;)
         ) + theme_minimal()</code></pre>
 <p><img src="day04_files/figure-html/PCA-1.png" width="672" /></p>
@@ -515,6 +514,28 @@ print(metadata$condition)</code></pre>
 ##    0.9004813    1.0741130    0.9827498    1.1019995    1.0009257    1.0478315</code></pre>
 <pre class="r"><code>plotDispEsts(dds)</code></pre>
 <p><img src="day04_files/figure-html/Dispersion-1.png" width="672" /></p>
+<pre class="r"><code>set.seed(42)
+metadata_thrash &lt;- metadata 
+metadata_thrash$celltype &lt;- sample(metadata$celltype)
+metadata_thrash$condition &lt;- sample(metadata$condition)
+
+MM=model.matrix(design(dds), metadata)
+pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)</code></pre>
+<p><img src="day04_files/figure-html/bad_dispers-1.png" width="672" /></p>
+<pre class="r"><code>MM_thrash=model.matrix(design(dds), metadata_thrash)
+pheatmap(MM_thrash, cluster_cols = FALSE, cluster_rows=FALSE)</code></pre>
+<p><img src="day04_files/figure-html/bad_dispers-2.png" width="672" /></p>
+<pre class="r"><code>dds_thrash &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata_thrash, design=design(dds))</code></pre>
+<pre><code>## converting counts to integer mode</code></pre>
+<pre class="r"><code>dds_thrash &lt;- DESeq(dds_thrash)</code></pre>
+<pre><code>## estimating size factors</code></pre>
+<pre><code>## estimating dispersions</code></pre>
+<pre><code>## gene-wise dispersion estimates</code></pre>
+<pre><code>## mean-dispersion relationship</code></pre>
+<pre><code>## final dispersion estimates</code></pre>
+<pre><code>## fitting model and testing</code></pre>
+<pre class="r"><code>plotDispEsts(dds_thrash)</code></pre>
+<p><img src="day04_files/figure-html/bad_dispers-3.png" width="672" /></p>
 </div>
 <div id="f.-lrt-for-age." class="section level3">
 <h3>f. LRT for age.</h3>
@@ -541,6 +562,7 @@ head(res_lrt_clean)</code></pre>
 </div>
 <div id="h.-look-at-the-lrt-results" class="section level3">
 <h3>h. Look at the LRT results</h3>
+<p>Top 25 for sanity check:</p>
 <pre class="r"><code>normcounts &lt;- counts(dds, normalized=TRUE) %&gt;% data.frame()
 top_25_genes &lt;- res_lrt_clean %&gt;% arrange(padj) %&gt;% head(25) %&gt;% rownames()
 pheatmap(
@@ -550,29 +572,53 @@ pheatmap(
 )</code></pre>
 <p><img src="day04_files/figure-html/heatmap_lrt-1.png" width="672" /></p>
 <pre class="r"><code>pheatmap(
-  normcounts %&gt;% subset(rownames(normcounts) %in% rownames(res_lrt_clean %&gt;% subset(padj &lt; 0.05))),
+  normcounts %&gt;% dplyr::filter(rownames(.) %in% top_25_genes),
   scale = &#39;row&#39;,
-  main=&#39;Age effect - LRT&#39;,
-  show_rownames = FALSE
+  main=&#39;b: Age effect - LRT top 25&#39;
 )</code></pre>
+<p><img src="day04_files/figure-html/heatmap_lrt-2.png" width="672" /></p>
+<p>All “signifcant”</p>
+<pre class="r"><code>normcounts %&gt;% 
+  subset(rownames(normcounts) %in% rownames(res_lrt_clean %&gt;% subset(padj &lt; 0.05))) %&gt;%
+  pheatmap(
+    scale = &#39;row&#39;,
+    main=&#39;Age effect - LRT&#39;,
+    show_rownames = FALSE
+    )</code></pre>
 <p><img src="day04_files/figure-html/heatmap_lrt_full-1.png" width="672" /></p>
+</div>
+</div>
+<div id="make-clusters" class="section level1">
+<h1>Make clusters</h1>
+<pre class="r"><code>normcounts %&gt;% 
+  subset(rownames(normcounts) %in% rownames(res_lrt_clean %&gt;% subset(padj &lt; 0.05))) %&gt;%
+  pheatmap(
+    scale = &#39;row&#39;,
+    kmeans_k = 4,
+    main=&#39;Age effect - LRT&#39;,
+    show_rownames = FALSE
+  )</code></pre>
+<p><img src="day04_files/figure-html/heatmap_lrt_full_clusters-1.png" width="672" /></p>
+<p>Overlap with pre-defined group:</p>
 <pre class="r"><code># Get cell cycle genes.
-# Get the data directory
 ccf &lt;- &quot;data/genesets/KEGG_cellcycle.txt&quot;
 cellcycle &lt;- read_tsv(file=ccf, col_names=FALSE)
-cellcycle &lt;- cellcycle$X1
 
-rownames(res_lrt_clean) &lt;- res_lrt_clean %&gt;% rownames() %&gt;% toupper()
-res_lrt_clean_cycle &lt;- res_lrt_clean %&gt;% subset(rownames(res_lrt_clean) %in% cellcycle) %&gt;% subset(padj &lt; 0.05)
+# character vector  of cellcycle genes with proper naming convention
+cellcycle &lt;- cellcycle$X1 %&gt;% str_to_title()
 
-pheatmap(
-  normcounts %&gt;% subset(rownames(normcounts) %in% str_to_title(rownames(res_lrt_clean_cycle))),
-  scale = &#39;row&#39;,
-  main=&#39;cell cycle genes - LRT&#39;,
-  show_rownames = FALSE
-)</code></pre>
+res_lrt_clean_cycle &lt;- res_lrt_clean %&gt;% 
+  dplyr::filter(rownames(res_lrt_clean) %in% cellcycle) %&gt;% 
+  dplyr::filter(padj &lt; 0.05)
+
+normcounts %&gt;% 
+  dplyr::filter(rownames(normcounts) %in% rownames(res_lrt_clean_cycle)) %&gt;%
+  pheatmap(
+    scale = &#39;row&#39;,
+    main=&#39;cell cycle genes - LRT&#39;,
+    show_rownames = FALSE
+  )</code></pre>
 <p><img src="day04_files/figure-html/cell%20cycle-1.png" width="672" /></p>
-</div>
 <div
 id="i.-pairwise-comparisons-for-age-effect-under-different-celltypes"
 class="section level3">
@@ -589,8 +635,10 @@ mod_mat &lt;- model.matrix(design(dds), colData(dds))
 
 HSC_young &lt;- colMeans(mod_mat[dds$celltype == &#39;HSC&#39; &amp; dds$condition == &quot;Young&quot;,])
 HSC_old &lt;- colMeans(mod_mat[dds$celltype == &#39;HSC&#39; &amp; dds$condition == &quot;Aged&quot;,])
+
 MPP1_young &lt;- colMeans(mod_mat[dds$celltype == &#39;MPP1&#39; &amp; dds$condition == &quot;Young&quot;,])
 MPP1_old &lt;- colMeans(mod_mat[dds$celltype == &#39;MPP1&#39; &amp; dds$condition == &quot;Aged&quot;,])
+
 MPP2_young &lt;- colMeans(mod_mat[dds$celltype == &#39;MPP2&#39; &amp; dds$condition == &quot;Young&quot;,])
 MPP2_old &lt;- colMeans(mod_mat[dds$celltype == &#39;MPP2&#39; &amp; dds$condition == &quot;Aged&quot;,])
 
@@ -602,8 +650,11 @@ ageEffect_MPP1 &lt;- cleanDF( lfcShrink(dds, contrast = MPP1_old-MPP1_young, typ
 
 # Lastly, let&#39;s get the age effect in MPP1 cells.
 ageEffect_MPP2 &lt;- cleanDF( lfcShrink(dds, contrast = MPP2_old-MPP2_young, type=&#39;ashr&#39;) )</code></pre>
-<pre class="r"><code>pheatmap(
-  normcounts %&gt;% subset(rownames(normcounts) %in% rownames(head(ageEffect_HSC, 25))) %&gt;% dplyr::select(1,2,7,8),
+<pre class="r"><code>normcounts %&gt;% 
+  subset(rownames(normcounts) %in% rownames(head(ageEffect_HSC, 25))) %&gt;% 
+  dplyr::select(1,2,7,8) %&gt;%
+
+  pheatmap(
   scale = &#39;row&#39;,
   main=&#39;age effect - HSCs&#39;,
   show_rownames = TRUE,
@@ -611,12 +662,14 @@ ageEffect_MPP2 &lt;- cleanDF( lfcShrink(dds, contrast = MPP2_old-MPP2_young, typ
   )</code></pre>
 <p><img src="day04_files/figure-html/LTHSC-1.png" width="576" /></p>
 <pre class="r"><code># cell cycle
-ageEffect_HSC_cycle &lt;- ageEffect_HSC
-rownames(ageEffect_HSC_cycle) &lt;- ageEffect_HSC %&gt;% rownames() %&gt;% toupper()
-ageEffect_HSC_cycle &lt;- ageEffect_HSC_cycle %&gt;% subset(rownames(ageEffect_HSC_cycle) %in% cellcycle) %&gt;% subset(padj &lt; 0.05)
+ageEffect_HSC_cycle &lt;- ageEffect_HSC %&gt;% 
+  subset(rownames(.) %in% cellcycle) %&gt;% 
+  subset(padj &lt; 0.05)
 
-pheatmap(
-  normcounts %&gt;% subset(rownames(normcounts) %in% str_to_title(rownames(ageEffect_HSC_cycle))) %&gt;% dplyr::select(1,2,7,8),
+normcounts %&gt;% 
+  subset(rownames(normcounts) %in% rownames(ageEffect_HSC_cycle)) %&gt;% 
+  dplyr::select(1,2,7,8) %&gt;%
+  pheatmap(
   scale = &#39;row&#39;,
   main=&#39;cell cycle genes - HSC&#39;,
   show_rownames = TRUE
@@ -631,12 +684,18 @@ pheatmap(
   )</code></pre>
 <p><img src="day04_files/figure-html/MPP1-1.png" width="576" /></p>
 <pre class="r"><code># cell cycle
-ageEffect_MPP1_cycle &lt;- ageEffect_MPP1
-rownames(ageEffect_MPP1_cycle) &lt;- ageEffect_MPP1_cycle %&gt;% rownames() %&gt;% toupper()
-ageEffect_MPP1_cycle &lt;- ageEffect_MPP1_cycle %&gt;% subset(rownames(ageEffect_MPP1_cycle) %in% cellcycle) %&gt;% subset(padj &lt; 0.05)
+# cell cycle
+ageEffect_HSC_cycle &lt;- ageEffect_HSC %&gt;% 
+  subset(rownames(.) %in% cellcycle) %&gt;% 
+  subset(padj &lt; 0.05)
+
+
+ageEffect_MPP1_cycle &lt;- ageEffect_MPP1 %&gt;% 
+  subset(rownames(.) %in% cellcycle) %&gt;% 
+  subset(padj &lt; 0.05)
 
 pheatmap(
-  normcounts %&gt;% subset(rownames(normcounts) %in% str_to_title(rownames(ageEffect_MPP1_cycle))) %&gt;% dplyr::select(3,4,9,10),
+  normcounts %&gt;% subset(rownames(normcounts) %in% rownames(ageEffect_MPP1_cycle)) %&gt;% dplyr::select(3,4,9,10),
   scale = &#39;row&#39;,
   main=&#39;cell cycle genes - MPP1s&#39;,
   show_rownames = TRUE
@@ -651,12 +710,12 @@ pheatmap(
   )</code></pre>
 <p><img src="day04_files/figure-html/MPP2-1.png" width="576" /></p>
 <pre class="r"><code># cell cycle
-ageEffect_MPP2_cycle &lt;- ageEffect_MPP2
-rownames(ageEffect_MPP2_cycle) &lt;- ageEffect_MPP2_cycle %&gt;% rownames() %&gt;% toupper()
-ageEffect_MPP2_cycle &lt;- ageEffect_MPP2_cycle %&gt;% subset(rownames(ageEffect_MPP2_cycle) %in% cellcycle) %&gt;% subset(padj &lt; 0.05)
+ageEffect_MPP2_cycle &lt;- ageEffect_MPP2 %&gt;% 
+  subset(rownames(.) %in% cellcycle) %&gt;% 
+  subset(padj &lt; 0.05)
 
 pheatmap(
-  normcounts %&gt;% subset(rownames(normcounts) %in% str_to_title(rownames(ageEffect_MPP2_cycle))) %&gt;% dplyr::select(5,6,11,12),
+  normcounts %&gt;% subset(rownames(normcounts) %in% rownames(ageEffect_MPP2_cycle)) %&gt;% dplyr::select(5,6,11,12),
   scale = &#39;row&#39;,
   main=&#39;cell cycle genes - MPP2s&#39;,
   show_rownames = TRUE
