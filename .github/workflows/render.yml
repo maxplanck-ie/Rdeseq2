@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: r-lib/actions/setup-tinytex@v2
-      - uses: mamba-org/provision-with-micromamba@main
+      - uses: mamba-org/setup-micromamba@main
         with:
           environment-file: configs/conda.yml
           cache-downloads: true
