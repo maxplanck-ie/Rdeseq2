@@ -131,7 +131,9 @@ The Rstudio GUI.
 
 # Set up our project
 
-> **Task**: Create a new project, cloning the datafiles we will be using from github.
+## Workbench users
+
+> **Task**: Create a new project and clone the datafiles we will be using from github.
 
 If you are working in workbench, start a new session.
 
@@ -142,10 +144,17 @@ In your session (local or workbench):
 > Repository URL: https://github.com/maxplanck-ie/Rdeseq2  
 > Project directory name: chose a folder name  
 
-! For workbench users: 
+* create the project as a subdirectory under your group volume (e.g. /data/PI/group/MYFOLDER), or a processing volume (/data/processing/MYFOLDER), or the scratch space (/scratch/local/MYFOLDER)
+* Remember to choose version 4.3.3 
 
-* create the project as a subdirectory under your group volume (e.g. /data/manke/group/deboutte), or a processing volume (/data/processing/deboutte)
-* Remember to choose version 4.1.3 
+## Local users
+
+Go to https://github.com/maxplanck-ie/Rdeseq2 , click on the green '< > Code' dropdown button and select 'Download ZIP'.
+Save the file to an appropriate location and extract its content.
+
+Now open your Rstudio instances, and set the working directory to the folder you have just extracted.
+
+## Verification
 
 If it worked, you should have a new session, and in your console you will retrieve your project directory:
 
