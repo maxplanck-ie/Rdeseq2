@@ -12,3 +12,7 @@ This tutorial is mainly based on these (public) resources:
 
  - https://hbctraining.github.io/DGE_workshop_salmon_online/
  - http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html
+
+# Pages
+
+Rendered pages are available [here](https://maxplanck-ie.github.io/Rdeseq2/)
