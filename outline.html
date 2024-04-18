@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: outline</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Mon Jun 5 13:36:37 2023</h4>
+<h4 class="date">Thu Apr 18 15:13:56 2024</h4>
 
 </div>
 
@@ -541,9 +541,11 @@ course material and notes during this course ?</p>
 </div>
 <div id="set-up-our-project" class="section level1">
 <h1>Set up our project</h1>
+<div id="workbench-users" class="section level2">
+<h2>Workbench users</h2>
 <blockquote>
-<p><strong>Task</strong>: Create a new project, cloning the datafiles we
-will be using from github.</p>
+<p><strong>Task</strong>: Create a new project and clone the datafiles
+we will be using from github.</p>
 </blockquote>
 <p>If you are working in workbench, start a new session.</p>
 <p>In your session (local or workbench):</p>
@@ -555,13 +557,25 @@ will be using from github.</p>
 class="uri">https://github.com/maxplanck-ie/Rdeseq2</a><br />
 Project directory name: chose a folder name</p>
 </blockquote>
-<p>! For workbench users:</p>
 <ul>
 <li>create the project as a subdirectory under your group volume
-(e.g. /data/manke/group/deboutte), or a processing volume
-(/data/processing/deboutte)</li>
-<li>Remember to choose version 4.1.3</li>
+(e.g. /data/PI/group/MYFOLDER), or a processing volume
+(/data/processing/MYFOLDER), or the scratch space
+(/scratch/local/MYFOLDER)</li>
+<li>Remember to choose version 4.3.3</li>
 </ul>
+</div>
+<div id="local-users" class="section level2">
+<h2>Local users</h2>
+<p>Go to <a href="https://github.com/maxplanck-ie/Rdeseq2"
+class="uri">https://github.com/maxplanck-ie/Rdeseq2</a> , click on the
+green ‘&lt; &gt; Code’ dropdown button and select ‘Download ZIP’. Save
+the file to an appropriate location and extract its content.</p>
+<p>Now open your Rstudio instances, and set the working directory to the
+folder you have just extracted.</p>
+</div>
+<div id="verification" class="section level2">
+<h2>Verification</h2>
 <p>If it worked, you should have a new session, and in your console you
 will retrieve your project directory:</p>
 <blockquote>
@@ -581,6 +595,7 @@ will retrieve your project directory:</p>
 <div class="figure">
 <img src="images/outline_clonedrepo.png" alt="" />
 <p class="caption">An new R notebook in our freshly cloned project</p>
+</div>
 </div>
 </div>
 
