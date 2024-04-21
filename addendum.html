@@ -12,7 +12,7 @@
 <meta name="author" content="Bioinfo-Core @ MPI-IE" />
 
 
-<title>DESeq2 Analysis with R: Description</title>
+<title>Additions</title>
 
 <script src="site_libs/header-attrs-2.22/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
@@ -396,58 +396,106 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">DESeq2 Analysis with R: Description</h1>
+<h1 class="title toc-ignore">Additions</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Sun Apr 21 11:53:46 2024</h4>
+<h4 class="date">Sun Apr 21 11:49:34 2024</h4>
 
 </div>
 
 
-<div id="goals" class="section level1">
-<h1>Goals:</h1>
-<p>The analysis of differential gene expression is a very common task,
-for which many advanced software packages have been developed. Using the
-DESeq2 package as example, we will introduce common analysis strategies
-to conduct gene expression analysis using R.</p>
-<p>The following topics will be covered:</p>
-<ul>
-<li>Obtaining and loading expression data</li>
-<li>Understanding data, metadata and designs</li>
-<li>Data exploration and quality controls</li>
-<li>Data filtering and normalisation</li>
-<li>DESeq2 workflow</li>
-<li>Defining contrasts, understanding coefficients and calling
-differential genes</li>
-<li>Data visualisation</li>
-<li>Documenting your reproducible analysis using notebooks</li>
-</ul>
-<p>In case you do have your own (multifactorial) RNA-seq data, we
-encourage you to bring this data to the course. It should be in the form
-of a count matrix. Don’t hesitate to get in touch with the bioinfo-core
-in case you are not sure what this entails or need help generating this
-matrix.</p>
+<pre class="r"><code>library(&quot;DESeq2&quot;)
+library(&quot;MASS&quot;)</code></pre>
+<div id="example-on-disbalanced-issues-with-colmeans-trick"
+class="section level2">
+<h2>Example on disbalanced issues with colMeans trick</h2>
+<p>Let’s have five WT samples: 2 WT = DMSO treated 3 WT = DRUG
+treated</p>
+<p>and four KO samples: 2 KO = DMSO treated 2 KO = DRUG treated</p>
+<p>and let’s try to investigate the DRUG effect OVER the genotypes</p>
+<pre class="r"><code>coldata &lt;- data.frame(
+    cond = c(&quot;DMSO&quot;, &quot;DMSO&quot;, &quot;DRUG&quot;, &quot;DRUG&quot;, &quot;DRUG&quot;, &quot;DMSO&quot;, &quot;DMSO&quot;, &quot;DRUG&quot;, &quot;DRUG&quot;),
+    genotype = c(&quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;)
+)
+modmat &lt;- model.matrix(~cond + genotype, coldata)
+
+a &lt;- modmat[coldata$cond == &quot;DMSO&quot;, , drop = FALSE]
+b &lt;- modmat[coldata$cond == &quot;DRUG&quot;, , drop = FALSE]
+
+colMeans(b) - colMeans(a)</code></pre>
+<pre><code>## (Intercept)    condDRUG  genotypeWT 
+##         0.0         1.0         0.1</code></pre>
+<p>And compare this to what we get when we have BALANCED sampling:</p>
+<pre class="r"><code>coldata &lt;- data.frame(
+    cond = c(&quot;DMSO&quot;, &quot;DMSO&quot;, &quot;DRUG&quot;, &quot;DRUG&quot;, &quot;DMSO&quot;, &quot;DMSO&quot;, &quot;DRUG&quot;, &quot;DRUG&quot;),
+    genotype = c(&quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;)
+)
+modmat &lt;- model.matrix(~cond + genotype, coldata)
+
+a &lt;- modmat[coldata$cond == &quot;DMSO&quot;, , drop = FALSE]
+b &lt;- modmat[coldata$cond == &quot;DRUG&quot;, , drop = FALSE]
+
+colMeans(b) - colMeans(a)</code></pre>
+<pre><code>## (Intercept)    condDRUG  genotypeWT 
+##           0           1           0</code></pre>
 </div>
-<div id="requirements" class="section level1">
-<h1>Requirements:</h1>
-<ul>
-<li><p><strong>basic R understanding</strong>: Introductory material has
-been covered by our introductory <a
-href="https://github.com/maxplanck-ie/Rintro">course</a>. We will spend
-a (very) limited amount of time refreshing some basic concepts, so we
-encourage you to re-familiarise yourself with the Rstudio IDE and <a
-href="https://swcarpentry.github.io/r-novice-inflammation/13-supp-data-structures.html">data
-types and structures in R</a> if that’s needed.</p></li>
-<li><p>an <strong>account for <a
-href="https://workbench.ie-freiburg.mpg.de">workbench</a></strong>: We
-will use the Rstudio server at the MPI-IE. If you do not have an account
-yet, you will need to request an account from core-IT. Please do so well
-before the course starts. You can use a local installation of R as well.
-Note that we will be using R 4.3.3 during this course.</p></li>
-<li><p><strong>Know your keyboard!</strong> Special characters will be
-needed throughout the course, e.g. $ , | , [, ], {, }, &gt;, &lt;, #, ~,
-&amp;, ^, %, !, ?</p></li>
-</ul>
-<hr />
+<div id="dispersion-estimation-under-different-conditions"
+class="section level2">
+<h2>Dispersion estimation under different conditions</h2>
+<p>First simulate data under Poisson</p>
+<pre class="r"><code>df &lt;- data.frame()
+for (i in seq(1, 5000)) {
+  # Sample a coef
+  beta_cond = sample(c(rep(1, 11), 2, 4, 0.2, 0.5), 1)
+  # sample a mean of counts
+  mu = as.integer(runif(1, min=5, max=10000))
+  df = rbind(
+    df,
+    c(rpois(4, lambda=mu), rpois(4, lambda=mu*beta_cond))
+  )
+}
+colnames(df) &lt;- c(&quot;WT_1&quot;, &quot;WT_2&quot;, &quot;WT_3&quot;, &quot;WT_4&quot;, &quot;KO_1&quot;, &quot;KO_2&quot;, &quot;KO_3&quot;, &quot;KO_4&quot;)
+coldata &lt;- data.frame(
+    genotype = factor(c(&quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;), levels=c(&quot;WT&quot;, &quot;KO&quot;))
+)
+dds &lt;- DESeqDataSetFromMatrix(countData=df, colData=coldata, design=~genotype)
+dds &lt;- DESeq(dds)</code></pre>
+<pre><code>## estimating size factors</code></pre>
+<pre><code>## estimating dispersions</code></pre>
+<pre><code>## gene-wise dispersion estimates</code></pre>
+<pre><code>## mean-dispersion relationship</code></pre>
+<pre><code>## -- note: fitType=&#39;parametric&#39;, but the dispersion trend was not well captured by the
+##    function: y = a/x + b, and a local regression fit was automatically substituted.
+##    specify fitType=&#39;local&#39; or &#39;mean&#39; to avoid this message next time.</code></pre>
+<pre><code>## final dispersion estimates</code></pre>
+<pre><code>## fitting model and testing</code></pre>
+<pre class="r"><code>plotDispEsts(dds)</code></pre>
+<p><img src="addendum_files/figure-html/unnamed-chunk-3-1.png" width="672" />
+Now simulate data under negative binomial</p>
+<pre class="r"><code>df &lt;- data.frame()
+for (i in seq(1, 5000)) {
+  # Sample a coef
+  beta_cond = sample(c(rep(1, 11), 2, 4, 0.2, 0.5), 1)
+  # sample a mean of counts
+  mu = as.integer(runif(1, min=5, max=50000))
+  df = rbind(
+    df,
+    c(rnegbin(4, mu = mu, theta=2000), rnegbin(4, mu = mu*beta_cond, theta=2000))
+  )
+}
+colnames(df) &lt;- c(&quot;WT_1&quot;, &quot;WT_2&quot;, &quot;WT_3&quot;, &quot;WT_4&quot;, &quot;KO_1&quot;, &quot;KO_2&quot;, &quot;KO_3&quot;, &quot;KO_4&quot;)
+coldata &lt;- data.frame(
+    genotype = factor(c(&quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;), levels=c(&quot;WT&quot;, &quot;KO&quot;))
+)
+dds &lt;- DESeqDataSetFromMatrix(countData=df, colData=coldata, design=~genotype)
+dds &lt;- DESeq(dds)</code></pre>
+<pre><code>## estimating size factors</code></pre>
+<pre><code>## estimating dispersions</code></pre>
+<pre><code>## gene-wise dispersion estimates</code></pre>
+<pre><code>## mean-dispersion relationship</code></pre>
+<pre><code>## final dispersion estimates</code></pre>
+<pre><code>## fitting model and testing</code></pre>
+<pre class="r"><code>plotDispEsts(dds)</code></pre>
+<p><img src="addendum_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
 </div>
 
 
