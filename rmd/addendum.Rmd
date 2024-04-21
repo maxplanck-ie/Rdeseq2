@@ -1,0 +1,108 @@
+---
+title: "Additions"
+author: "Bioinfo-Core @ MPI-IE"
+date: "`r date() `"
+output:
+  html_document:
+    theme: cosmo
+    highlight: textmate
+    code_folding: hide
+    toc: true
+    toc_depth: 1
+    toc_float: true
+    df_print: paged
+---
+
+```{r load, message=FALSE}
+library("DESeq2")
+library("MASS")
+```
+
+## Example on disbalanced issues with colMeans trick
+
+Let's have five WT samples:
+2 WT = DMSO treated
+3 WT = DRUG treated
+
+and four KO samples:
+2 KO = DMSO treated
+2 KO = DRUG treated
+
+and let's try to investigate the DRUG effect OVER the genotypes
+
+```{r}
+coldata <- data.frame(
+    cond = c("DMSO", "DMSO", "DRUG", "DRUG", "DRUG", "DMSO", "DMSO", "DRUG", "DRUG"),
+    genotype = c("WT", "WT", "WT", "WT", "WT", "KO", "KO", "KO", "KO")
+)
+modmat <- model.matrix(~cond + genotype, coldata)
+
+a <- modmat[coldata$cond == "DMSO", , drop = FALSE]
+b <- modmat[coldata$cond == "DRUG", , drop = FALSE]
+
+colMeans(b) - colMeans(a)
+```
+
+And compare this to what we get when we have BALANCED sampling:
+
+```{r}
+coldata <- data.frame(
+    cond = c("DMSO", "DMSO", "DRUG", "DRUG", "DMSO", "DMSO", "DRUG", "DRUG"),
+    genotype = c("WT", "WT", "WT", "WT", "KO", "KO", "KO", "KO")
+)
+modmat <- model.matrix(~cond + genotype, coldata)
+
+a <- modmat[coldata$cond == "DMSO", , drop = FALSE]
+b <- modmat[coldata$cond == "DRUG", , drop = FALSE]
+
+colMeans(b) - colMeans(a)
+```
+
+
+## Dispersion estimation under different conditions
+
+First simulate data under Poisson
+
+```{r}
+df <- data.frame()
+for (i in seq(1, 5000)) {
+  # Sample a coef
+  beta_cond = sample(c(rep(1, 11), 2, 4, 0.2, 0.5), 1)
+  # sample a mean of counts
+  mu = as.integer(runif(1, min=5, max=10000))
+  df = rbind(
+    df,
+    c(rpois(4, lambda=mu), rpois(4, lambda=mu*beta_cond))
+  )
+}
+colnames(df) <- c("WT_1", "WT_2", "WT_3", "WT_4", "KO_1", "KO_2", "KO_3", "KO_4")
+coldata <- data.frame(
+    genotype = factor(c("WT", "WT", "WT", "WT", "KO", "KO", "KO", "KO"), levels=c("WT", "KO"))
+)
+dds <- DESeqDataSetFromMatrix(countData=df, colData=coldata, design=~genotype)
+dds <- DESeq(dds)
+plotDispEsts(dds)
+```
+Now simulate data under negative binomial
+
+```{r}
+df <- data.frame()
+for (i in seq(1, 5000)) {
+  # Sample a coef
+  beta_cond = sample(c(rep(1, 11), 2, 4, 0.2, 0.5), 1)
+  # sample a mean of counts
+  mu = as.integer(runif(1, min=5, max=50000))
+  df = rbind(
+    df,
+    c(rnegbin(4, mu = mu, theta=2000), rnegbin(4, mu = mu*beta_cond, theta=2000))
+  )
+}
+colnames(df) <- c("WT_1", "WT_2", "WT_3", "WT_4", "KO_1", "KO_2", "KO_3", "KO_4")
+coldata <- data.frame(
+    genotype = factor(c("WT", "WT", "WT", "WT", "KO", "KO", "KO", "KO"), levels=c("WT", "KO"))
+)
+dds <- DESeqDataSetFromMatrix(countData=df, colData=coldata, design=~genotype)
+dds <- DESeq(dds)
+plotDispEsts(dds)
+```
+
