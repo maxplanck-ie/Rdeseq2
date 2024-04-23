@@ -22,6 +22,7 @@ output:
 The story we'll work with is a 'drug repurposing' effort to use an old diuretic drug as a cancer treatment:
 <br> 
 [Amiloride to treat multiple myeloma](https://pubmed.ncbi.nlm.nih.gov/28790111/)
+
 Note that this is publically available data under GEO accession ID GSE95077, but the data shipped with this repository is altered for educational purposes.  
 In this study, RNA-seq data is available to compare amiloride to a state-of-the-art drug (TG003) in two cancer (multiple myeloma) cell lines with different mutations (BM: p53mut, JJ: del(17p)).
 <br> 
@@ -47,8 +48,8 @@ For R, two of the most common and reliable package repositories are:
 
 **Reminder** 
 
-1. All packages come for a **specific R-version**. This tutorial uses R version 4.1.3.
-2. All packages have specific **package version** (e.g. DESeq2 is version 1.34.0), and can come from different sources (CRAN, Bioconductor, github, ...).
+1. All packages come for a **specific R-version**. This tutorial uses R version 4.2.3.
+2. All packages have specific **package version** (e.g. DESeq2 is version 1.36.0), and can come from different sources (CRAN, Bioconductor, github, ...).
 3. Most packages have **dependencies** on other packages that should also be installed 
 4. Installation can be very **time consuming** but needs to be done only once. 
 
@@ -162,9 +163,7 @@ Make sure that the rownames of the metadata are valid sample names.
 
 ```{r import_meta}
 mfile <- "data/myeloma/myeloma_meta.tsv"               # location of metadata file
-#metadata <- read.csv(file=mfile, header=TRUE, sep="\t")
-metadata <- read_tsv(file=mfile)
-metadata <- metadata %>% column_to_rownames("sample")  # sample -> rownames
+metadata <- read_tsv(file=mfile) 
 ```
 
 ```{r head_metadata}
@@ -179,6 +178,10 @@ metadata %>% head()
 # convert text strings to categorical variable (characters --> factors)
 metadata$condition <- as.factor(metadata$condition)
 metadata$celltype  <- as.factor(metadata$celltype)
+metadata$sample    <- as.factor(metadata$sample)
+
+# alternatively
+#metadata <- metadata %>% mutate_if(is.character,as.factor)
 ```
 
 ***
@@ -191,94 +194,203 @@ For each gene (=row), the data matrix contains a vector of counts ($y$) which de
 > **Tasks (optional)**: Extract the 42nd gene in the data matrix and plot it against all samples
 
 ```{r gene_plot}
-boxplot(data[42,], xlab="sample", ylab="count", names=FALSE) # base-R (ggplot below)
-abline(h=rowMeans(data[42,]), col="red", lty=2)
+gene = data %>%
+  slice(42) %>%
+  pivot_longer(everything(), names_to = "sample", values_to = "count")
+gene_mean = gene %>% pull(count) %>% mean()
+
+ggplot(gene, aes(x=sample, y=count)) +
+  geom_point() +
+  geom_hline(yintercept = gene_mean, color=2) +
+  theme(axis.text.x = element_text(angle = 90))
+
+#base-R
+#boxplot(data[42,], xlab="sample", ylab="count", names=FALSE) 
+#abline(h=rowMeans(data[42,]), col="red", lty=2)
 ```
 
+
 ## 1. Hope
-Counts ($y$) could be predicted (and controlled) given sufficient sample information $x$
+Gene expression (counts $y$) could be predicted (and controlled) given sufficient sample information $x$ (up to some noise $\epsilon$):
 
 $$
-y_i = f(x_i) = \mu + \beta x_i ~~~~~~~~~ (i = 1\ldots n) \\ \\
+y_i = f(x_i, \theta) + \epsilon_i ~~~~~~~~~ (i = 1\ldots n)\\
 $$
 
 > **Poll 1.5**: What is $n$ in our example?
 
-## 2. Goal
-Model the counts ($y_i$) as a function of sample $x_i$ + noise factor ($\epsilon_i$)
+## 2. What should $x$ be?
 
-$$
-y_i = \mu + \beta x_i + \epsilon_i 
-$$
+**Reminder**: The researcher needs to decide *which factors* should be included in the model.
 
-What should $x$ be? 
-
-**Reminder**: The researcher needs to decide *which factors* should be included in the model:
-
-- none: all samples have their own values
-- quantitative variable: e.g. sequence depth
-- categorical variable: e.g. condition
+- none: all samples have their own values $\to y = \mu + \epsilon$
+- quantitative variable: e.g. sequence depth $\to y = f(sequencing~depth)$
+- categorical variable: e.g. condition $\to y = f(condition)$
 - combination of variables: e.g. condition and celltype
 
-
 ```{r gene_plot_factors}
-gene <- data %>% 
-  slice(42) %>%                         # pick gene #42
-  gather(sample, count) %>%             # reshape for ggplot (1 sample per row!)
-  mutate(condition=metadata$condition)  # add condition. Careful: order needs to agree 
-
-ggplot(gene, aes(x=condition, y=count, col=condition)) + 
-  geom_point(size=3)  #plot against condition
-
+gene %>%
+  # join gene with metadata (by sample)
+  inner_join(metadata, by="sample") %>%
+  #plot against condition
+  ggplot(aes(x=condition, y=count, col=condition)) + 
+  geom_point(size=3)  
 ```
 
+> **Task**: Plot gene counts against celltype.
 
-## 3. The R-syntax: $Y \sim X$
-Define your design:
+**Notice**:
+
+- ggplot understands factors for plotting 
+- R understands formulae with factors:  $Y \sim X$
+
+## 3. Under the hood: the model matrix
+
+How are factorial variables (e.g. condition) encoded into something numerical ?
+
+Use dummy variables: binary encoding of categorical variable $x$ (switch different levels on and off)
+
+$$
+\left[
+\begin{array}{c}
+y_1 \\
+y_2 \\
+\vdots \\
+y_i \\
+\vdots \\
+y_n \\
+\end{array}
+\right] = 
+\left[
+\begin{array}{ccc}
+1 & 0 & \ldots & 0 \\
+1 & 0 & \ldots & 0 \\
+\vdots \\
+0 & 1 & \ldots & 0 \\
+\vdots \\
+0 & 0 & \ldots & 1 \\
+\end{array}
+\right] \cdot
+\left[
+\begin{array}{c}
+\mu_1 \\
+\mu_2 \\
+\vdots \\
+\mu_p \\
+\end{array}
+\right] + 
+\left[
+\begin{array}{c}
+\epsilon_1 \\
+\epsilon_2 \\
+\vdots \\
+\epsilon_i \\
+\vdots \\
+\epsilon_n \\
+\end{array}
+\right] 
+$$
+and in compact notation:
+$$
+y = X \mu + \epsilon
+$$
+$X$: $n\times p$ *incidence model matrix* $\to$ multivariate linear regression
+
+***
+An equivalent alternative parameterization is:
+$$
+\left[
+\begin{array}{c}
+y_1 \\
+y_2 \\
+\vdots \\
+y_i \\
+\vdots \\
+y_n \\
+\end{array}
+\right] = 
+\left[
+\begin{array}{ccc}
+1 & 0 & \ldots & 0 \\
+1 & 0 & \ldots & 0 \\
+\vdots \\
+1 & 1 & \ldots & 0 \\
+\vdots \\
+1 & 0 & \ldots & 1 \\
+\end{array}
+\right] \cdot
+\left[
+\begin{array}{c}
+\beta_0 \\
+\beta_1 \\
+\vdots \\
+\beta_{p-1} \\
+\end{array}
+\right] + 
+\left[
+\begin{array}{c}
+\epsilon_1 \\
+\epsilon_2 \\
+\vdots \\
+\epsilon_i \\
+\vdots \\
+\epsilon_n \\
+\end{array}
+\right]
+$$
+and in compact notation:
+$$
+y = \beta_0 + X' \beta + \epsilon
+$$
+$X'$: $n \times (p-1)$ model matrix with intersept.
+
+In this parameterization one factor level serves as reference level $\beta_0 = \mu_1$. 
+
+Sometimes this choice is preferable since then all the other parameters $\beta_i=\mu_{i+1} - \mu_1$ can be interpreted as `effects` of level $i \ge 1$ with respect to reference level.
+
+We are free to chose from many different parameterizations 
+$\mu \leftrightarrow \beta$ which will have different interpretations.
+
+## 4. Design In Action
+
+**Define Design**: 
+The design formula should only include variables from the columns of the metadata!
+In the example below we decide to model only the dependency on the factor "condition"
 
 ```{r design, echo=TRUE}
-# here: X = condition
-my_design <- ~ condition  # notice the tilde *not* minus
+my_design <- ~ 0 + condition   # without intersect
+# my_design <- ~ 1 + condition # with intersect
 ```
 
-
-**Reminder**: The variables need to correspond to columns in the metadata.
-
-**Reminder**: More complicated designs are possible and often necessary ($\to$ day 2 and 3)
-
-*** 
-
-# Interlude (15 min)
-## 1. The model matrix
-How do we convert a factor (e.g. condition) into something numerical ?
-Use binary encoding of categorical variable $x$ (switch on and of contributions)
-
-$x$=("Cond1", "Cond2", "Cond3") $\longrightarrow \left( \begin{array}{ccc} X_0 & X_1 & X_2 \\ 1 & 0 &  0 \\ 1 & 1 & 0 \\ 1 & 0 & 1 \end{array}\right)$ 
-
-$$
-y_i = \mu + \beta x_i \longrightarrow \beta_0 X_{0i} + \beta_1 X_{1i} + \beta_2 X_{2i} = X \cdot \beta
-$$
-
-(c.f. linear regression $\to$ multivariate linear regression)
-
-
+**Define Model Matrix**: from design formula and metadata
 A factorial design can be translated into a (binary) *model matrix*
-
 ```{r model_matrix}
 MM <- model.matrix(my_design, data=metadata)
+rownames(MM) = metadata$sample
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
 
-> **Tasks**: Include an additional factor (+ celltype) and observe the design matrix   
-> **Tasks**: Bonus: include an interaction term (+ condition:celltype) and discuss its interpretation  
+**Notice**: A factor with $p$ levels will have $p$ dummy variables and $p$ corresponding parameters (e.g. the means for $p$ different groups).
+
+> **Task** Try the alternative design formula and inspect the effect on the matrix.
+
+
+### Multifactorial designs
+
+More complicated designs are possible and often necessary ($\to$ day 2 and 3)
+
+> **Tasks**: Include an additional factor (condition + celltype) and observe the design matrix   
+> **Bonus**: Include an interaction term (+ condition*celltype) and discuss its interpretation  
 
 ```{r model_matrix_interaction}
-MM <- model.matrix(~ condition*celltype, data=metadata)
+MM <- model.matrix(~ 1 + condition * celltype, data=metadata)
+rownames(MM) = metadata$sample
 pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
 
 ***
-## 2. Experimental design
+
+## 5. Experimental design
 A more elaborate (highly recommended) tutorial can be found [here](https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md)
 
 ![**A typical experiment** ](images/day1_expdesign.jpg)
@@ -286,7 +398,7 @@ A more elaborate (highly recommended) tutorial can be found [here](https://githu
 ### a. The problem: more factors!
 Usually there are other factors in addition to a simple treatment:
 
-- known and interesting: multi-factorial design and interaction effects (genotype * treatment)
+- known and interesting: multi-factorial design and interaction effects (condition * celltype)
 - known and uninteresting: batch, covariates
 - unknown and unvoidable: noise
 
@@ -314,7 +426,6 @@ Analysis             | Control software version and parameters
 Some *nuisance factors* (e.g. batches) may be known and measurable, but are not of primary interest - they should be included as metadata and in the model.
 
 $$
-y_i = \mu + \beta x_i + \gamma z_i + \epsilon_i \\ ~~\\
 \mbox{R syntax:} ~~~Y \sim X + Z
 $$
 ```{r alt_design, echo=TRUE, eval=FALSE}
@@ -462,7 +573,7 @@ Similar to correlation analysis, the main purpose is to identify distinct and si
 nt <- 500     # set number of most variable genes
 
 # get top variable genes (rows)
-top <-  Mt %>% rowVars() %>% order(decreasing=TRUE) %>% head(nt)  # calculate variance for each row and sort
+top <-  Mt %>% rowVars(useNames=TRUE) %>% order(decreasing=TRUE) %>% head(nt)  # calculate variance for each row and sort
 pca <- Mt[top,] %>% t() %>% prcomp(scale=TRUE)      # perform PCA
 
 # pca-object contains transformed coordinates for each sample 
