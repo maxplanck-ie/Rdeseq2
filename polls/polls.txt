@@ -1,5 +1,11 @@
 # Poll Day 1
-0.1 How will you keep track of the code, course material and notes during this course ?
+
+0.1 What is the first element in your .libPaths() ? Replace USER with your user name.
+   a) /home/USER/R/workbench-library/4.2
+   b) /rstudio/USER/rstudio/R/workbench-library/4.2
+   c) other
+   
+0.2 How will you keep track of the code, course material and notes during this course ?
    a) With a pen and paper.
    b) I will use the console, and save my session often !
    c) I will simply remember everything.
