@@ -62,14 +62,11 @@ metadata %>% head()
 #check if the col and rows are in the same order:
 all(rownames(metadata) == colnames(data))
 
-# Convert to factors
-metadata$celltype <- metadata$celltype %>% as.factor()
-metadata$condition <- metadata$condition %>% as.factor()
 ```
 
 ### Create Design
 ```{r create_design}
-my_design <- ~celltype + condition
+my_design <- ~ celltype + condition
 ```
 
 ### Create DESeq Object

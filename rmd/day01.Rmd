@@ -129,24 +129,6 @@ data %>% pull("BM_CTRL_3") %>% median()
 
 Where are the gene names, and which convention is chosen for them?
 
-> **Task**: Ensure that the rownames of the count data are gene names.
-
-You could do a re-assignment in base-R, or utilise the 'column_to_rownames() function from tidyverse.'
-
-```{r add_rownames}
-# dplyr
-data <- data %>% column_to_rownames("gene_id")  # gene_id -> rownames and removes gene_id
-
-# magrittr with a 'reassignment pipe!'
-# library(magrittr)
-#data %<>% column_to_rownames("gene_id")
-
-# base-R
-# rownames(data)    # check: may already be defined during read
-# rownames(data) <- data$gene_id
-# data$gene_id   <- NULL
-```
-
 ### b. Import Metadata
 
 Metadata (=data about data); typically contains important information on the samples and their origin. 
@@ -196,7 +178,7 @@ For each gene (=row), the data matrix contains a vector of counts ($y$) which de
 ```{r gene_plot}
 gene = data %>%
   slice(42) %>%
-  pivot_longer(everything(), names_to = "sample", values_to = "count")
+  pivot_longer(-gene_id, names_to = "sample", values_to = "count")
 gene_mean = gene %>% pull(count) %>% mean()
 
 ggplot(gene, aes(x=sample, y=count)) +
@@ -451,7 +433,10 @@ All subsequent calculations will use this object (and modify it).
 > **Task**: Create a DESeq data set.
 
 ```{r combine, echo=TRUE}
-dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= my_design)
+dds <- DESeqDataSetFromMatrix(
+  countData=data %>% select(-gene_id), 
+  colData=metadata, 
+  design= my_design)
 ```
 
 
@@ -593,6 +578,7 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
 #  xlab(paste0("PC1: ",vars[1])) +
 #  ylab(paste0("PC2: ",vars[2])) +
   scale_colour_manual(values=cn_col)
+  # scale_colour_brewer(palette="Dark2")
 ```
 
 > **Homework** 
