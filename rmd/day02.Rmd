@@ -94,7 +94,7 @@ myPlotPCA = function(dds, nt=500) {
   cn_col <- c("#1B9E77", "#D95F02", "#7570B3")   # condition colours
   names(cn_col) <- levels(ann$condition) # name the color vector
 
-  top <- Mt %>% rowVars() %>% order(decreasing=TRUE) %>% head(nt)  # calculate variance for each row and sort
+  top <- Mt %>% rowVars(useNames=TRUE) %>% order(decreasing=TRUE) %>% head(nt)  # calculate variance for each row and sort
   pca <- Mt[top,] %>% t() %>% prcomp(scale=TRUE)                    # perform PCA
 
   rld_PCA <- as.data.frame(pca$x[,1:2])                     # only take PC1 and PC2 (column 1 + 2)
