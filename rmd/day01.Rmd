@@ -429,7 +429,8 @@ All subsequent calculations will use this object (and modify it).
 
 ```{r combine, echo=TRUE}
 dds <- DESeqDataSetFromMatrix(
-  countData=data %>% column_to_rownames("gene_id"), # move gene_id to rowname
+  # countData= expects matrix, so remove "gene_id" column and keep as rowname
+  countData=data %>% column_to_rownames("gene_id"),
   colData=metadata, 
   design= my_design)
 ```
@@ -437,104 +438,117 @@ dds <- DESeqDataSetFromMatrix(
 
 # Data Exploration (40 min)
 
-## 1. Show me the (raw) data!
+## 1. Data Access
 
-- Data Structure 
-- Data Entries 
-- Visualization
-- Correlations
+> **Tasks**: 
 
-> **Tasks**: Inspect the data structures and dimensions of objects dds and extract the count matrix Y 
-(Hint: > ?counts)
+- Inspect the class, structure and dimensions of `dds`. 
+- Re-extract the count matrix (Hint: ?counts) and save as `Y`
+- Re-extract the metadata (Hint: ?colData), remove column "sample" and save as `meta`
 
-> **Tasks**: Extract the first 10 rows (genes) from count matrix Y and safe as new data object -> Yr <- (reduced size for further use)
+```{r dds_access}
+dds                     # dds object --> inspect: class(dds), str(dds), dim(dds)
+Y <- counts(dds)        # get gene-sample data matrix from dds
 
-> **Tasks (optional)**: Extract 10 randomly sampled genes.
-
-```{r downsample}
-dds                         # dds object --> inspect: str(dds), dim(dds)
-Y <- counts(dds)            # get gene-sample data matrix from dds
-( Yr <- Y %>% head(10) )    # just the first few for illustrations
-#Yr <- Y %>% data.frame() %>% sample_n(10)           # random rows
+# get metadata from dds and remove column 'sample'
+meta <- data.frame(colData(dds)) %>% select(-sample)
 ```
 
-## 2. Visualize
+> **Tasks**: 
 
-> **Tasks**: Create heatmap for the first view genes in Yr (?pheatmap). How would you add metadata as below?
+- Extract the first 10 rows (genes) from count matrix `Y` and safe this data subset as `Yr` (reduced size for further use)
+- Optional: Extract 10 randomly sampled genes.
+
+```{r downsample}
+Yr <- Y %>% head(10)    # extract first 10 rows (for illustrations only)
+#Yr <- Y %>% data.frame() %>% sample_n(10)  # random rows
+```
+
+## 2. Data Visualization
+
+> **Task**: Create heatmap for the reduced data set Yr (?pheatmap). You might want to disable the default clustering of rows and columns
 
 ```{r visual_explore}
 pheatmap(Yr, cluster_rows=FALSE, cluster_cols=FALSE, main="First glimpse")
+```
 
-# get metadata from dds and use it for colour annotation of pheatmap
-meta <- data.frame(colData(dds)) %>% select(-sample)
+> **Task**: Add metadata `meta` as annotation to pheatmap
 
+```{r data_and_metadata, echo = FALSE}
 pheatmap(Yr, cluster_rows=FALSE, cluster_cols=FALSE, annotation=meta, main="Data + Metadata")
 ```
 
-> **Tasks**: understand the object "meta" and add sequence depth as additional annotation for all samples (additional column)
+### Customizing Metadata (5 min)
 
-```{r adding_annotations}
+> **Task**: 
+
+- understand the object "meta" and how it is encoded as colors in pheatmap
+- modify "meta" by adding sequence depth as additional metadata for all samples (additional column)
+- rerun the pheatmap to yield
+
+```{r adding_annotations, echo=FALSE}
 meta$seq_depth <- counts(dds) %>% colSums()/1e6    # sequencing depth in millions 
+pheatmap(Yr, cluster_rows=FALSE, cluster_cols=FALSE, annotation=meta, main="Data + Metadata")
 ```
 
 
-**Notice**:  'meta=colData(dds)' is identical to 'metadata', but
-- 'meta' has rownames (required by pheatmap)
-- rownames(meta) = colnames(Y)
+**Notice**:  'meta=colData(dds)' is almost identical to the original 'metadata' (read from file). But meta has rownames, and rownames(meta) = colnames(Y)
 
-
-## 3. genome-wide correlations
-
-**Question**: How to calculate the sample-sample correlation matrix?
-
-```{r correlations}
-C <- cor(Y)       # get sample-sample correlations: other correlations?
-pheatmap(C, annotation = meta)
-```
-
-### a. Interlude: Customizing Colors (5 min)
+### Customizing Colours (5 min)
 
 Often we need to adjust colours or ensure consistency across a project.
-Use > library(RColorBrewer) for systematic and educated choices.
+In the example above, the colour representation of the metadata may also be improved.
+
+Use > library(RColorBrewer) for systematic and educated colour choices.
 
 **Goal**: Define list of colours to be used for metadata? 
 ```{r colour, echo=TRUE}
-ct_col <- c("white", "black")                   # celltype colours
+# celltype colours
+ct_col <- c("white", "black")                   
 names(ct_col) <- levels(meta$celltype)
 
-#cn_col <- brewer.pal(n=3, "Dark2")            # avoid RColorBrewer dependence for this course
-cn_col <- c("#1B9E77", "#D95F02", "#7570B3")   # condition colours
+# condition colours
+cn_col <- c("#1B9E77", "#D95F02", "#7570B3")   # = RColorBrewer::brewer.pal(n=3, "Dark2")
 names(cn_col) <- levels(meta$condition)
 
+# create list of colour choices
 my_colors <- list( celltype= ct_col, condition = cn_col )
-pheatmap(C, annotation = meta, annotation_colors = my_colors)
 
-# adjust also heatmap
-# blue_colors = RColorBrewer::brewer.pal(9,"Blues"))
-# pheatmap(C, annotation = meta, annotation_colors = my_colors, color=blue_colors) 
+pheatmap(Yr, cluster_rows=FALSE, cluster_cols=FALSE, 
+         annotation=meta, annotation_colors = my_colors, 
+         main="Data + Metadata")
+```
+The colour encoding of the heatmap can also be customized (code not run)
+```{r adjust_heatmap_colors, eval=FALSE, echo=TRUE}
+blue_colors = RColorBrewer::brewer.pal(9,"Blues")
+pheatmap(Yr, cluster_rows=FALSE, cluster_cols=FALSE,
+         annotation = meta, annotation_colors = my_colors, 
+         color=blue_colors,
+         main="Data + Metadata") 
 ```
 
-## 4. Simple transformation
+## 3. Data transformation
 A more elaborate (highly recommended) tutorial can be found [here](https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/03_DGE_QC_analysis.html)
 
-> **Task** Look at the quantiles and means of the first 10 genes (from Yr) and create a boxplot
+> **Task** Inspect the quantiles and means of the first 10 genes (from Yr) and create a boxplot
+
+*Hint:* Many R functions (e.g. summary, boxplot) treat rows as observations, and columns as variables. This is different from the common choice for count matrix Y its submatrix Yr. To utilize these functions efficiently we first have to transpose.
 
 ```{r summary, echo=FALSE}
-# transpose
 Yr %>% t %>% summary
 Yr %>% t %>% boxplot(las=2, cex.axis=0.5)
 ```
 
-What is the problem and what could we do about it ?
+**Discussion:** What is the problem and what could we do about it ?
 
-```{r transform}
+```{r log_transform}
 Yt <- log2(Y + 1)   # simple log-transform; (why + 1 ?)
 Yt[1:10,] %>% t %>% boxplot(las=2, cex.axis=0.5)
 ```
 
+More boxplot customization with ggplot
 ```{r transform_ggplot, eval=FALSE}
-# boxplot: ggplot
-Yt %>% head(5) %>%
+Yt %>% head(10) %>%
   as_tibble(rownames="gene_id") %>% 
   pivot_longer(-gene_id, names_to = "sample", values_to = "log_count") %>% 
   inner_join(metadata, by="sample") %>%
@@ -545,24 +559,29 @@ Yt %>% head(5) %>%
 ```
 
 
-What happened to zero counts ? What may be the source of remaining discrepancy ?
+What happened to zero counts ? What might be the source of remaining variability ?
 
 - **Transformation**: make distributions more pleasing  
 - **Normalization**: make samples comparable
 
-## 5. Sample-Sample Correlations
-Compare the genome-wide correlations before and after transformation
-```{r explore_corr}
-pheatmap(cor(Yt), annotation = meta, annotation_colors = my_colors)
+
+## 4. Sample-Sample correlations (genome-wide)
+
+**Question**: How to calculate the sample-sample correlation matrix?
+
+```{r correlations}
+C <- cor(Yt)       # get sample-sample correlations: other correlations?
+pheatmap(C, annotation = meta, annotation_colors = my_colors)
 ```
-Notice the overall high correlations? How would you explore this further
+
+Notice the overall high correlations. How would you explore this further?
 
 ```{r smoothScatter}
 # correlation coeff. is only a single number
-smoothScatter(Yt[,1], Yt[,5])
+smoothScatter(Yt[,"JJ_TG_1"], Yt[,"JJ_AMIL_1"])
 ```
 
-## 6. PCA plot
+## 5. PCA plot
 PCA aims to project samples from a high-dimensional space (M=20k+ genes) to a lower dimension (D=2).
 Similar to correlation analysis, the main purpose is to identify distinct and similar samples.
 ```{r PCA_manual}
@@ -600,7 +619,11 @@ Repeat PCA analysis with more sophisticated normalization from the DESeq2 packag
 
 
 ```{r plotPCA, eval=FALSE}
-rld <- rlog(dds)      # more sophisticated log-transform to account for seq.depth=lib.size --> str(rld)
+rld <- rlog(dds)  # more sophisticated log-transform to account for seq.depth=lib.size --> str(rld)
+
+plotPCA(rld)
+```
+```{r plotPCA_custom, eval=FALSE}
 rld_PCA <- plotPCA(rld, intgroup=c("condition", "celltype"), returnData=TRUE)
 percentVar <- round(100 * attr(rld_PCA, "percentVar"), 1)
 
@@ -610,3 +633,5 @@ ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
   ylab(paste0("PC2: ",percentVar[2])) +
   scale_colour_manual(values=cn_col)
 ```
+
+
