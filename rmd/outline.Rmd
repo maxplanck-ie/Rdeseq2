@@ -16,7 +16,12 @@ output:
 
 # Libraries
 
-We will use a couple of libraries in this course. We have to make sure these are installed. 
+> **Poll 0.1**: 
+> What is the first element in your .libPaths() ?
+
+
+We will use a couple of libraries in this course. We have to make sure these are installed - in a suitable location defined by .libPaths().
+
 These installations can take a while. So it's best to tackle this first.
 The following code chunk will checks if a required library is available and will attempt to install it if this is not the case.
 
@@ -124,7 +129,7 @@ The Rstudio GUI.
 
 ![ An R notebook in the Rstudio GUI ](images/outline_book.png)
 
-> **Poll 0.1**: 
+> **Poll 0.2**: 
 > How will you keep track of the code, course material and notes during this course ?
 
 ***
