@@ -323,7 +323,7 @@ It is good practice to inspect the size factors and try to detect outlier sample
 
 ```{r seq depth factors vs median of ratios factors}
 meta$sizeFactor %>% summary
-meta$seq_depth <- counts(dds_clean) %>% colSums()/1e6 
+meta$seq_depth <- dds_clean %>% counts %>% colSums()/1e6 
 
 ggplot(meta) +
   geom_point(aes(x=seq_depth, y=sizeFactor)) +
@@ -331,9 +331,12 @@ ggplot(meta) +
   ylab("sizefactor")
 
 
-# colSums(dds_clean) are not strictly the sequencing depth (after gene filtering), but
-# colSums(dds) may contain more samples (before sample filtering)
-sd = dds %>% counts %>% colSums %>% tibble(sample=names(.), seq_depth=./1e6)
+# colSums(counts(dds_clean)) are not strictly the sequencing depth (after gene filtering), but
+# colSums(counts(dds))       may contain more samples (before sample filtering)
+sd = dds %>% counts %>% colSums %>% enframe(name="sample", value="seq_depth")
+
+
+
 # therefore we ne 
 meta 
 
@@ -427,12 +430,16 @@ plotDispEsts(dds_clean)
 what would be 'bad' dispersion ?
 
 ```{r baddisp}
-metadata_thrash <- metadata 
-metadata_thrash$celltype <- sample(metadata$celltype)
-metadata_thrash$condition <- sample(metadata$condition)
-dds_thrash <- DESeqDataSetFromMatrix(countData=data, colData=metadata_thrash, design=~celltype+condition+celltype:condition)
-dds_thrash <- DESeq(dds_thrash)
-plotDispEsts(dds_thrash)
+# remove sizeFactor from metadata and shuffle (=sample) all columns
+meta_shuffled <- dds_clean %>% colData %>% data.frame() %>% select(-sizeFactor) %>% mutate_all(sample)
+
+dds_shuffled <- DESeqDataSetFromMatrix(
+  countData=dds_clean %>% counts, 
+  colData=meta_shuffled, 
+  design= dds_clean %>% design)
+
+dds_shuffled <- DESeq(dds_shuffled)
+plotDispEsts(dds_shuffled)
 ```
 
 Signs of a 'good' dispersion plot:
@@ -504,9 +511,5 @@ shiny apps on  MPI-IE website (https://rsconnect.ie-freiburg.mpg.de/shiny/)
 
 
 ![genes2functions_maplot](images/day2_genes2functions_maplot.png){width=80%}
-
-
-![genes2functions_GO](images/day2_genes2functions_computing.png){width=80%}
-
 
 ![genes2functions_GO](images/day2_genes2functions_dotplot.png){width=80%} 
