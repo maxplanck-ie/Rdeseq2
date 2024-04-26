@@ -389,8 +389,8 @@ To keep things simple let's focus on 3 samples from the *same* celltype and cond
 
 ```{r var_vs_mu_plot}
 var_mu_plot <- function(dds,title="variance-vs-mean"){ 
-  means <- dds %>% counts %>% rowMeans
-  vars <- dds %>% counts %>% rowVars
+  means <- dds %>% counts %>% rowMeans()
+  vars <- dds %>% counts %>% rowVars(useNames = TRUE)
   data.frame(mean=means,variance=vars) %>% 
     ggplot(aes(x=mean, y=variance)) + 
     geom_point() +
