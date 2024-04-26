@@ -241,7 +241,7 @@ There are several steps to generating differential expression results, and they 
 - estimating dispersions        - *estimateDispersions()*
 - general linear model fit for each gene and testing - *nbinomWaldTest()*
 
-### a. Normalization
+### Normalization and size factors
 
 As mentioned yesterday, raw counts cannot be directly used to compare samples. 
 To allow comparison we need to normalize. Note that this is also needed for exploratory analysis and visualisation.
@@ -318,114 +318,133 @@ way to account for sequencing depth and underpins the normalization used above.
 It is good practice to inspect the size factors and try to detect outlier samples 
 
 **Task**:
+
 - add the sequencing depth as additional column to metadata `meta`
 - plot the size factor vs sequencing depth
 
-```{r seq depth factors vs median of ratios factors}
+```{r sizeFactor_vs_seqdepth, echo=FALSE}
+
+meta <- dds_clean %>% colData %>% data.frame 
+
+# meta includes sizeFactor determined by DESeq2
 meta$sizeFactor %>% summary
-meta$seq_depth <- dds_clean %>% counts %>% colSums()/1e6 
 
-ggplot(meta) +
-  geom_point(aes(x=seq_depth, y=sizeFactor)) +
-  xlab("sequencing depth") +
-  ylab("sizefactor")
+# add sequencing depth (in millions) to meta
 
+meta$seq_depth <- dds_clean %>% counts %>% colSums()/1e6  
 
-# colSums(counts(dds_clean)) are not strictly the sequencing depth (after gene filtering), but
+ggplot(meta, aes(x=seq_depth, y=sizeFactor)) + geom_point()
+```
+
+```{r sizeFactor_vs_seqdepth_imp, eval=FALSE, echo=TRUE}
+# Notice that
+# colSums(counts(dds_clean)) are not strictly the sequencing depths (after gene filtering), but
 # colSums(counts(dds))       may contain more samples (before sample filtering)
-sd = dds %>% counts %>% colSums %>% enframe(name="sample", value="seq_depth")
 
+meta <- dds_clean %>% colData %>% data.frame 
 
+# The code below uses original dds
+sd <- dds %>% counts %>% colSums %>% enframe(name="sample", value="seq_depth") %>% mutate(seq_depth=seq_depth/1e6)
 
-# therefore we ne 
-meta 
-
-
+# pay more attention to proper sample name matching: inner_join by sample name 
+meta %>% inner_join(sd, by="sample") %>% 
+  ggplot(aes(x=seq_depth, y=sizeFactor)) + geom_point()
 ```
 
-There is no extreme outlier for the size factor
+**Observation:**. No outliers. sizeFactors behaves as expected.
 
+**Task** 
+Study the effect of sizeFactor normalization for a single gene.
+The code below is for unnormalized count data - with a simple modification
+you can obtain the normalized data.
 
-### b. Dispersions
+```{r effect_of_sizefactor}
+gene <- dds_clean %>% counts(normalized=T) %>%
+  as_tibble(rownames='gene_id') %>%       # tibble does not like rownames
+  filter(gene_id=="ENSG00000003509") %>%  # pick gene (previously slice 42)
+  pivot_longer(-gene_id, names_to = "sample", values_to = "count")   %>% # convert to long
+  inner_join(meta, by="sample")
 
-Why do we need to model count data ?
-
-```{r plotcounts}
-ggplot(data=counts(dds_clean) %>% data.frame()) +
-  geom_histogram(
-    aes(x=BM_CTRL_2),
-    stat='bin', bins=200
-  ) +
-  theme_minimal()
-```
-
-Recall that:
-
- * Most genes have no counts (0-inflation)
- * very large range of values
-
-Even a non-trained eye can see that this is not normally distributed, so what distribution do we use ?
-For count data in general:
-
- * Binomial distribution: e.g. number of heads upon tossing a coin n times.
- * Poisson distribution: ~= binomial though n = infinite and event is very small (e.g. lottery). Appropriate for data where mean == variance
-
-In RNA-seq data we have a very large number of RNA molecules, finding a particular gene ~= winning the lottery ?
-
-Let's have a look at the mean and variance of our counts within TG treated BM cells (the replicates).
-
-```{r mean vs variance, warning=FALSE, echo=FALSE}
-means <- counts(dds_clean) %>% data.frame() %>% select("BM_TG_1", "BM_TG_2", "BM_TG_3") %>% apply(1, mean)
-vars <- counts(dds_clean) %>% data.frame() %>% select("BM_TG_1", "BM_TG_2", "BM_TG_3") %>% apply(1, var)
-ggplot(data.frame(means,vars)) +
-  geom_point(size=0.5, aes(x=means, y=vars)) +
-  scale_y_log10(limits=c(1,1e8)) +
-  scale_x_log10(limits=c(1,1e8)) +
-  geom_abline(intercept = 0, slope = 1, color="red") +
-  theme_minimal()
+gene %>%
+  ggplot(aes(x=condition, y=count, col=condition,shape=celltype)) +
+  geom_point(size=3) 
 ```
 
 > **Poll 2.3 **: what kind of distribution would be the most appropriate for this data ?
 
 
-A few remarks:
+### Variance estimates and dispersions
 
- * Mean != variance
- * higher expressed genes tend to have higher variances
- * the variance in the 'lower expressed regions' is quite scattered
+To determine if the expression of a gene differs between different factor levels, we will also need to estimate its variance.   
+Moreover, it is assumed that the variance $\sigma^2$ is independent for each sample $i$
 
-"heteroscedasticity"
+$$
+y_i = f(x_i, \theta) + \epsilon_i ~~~~~~~~~ \epsilon_i \propto N(0, \sigma^2)
+$$
+In general the variance $\sigma^2$ is gene dependent, and it would take many replicates to estimate it properly.
 
-If we would have money (and time) for a very large number of replicates, the high expression data points would move closer to the red line -> Poisson.
+Unfortunately this is rarely the case in an RNA-seq setting, but it would be great if $\sigma^2$ could be estimated from its mean expression. This hope drives much of the work in gene expression analysis, and the discussion below.
 
-In practice, we stick to the negative binomial distribution as it's a good approximation for data where mean < variance
+To keep things simple let's focus on 3 samples from the *same* celltype and condition.
 
-Enter: **Dispersion**
+```{r var_vs_mu_plot}
+var_mu_plot <- function(dds,title="variance-vs-mean"){ 
+  means <- dds %>% counts %>% rowMeans
+  vars <- dds %>% counts %>% rowVars
+  data.frame(mean=means,variance=vars) %>% 
+    ggplot(aes(x=mean, y=variance)) + 
+    geom_point() +
+    scale_x_log10() + 
+    scale_y_log10() +
+    geom_abline(intercept = 0, slope = 1, color="red") +
+    ggtitle(title)
+}
+
+dds_clean[, 3:5] %>% var_mu_plot
+```
+**Notice**: 
+
+- wide range of means
+- many genes are not shown because of logarithmic scale and $\mu=0$
+- for large means: variance is larger than predicted by Poisson (red curve: $var = \mu$)
+- for small means: variance fluctuates strongly
+
+These properties are commonly observed for all RNA-seq experiments and these observations have
+guided the choice of distributions to be used for modelling of sequence counts.
+In fact there are simple tools to generate your own synthetic data sets:
+
+
+**Task**: 
+
+Compare this plot with a *simulated* data set with $n=5000$ genes, $m$ samples from two different
+choices of distributions
+
+```{r var_mu_sim}
+DESeq2::makeExampleDESeqDataSet(n=5000, m=3, dispMeanRel = function(x) 0) %>% var_mu_plot(title="Poisson")
+DESeq2::makeExampleDESeqDataSet(n=5000, m=3) %>% var_mu_plot(title="Negative Binomial")
+```
+**Try it out**: change the number of samples ($m$) in these simulations and observe the changes
+
+**Upshot**: 
+
+$$
+Var(\mu) = \mu + \alpha \mu^2
+$$
+and hence we will have to determine $\alpha$ - the *dispersion* parameter.
+
+This is part of the DESeq2 workflow and can be illustrated as follows
 
 #### gene-wise dispersion estimates
-
-Within group variability (e.g. between replicates) is modeled by parameter `α`, which describes variance of counts with: `Var = μ + α*μ²`, where `α` = dispersion, `Var` = variance, and `μ` = mean. 
-Accurate estimation of `α` is critical:
-
- * not a problem for large studies with many replicates
- * but usually we only have 2-3 replicates => estimates of `α` per gene are usually unreliable (genes with similar means usually have different dispersion values).
-
-What do the dispersions represent ?
-
- * dispersions are inversely related to the mean
- * directly related to the variance
-
- (Higher for small mean counts, lower for high mean counts)
-
-
-#### mean-dispersion relationship & shrinking
-
-DESeq2 shares dispersion information across genes to better estimate variation.
-The assumption here is that genes with *similar expression values* have *similar dispersion values*.
 
 ```{r plot dispersions}
 plotDispEsts(dds_clean)
 ```
+
+The black dots denote gene-wise estimates for $\alpha$. 
+They fluctuate strongly but empirically there seems to be a trend $\alpha=\alpha(\mu)$ than could be exploited
+(red line). In DESeq2 parlance we can share information across genes for a more robust (and opinionated estimates).
+These are the blue dots that represent the adjusted estimates of $\alpha$ and hence the variance.
+
 
 what would be 'bad' dispersion ?
 
@@ -438,7 +457,8 @@ dds_shuffled <- DESeqDataSetFromMatrix(
   colData=meta_shuffled, 
   design= dds_clean %>% design)
 
-dds_shuffled <- DESeq(dds_shuffled)
+# re-run DESeq including sizeFactor and dispersion estimates
+dds_shuffled <- DESeq(dds_shuffled) 
 plotDispEsts(dds_shuffled)
 ```
 
@@ -449,7 +469,7 @@ Signs of a 'good' dispersion plot:
  * 'clouds' or 'wonky shapes' often indicate contamination / outliers
 
 
-### c. fitting model and testing
+### Model fit and testing
 
 Finally we get a fit for each gene, and a Wald test can be used to test for significance of coefficients of interest.
 
@@ -488,7 +508,7 @@ dds_res %>%
 ```
 
 
-### d. Exporting results and further analyses
+### Exporting results and further analyses
 
 ![Export data](images/day2_analysis_tools.png){width=80%}
 
