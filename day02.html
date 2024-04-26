@@ -14,7 +14,7 @@
 
 <title>DESeq2 Analysis with R: Part 02</title>
 
-<script src="site_libs/header-attrs-2.22/header-attrs.js"></script>
+<script src="site_libs/header-attrs-2.25/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
@@ -39,8 +39,8 @@
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 <link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
 <script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
-<link href="site_libs/font-awesome-6.4.0/css/all.min.css" rel="stylesheet" />
-<link href="site_libs/font-awesome-6.4.0/css/v4-shims.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet" />
 
 <style type="text/css">
   code{white-space: pre-wrap;}
@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 02</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Sun Apr 21 11:49:54 2024</h4>
+<h4 class="date">Fri Apr 26 09:51:32 2024</h4>
 
 </div>
 
@@ -416,13 +416,40 @@ div.tocify {
 </div>
 <div id="preparation-repeat" class="section level2">
 <h2>Preparation (Repeat)</h2>
-<div id="load-libraries" class="section level3">
-<h3>Load Libraries</h3>
+<div id="load-packages" class="section level3">
+<h3>Load packages</h3>
 <pre class="r"><code>suppressPackageStartupMessages({
 library(&quot;tidyverse&quot;)
 library(&quot;DESeq2&quot;)
 library(&quot;pheatmap&quot;)
-})</code></pre>
+})
+
+# a convenience function for PCA-plotting
+PCA_tm &lt;- function(dds, nt=500){
+  
+  Y &lt;- dds %&gt;% counts %&gt;% {log2(. + 1)} # data + transformation
+#  Y &lt;- dds %&gt;% counts %&gt;% rlog          # rlog is slow
+  meta &lt;- dds %&gt;% colData               # metadata
+
+  # get nt top variable genes 
+  top &lt;-  Y %&gt;% rowVars(useNames=TRUE) %&gt;% order(decreasing=TRUE) %&gt;% head(nt)   
+  
+  # subset, transpose and perform PCA
+  pca &lt;- Y[top,] %&gt;% t %&gt;% prcomp(scale=TRUE)      
+
+  # calculate fraction of explained variance by PC 
+  vars = round(pca$sdev^2 / sum(pca$sdev^2),3)
+
+  S = pca$x[,1:2] %&gt;%                    # pca$x: score matrix (nt=500 genes --&gt; 2 PC)
+    as_tibble(rownames=&quot;sample&quot;) %&gt;%     # convert to tibble
+    inner_join(metadata, by=&quot;sample&quot;)    # attach metadata for visualization
+
+  # aes() is specific to course material with &quot;condition&quot; and &quot;celltype&quot;
+  ggplot(S, aes(x=PC1, y=PC2, color=condition, shape=celltype)) +
+    geom_point(size=3) +
+    xlab(paste0(&quot;PC1: &quot;,vars[1])) +
+    ylab(paste0(&quot;PC2: &quot;,vars[2]))
+}</code></pre>
 </div>
 <div id="load-data" class="section level3">
 <h3>Load data</h3>
@@ -435,36 +462,16 @@ library(&quot;pheatmap&quot;)
 ## 
 ## ℹ Use `spec()` to retrieve the full column specification for this data.
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
-<pre class="r"><code>data &lt;- data %&gt;% 
-  column_to_rownames(var=&quot;gene_id&quot;) %&gt;%
-  mutate(across(where(is.double), as.integer))
+<pre class="r"><code>#data &lt;- data %&gt;% 
+#  column_to_rownames(var=&quot;gene_id&quot;) %&gt;%
+#  mutate(across(where(is.double), as.integer))
 
-data %&gt;% str()</code></pre>
-<pre><code>## &#39;data.frame&#39;:    57905 obs. of  18 variables:
-##  $ JJ_CTRL_1: int  0 0 1637 453 719 2 2 61 2354 3025 ...
-##  $ BM_CTRL_2: int  0 0 1792 614 961 3 1 76 2808 4071 ...
-##  $ BM_CTRL_3: int  0 0 2368 854 1280 6 2 98 3963 4837 ...
-##  $ BM_AMIL_1: int  0 0 2365 623 937 0 3 180 1298 2242 ...
-##  $ BM_AMIL_2: int  0 0 4808 585 1247 0 0 176 1240 2818 ...
-##  $ BM_AMIL_3: int  0 0 2098 431 852 0 0 163 812 1981 ...
-##  $ BM_CTRL_1: int  0 0 1664 687 884 1 2498 1543 1590 2097 ...
-##  $ JJ_CTRL_2: int  0 0 1878 869 1058 4 2860 2165 2018 2906 ...
-##  $ JJ_CTRL_3: int  0 0 1367 619 616 1 1991 1513 1331 1971 ...
-##  $ JJ_AMIL_1: int  0 0 1155 512 840 3 2274 1262 552 1178 ...
-##  $ JJ_AMIL_2: int  0 0 3020 953 1320 3 3197 2265 1316 2099 ...
-##  $ JJ_AMIL_3: int  0 0 3834 1049 1161 5 3817 2411 1194 2075 ...
-##  $ BM_TG_1  : int  0 0 2461 845 1944 5 3 53 3384 3274 ...
-##  $ BM_TG_2  : int  0 0 1962 757 1528 1 0 40 2918 2785 ...
-##  $ BM_TG_3  : int  0 0 2417 859 2106 3 1 43 3516 3610 ...
-##  $ JJ_TG_1  : int  0 0 1601 823 1350 2 2917 1280 1999 1889 ...
-##  $ JJ_TG_2  : int  0 0 3110 1342 2569 2 4345 1998 3321 3467 ...
-##  $ JJ_TG_3  : int  0 0 2129 904 1654 3 3278 1434 2352 2404 ...</code></pre>
-<pre class="r"><code>data %&gt;% dim()</code></pre>
-<pre><code>## [1] 57905    18</code></pre>
-<pre class="r"><code>data %&gt;% head()</code></pre>
+#data %&gt;% str()
+#data %&gt;% dim()
+data %&gt;% head()</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["JJ_CTRL_1"],"name":[1],"type":["int"],"align":["right"]},{"label":["BM_CTRL_2"],"name":[2],"type":["int"],"align":["right"]},{"label":["BM_CTRL_3"],"name":[3],"type":["int"],"align":["right"]},{"label":["BM_AMIL_1"],"name":[4],"type":["int"],"align":["right"]},{"label":["BM_AMIL_2"],"name":[5],"type":["int"],"align":["right"]},{"label":["BM_AMIL_3"],"name":[6],"type":["int"],"align":["right"]},{"label":["BM_CTRL_1"],"name":[7],"type":["int"],"align":["right"]},{"label":["JJ_CTRL_2"],"name":[8],"type":["int"],"align":["right"]},{"label":["JJ_CTRL_3"],"name":[9],"type":["int"],"align":["right"]},{"label":["JJ_AMIL_1"],"name":[10],"type":["int"],"align":["right"]},{"label":["JJ_AMIL_2"],"name":[11],"type":["int"],"align":["right"]},{"label":["JJ_AMIL_3"],"name":[12],"type":["int"],"align":["right"]},{"label":["BM_TG_1"],"name":[13],"type":["int"],"align":["right"]},{"label":["BM_TG_2"],"name":[14],"type":["int"],"align":["right"]},{"label":["BM_TG_3"],"name":[15],"type":["int"],"align":["right"]},{"label":["JJ_TG_1"],"name":[16],"type":["int"],"align":["right"]},{"label":["JJ_TG_2"],"name":[17],"type":["int"],"align":["right"]},{"label":["JJ_TG_3"],"name":[18],"type":["int"],"align":["right"]}],"data":[{"1":"0","2":"0","3":"0","4":"0","5":"0","6":"0","7":"0","8":"0","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","_rn_":"ENSG00000000003"},{"1":"0","2":"0","3":"0","4":"0","5":"0","6":"0","7":"0","8":"0","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","_rn_":"ENSG00000000005"},{"1":"1637","2":"1792","3":"2368","4":"2365","5":"4808","6":"2098","7":"1664","8":"1878","9":"1367","10":"1155","11":"3020","12":"3834","13":"2461","14":"1962","15":"2417","16":"1601","17":"3110","18":"2129","_rn_":"ENSG00000000419"},{"1":"453","2":"614","3":"854","4":"623","5":"585","6":"431","7":"687","8":"869","9":"619","10":"512","11":"953","12":"1049","13":"845","14":"757","15":"859","16":"823","17":"1342","18":"904","_rn_":"ENSG00000000457"},{"1":"719","2":"961","3":"1280","4":"937","5":"1247","6":"852","7":"884","8":"1058","9":"616","10":"840","11":"1320","12":"1161","13":"1944","14":"1528","15":"2106","16":"1350","17":"2569","18":"1654","_rn_":"ENSG00000000460"},{"1":"2","2":"3","3":"6","4":"0","5":"0","6":"0","7":"1","8":"4","9":"1","10":"3","11":"3","12":"5","13":"5","14":"1","15":"3","16":"2","17":"2","18":"3","_rn_":"ENSG00000000938"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["gene_id"],"name":[1],"type":["chr"],"align":["left"]},{"label":["JJ_CTRL_1"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_3"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_1"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_2"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_3"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_1"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_2"],"name":[9],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_3"],"name":[10],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_1"],"name":[11],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_2"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_3"],"name":[13],"type":["dbl"],"align":["right"]},{"label":["BM_TG_1"],"name":[14],"type":["dbl"],"align":["right"]},{"label":["BM_TG_2"],"name":[15],"type":["dbl"],"align":["right"]},{"label":["BM_TG_3"],"name":[16],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_1"],"name":[17],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_2"],"name":[18],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_3"],"name":[19],"type":["dbl"],"align":["right"]}],"data":[{"1":"ENSG00000000003","2":"0","3":"0","4":"0","5":"0","6":"0","7":"0","8":"0","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","19":"0"},{"1":"ENSG00000000005","2":"0","3":"0","4":"0","5":"0","6":"0","7":"0","8":"0","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","19":"0"},{"1":"ENSG00000000419","2":"1637","3":"1792","4":"2368","5":"2365","6":"4808","7":"2098","8":"1664","9":"1878","10":"1367","11":"1155","12":"3020","13":"3834","14":"2461","15":"1962","16":"2417","17":"1601","18":"3110","19":"2129"},{"1":"ENSG00000000457","2":"453","3":"614","4":"854","5":"623","6":"585","7":"431","8":"687","9":"869","10":"619","11":"512","12":"953","13":"1049","14":"845","15":"757","16":"859","17":"823","18":"1342","19":"904"},{"1":"ENSG00000000460","2":"719","3":"961","4":"1280","5":"937","6":"1247","7":"852","8":"884","9":"1058","10":"616","11":"840","12":"1320","13":"1161","14":"1944","15":"1528","16":"2106","17":"1350","18":"2569","19":"1654"},{"1":"ENSG00000000938","2":"2","3":"3","4":"6","5":"0","6":"0","7":"0","8":"1","9":"4","10":"1","11":"3","12":"3","13":"5","14":"5","15":"1","16":"3","17":"2","18":"2","19":"3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
@@ -478,39 +485,39 @@ data %&gt;% str()</code></pre>
 ## 
 ## ℹ Use `spec()` to retrieve the full column specification for this data.
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
-<pre class="r"><code>metadata &lt;- metadata %&gt;% 
-  mutate(celltype = factor(celltype)) %&gt;%
-  mutate(condition = factor(condition)) %&gt;%
-  column_to_rownames(&quot;sample&quot;)  
+<pre class="r"><code>metadata &lt;- metadata %&gt;% mutate_if(is.character,as.factor)
 
-metadata %&gt;% str()</code></pre>
-<pre><code>## &#39;data.frame&#39;:    18 obs. of  2 variables:
-##  $ celltype : Factor w/ 2 levels &quot;BM&quot;,&quot;JJ&quot;: 2 1 1 1 1 1 1 2 2 2 ...
-##  $ condition: Factor w/ 3 levels &quot;AMIL&quot;,&quot;DMSO&quot;,..: 2 2 2 1 1 1 2 2 2 1 ...</code></pre>
-<pre class="r"><code>metadata %&gt;% dim()</code></pre>
-<pre><code>## [1] 18  2</code></pre>
-<pre class="r"><code>metadata %&gt;% head()</code></pre>
+#metadata &lt;- metadata %&gt;% 
+#  mutate(celltype = factor(celltype)) %&gt;%
+#  mutate(condition = factor(condition)) %&gt;%
+#  column_to_rownames(&quot;sample&quot;)  
+
+#metadata %&gt;% str()
+#metadata %&gt;% dim()
+metadata %&gt;% head()</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["celltype"],"name":[1],"type":["fct"],"align":["left"]},{"label":["condition"],"name":[2],"type":["fct"],"align":["left"]}],"data":[{"1":"JJ","2":"DMSO","_rn_":"JJ_CTRL_1"},{"1":"BM","2":"DMSO","_rn_":"BM_CTRL_2"},{"1":"BM","2":"DMSO","_rn_":"BM_CTRL_3"},{"1":"BM","2":"AMIL","_rn_":"BM_AMIL_1"},{"1":"BM","2":"AMIL","_rn_":"BM_AMIL_2"},{"1":"BM","2":"AMIL","_rn_":"BM_AMIL_3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["sample"],"name":[1],"type":["fct"],"align":["left"]},{"label":["celltype"],"name":[2],"type":["fct"],"align":["left"]},{"label":["condition"],"name":[3],"type":["fct"],"align":["left"]}],"data":[{"1":"JJ_CTRL_1","2":"JJ","3":"DMSO"},{"1":"BM_CTRL_2","2":"BM","3":"DMSO"},{"1":"BM_CTRL_3","2":"BM","3":"DMSO"},{"1":"BM_AMIL_1","2":"BM","3":"AMIL"},{"1":"BM_AMIL_2","2":"BM","3":"AMIL"},{"1":"BM_AMIL_3","2":"BM","3":"AMIL"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>#check if the col and rows are in the same order:
 all(rownames(metadata) == colnames(data))</code></pre>
-<pre><code>## [1] TRUE</code></pre>
-<pre class="r"><code># Convert to factors
-metadata$celltype &lt;- metadata$celltype %&gt;% as.factor()
-metadata$condition &lt;- metadata$condition %&gt;% as.factor()</code></pre>
+<pre><code>## Warning in rownames(metadata) == colnames(data): longer object length is not a
+## multiple of shorter object length</code></pre>
+<pre><code>## [1] FALSE</code></pre>
 </div>
 <div id="create-design" class="section level3">
 <h3>Create Design</h3>
-<pre class="r"><code>my_design &lt;- ~celltype + condition</code></pre>
+<pre class="r"><code>my_design &lt;- ~ celltype + condition</code></pre>
 </div>
 <div id="create-deseq-object" class="section level3">
 <h3>Create DESeq Object</h3>
-<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design=my_design)
-
-class(dds)</code></pre>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(
+  countData=data %&gt;% column_to_rownames(&quot;gene_id&quot;), 
+  colData=metadata, 
+  design=my_design)</code></pre>
+<pre><code>## converting counts to integer mode</code></pre>
+<pre class="r"><code>class(dds)</code></pre>
 <pre><code>## [1] &quot;DESeqDataSet&quot;
 ## attr(,&quot;package&quot;)
 ## [1] &quot;DESeq2&quot;</code></pre>
@@ -521,31 +528,11 @@ class(dds)</code></pre>
 <h3>First Inspection (PCA)</h3>
 <p>Previously you noticed that the PCA shows a problem with our
 data.</p>
-<pre class="r"><code># define function (see day 1)
-myPlotPCA = function(dds, nt=500) {
-  M &lt;- counts(dds)                 # get counts from dds
-  Mt &lt;- log2(M + 1)                # a simple (and fast) transformation
-  ann &lt;- data.frame(colData(dds))  # get annotations from colData = metadata
-  cn_col &lt;- c(&quot;#1B9E77&quot;, &quot;#D95F02&quot;, &quot;#7570B3&quot;)   # condition colours
-  names(cn_col) &lt;- levels(ann$condition) # name the color vector
-
-  top &lt;- Mt %&gt;% rowVars() %&gt;% order(decreasing=TRUE) %&gt;% head(nt)  # calculate variance for each row and sort
-  pca &lt;- Mt[top,] %&gt;% t() %&gt;% prcomp(scale=TRUE)                    # perform PCA
-
-  rld_PCA &lt;- as.data.frame(pca$x[,1:2])                     # only take PC1 and PC2 (column 1 + 2)
-  rld_PCA$condition &lt;- ann[rownames(rld_PCA),&quot;condition&quot;]   # add condition label from ann
-  rld_PCA$celltype  &lt;- ann[rownames(rld_PCA),&quot;celltype&quot;]    # add celltype label from ann
-
-  ggplot(rld_PCA, aes(PC1, PC2, color=condition, shape=celltype)) +
-    geom_point(size=3) +
-    scale_colour_manual(values=cn_col)
-}
-
-
-myPlotPCA(dds)</code></pre>
-<pre><code>## Warning: useNames = NA is deprecated. Instead, specify either useNames = TRUE
-## or useNames = TRUE.</code></pre>
+<pre class="r"><code>dds %&gt;% PCA_tm</code></pre>
 <p><img src="day02_files/figure-html/old_PCA-1.png" width="80%" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># DESeq2::plotPCA does not show this very clearly
+# dds %&gt;% rlog %&gt;% plotPCA(intgroup=c(&quot;celltype&quot;, &quot;condition&quot;)) # rlog slow
+# dds %&gt;% vst %&gt;% plotPCA(intgroup=c(&quot;celltype&quot;, &quot;condition&quot;))  # vst faster</code></pre>
 <blockquote>
 <p><strong>Poll 2.1:</strong> What should we do next ?</p>
 </blockquote>
@@ -562,9 +549,7 @@ class it also has dimensions assigned – check <code>dim(dds)</code> –
 and samples can be un/selected like columns in a standard
 dataframes.</p>
 <pre class="r"><code>dds_clean &lt;- dds[, -c(1,7)] 
-myPlotPCA(dds_clean)</code></pre>
-<pre><code>## Warning: useNames = NA is deprecated. Instead, specify either useNames = TRUE
-## or useNames = TRUE.</code></pre>
+dds_clean %&gt;% PCA_tm</code></pre>
 <p><img src="day02_files/figure-html/filter_samples-1.png" width="80%" style="display: block; margin: auto;" /></p>
 </div>
 <div id="filter-genes---10-min" class="section level3">
@@ -578,12 +563,18 @@ myPlotPCA(dds_clean)</code></pre>
 <li>reduces memory size of ‘dds’ object =&gt; increases the speed</li>
 </ul></li>
 </ul>
-<p><strong>Task</strong> Filter out the genes that have a total amount
-of only zero or 1 counts.</p>
+<p><strong>Task</strong> Filter out the genes from dds that have a total
+amount of only zero or 1 counts. Based on this filtering define a new
+data set and inspect its dimensions</p>
 <p>Hint: Have a look at the output of
 <code>dds_clean %&gt;% counts %&gt;% rowSums() %&gt;% head()</code></p>
-<pre class="r"><code>rs = dds_clean %&gt;% counts %&gt;% rowSums()
-dds_clean = dds_clean[rs&gt;1,]</code></pre>
+<pre class="r"><code>rs &lt;- dds_clean %&gt;% counts %&gt;% rowSums()
+
+# class(dds_clean)=&quot;DESeqDataSet&quot; with convenience operator []
+dds_clean &lt;- dds_clean[rs&gt;1,] 
+
+dim(dds_clean)</code></pre>
+<pre><code>## [1] 27351    16</code></pre>
 <blockquote>
 <p><strong>Poll 2.2</strong> How many samples and genes are left in the
 filtered data set?</p>
@@ -598,10 +589,10 @@ data !</p>
 sorted <em>alphanumerically</em>. It may be more convenient to sort them
 by some user defined order - this is called relevelling</p>
 <center>
-<div class="figure">
+<div class="float">
 <img src="images/day2_factor_order_comparison.png" style="width:60.0%"
-alt="" />
-<p class="caption">Factor order</p>
+alt="Factor order" />
+<div class="figcaption">Factor order</div>
 </div>
 </center>
 <p><br></p>
@@ -624,8 +615,8 @@ dds_clean$condition</code></pre>
 ## [16] TG  
 ## Levels: DMSO AMIL TG</code></pre>
 <p><strong>Notice:</strong> Per default DESeq2 will make comparisons
-with respect to the 1st level, unless specified more explicitly
-(contrasts, see tomorrow).</p>
+with respect to the 1st level, unless specified more explicitly using
+“contrasts” (see tomorrow).</p>
 </div>
 <div id="preparation-summary" class="section level2">
 <h2>Preparation Summary</h2>
@@ -658,9 +649,10 @@ workflows and software versions carefully - use notebooks !</p>
 </div>
 <div id="the-deseq-workflow-60-min" class="section level2">
 <h2>The DESeq workflow (60 min)</h2>
-<p>Everything we did until now was before any statistical analysis.
-Quite some work stil needs to happen. Luckily, our life is made easy
-(again), as DESeq2 wrap up the rest in one convenient function:</p>
+<p>Everything we did until now was setup - and before any normalization,
+parameter estimates or statistical testing.</p>
+<p>Luckily for much of the following DESeq2 provides a convenient
+wrapper function:</p>
 <blockquote>
 <p>dds &lt;- DESeq(dds)</p>
 </blockquote>
@@ -688,28 +680,28 @@ also needed for exploratory analysis and visualisation.</p>
 <p>A couple of reasons for normalization include:</p>
 <hr />
 <p><em>sequencing depth</em></p>
-<div class="figure">
+<div class="float">
 <img src="images/day2_normalization_seqdepth.png" style="width:50.0%"
-alt="" />
-<p class="caption">‘doubling of expression due to sequencing depth’.
-Image from github.com/hbctraining</p>
+alt="‘doubling of expression due to sequencing depth’. Image from github.com/hbctraining" />
+<div class="figcaption">‘doubling of expression due to sequencing
+depth’. Image from github.com/hbctraining</div>
 </div>
 <hr />
 <p><em>gene length</em></p>
-<div class="figure">
+<div class="float">
 <img src="images/day2_normalization_genelength.png" style="width:35.0%"
-alt="" />
-<p class="caption">‘gene x and y have similar levels of expression,
+alt="‘gene x and y have similar levels of expression, though gene x has way more reads aligned due to its length.’. Image from github.com/hbctraining" />
+<div class="figcaption">‘gene x and y have similar levels of expression,
 though gene x has way more reads aligned due to its length.’. Image from
-github.com/hbctraining</p>
+github.com/hbctraining</div>
 </div>
 <hr />
 <p><em>compositional bias</em></p>
-<div class="figure">
+<div class="float">
 <img src="images/day2_normalization_compbias.png" style="width:50.0%"
-alt="" />
-<p class="caption">‘compositional bias through contaminant (e.g. rRNA)’.
-Image from github.com/hbctraining</p>
+alt="‘compositional bias through contaminant (e.g. rRNA)’. Image from github.com/hbctraining" />
+<div class="figcaption">‘compositional bias through contaminant
+(e.g. rRNA)’. Image from github.com/hbctraining</div>
 </div>
 <hr />
 <p>A number of commonly used normalization techniques:</p>
@@ -753,42 +745,54 @@ some manual labour, sequencing depth normalized counts.</p>
 <p>Hint, counts() can return DESeq normalized counts as well with the
 argument normalized=TRUE! Hint2: geometric mean of a vector x can be
 calculated with exp(mean(log(x)))</p>
-<pre class="r"><code>ann &lt;- data.frame(colData(dds_clean))
-ann$seq_depth &lt;- counts(dds_clean) %&gt;% colSums()/1e6    # sequencing depth in millions 
-
-pheatmap(
-  counts(dds_clean) %&gt;% head(10),
-  main=&quot;Raw&quot;,
-  cluster_cols=FALSE,
-  cluster_rows=FALSE,
-  annotation=ann
-)</code></pre>
-<p><img src="day02_files/figure-html/heatmap_raw-1.png" width="672" /></p>
-<pre class="r"><code>pheatmap(
-  counts(dds_clean, normalized=TRUE) %&gt;% head(10),
-  main=&quot;median of ratios&quot;,
-  cluster_cols=FALSE,
-  cluster_rows=FALSE,
-  annotation=ann
-)</code></pre>
+<pre class="r"><code>meta &lt;- dds_clean %&gt;% colData %&gt;% data.frame %&gt;% select(-sample)
+Y &lt;- dds_clean %&gt;% counts %&gt;% head(10) 
+pheatmap(Y, annotation=meta)</code></pre>
+<p><img src="day02_files/figure-html/heatmap_raw-1.png" width="672" />
+<strong>Notice</strong>:</p>
+<ul>
+<li>a size factor was added to each sample (during the DESeq2 run)</li>
+<li>colours can of course be customized (as shown before)</li>
+<li>pheatmap is opinionated about possible inputs (need to convert)</li>
+</ul>
+<p><strong>Task</strong>: The counts() function has a parameter
+(normalized=TRUE) to extract the normalized counts after DESeq2 is run.
+Modify the above to plot the same heatmap with normalized counts and
+observe the differences.</p>
+<pre class="r"><code>Y &lt;- dds_clean %&gt;% counts(normalized=TRUE) %&gt;% head(10) 
+pheatmap(Y, annotation=meta)</code></pre>
 <p><img src="day02_files/figure-html/heatmap%20deseq_normalized-1.png" width="672" /></p>
-<pre class="r"><code>sfs &lt;- (counts(dds_clean) %&gt;% colSums()) / ((counts(dds_clean) %&gt;% colSums()) %&gt;% log() %&gt;% mean() %&gt;% exp())
-ann$sfs &lt;- sfs
-pheatmap(
-  sweep(counts(dds_clean), 2, sfs, FUN = &#39;/&#39;) %&gt;% head(10),
-  main=&quot;sequencing depth&quot;,
-  cluster_cols=FALSE,
-  cluster_rows=FALSE,
-  annotation=ann
-)</code></pre>
-<p><img src="day02_files/figure-html/heatmap%20sequencing_depth-1.png" width="672" /></p>
-<pre class="r"><code>ggplot(ann) +
-  geom_point(aes(x=sfs, sizeFactor)) +
-  geom_abline(intercept = 0, slope = 1, color=&quot;red&quot;) +
-  theme_minimal() +
-  xlab(&quot;Size factor sequencing depth&quot;) +
-  ylab(&quot;Median of ratios sizefactor&quot;)</code></pre>
+<p>Remember that the size factor for each sample (meta$sizeFactor) is a
+sophisticated way to account for sequencing depth and underpins the
+normalization used above. It is good practice to inspect the size
+factors and try to detect outlier samples</p>
+<p><strong>Task</strong>: - add the sequencing depth as additional
+column to metadata <code>meta</code> - plot the size factor vs
+sequencing depth</p>
+<pre class="r"><code>meta$sizeFactor %&gt;% summary</code></pre>
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##  0.6668  0.8884  1.1038  1.0350  1.1731  1.4179</code></pre>
+<pre class="r"><code>meta$seq_depth &lt;- dds_clean %&gt;% counts %&gt;% colSums()/1e6 
+
+ggplot(meta) +
+  geom_point(aes(x=seq_depth, y=sizeFactor)) +
+  xlab(&quot;sequencing depth&quot;) +
+  ylab(&quot;sizefactor&quot;)</code></pre>
 <p><img src="day02_files/figure-html/seq%20depth%20factors%20vs%20median%20of%20ratios%20factors-1.png" width="672" /></p>
+<pre class="r"><code># colSums(counts(dds_clean)) are not strictly the sequencing depth (after gene filtering), but
+# colSums(counts(dds))       may contain more samples (before sample filtering)
+sd = dds %&gt;% counts %&gt;% colSums %&gt;% enframe(name=&quot;sample&quot;, value=&quot;seq_depth&quot;)
+
+
+
+# therefore we ne 
+meta </code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["celltype"],"name":[1],"type":["fct"],"align":["left"]},{"label":["condition"],"name":[2],"type":["fct"],"align":["left"]},{"label":["sizeFactor"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["seq_depth"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"BM","2":"DMSO","3":"1.1433547","4":"40.85696","_rn_":"BM_CTRL_2"},{"1":"BM","2":"DMSO","3":"1.4178968","4":"50.57000","_rn_":"BM_CTRL_3"},{"1":"BM","2":"AMIL","3":"1.1081712","4":"37.00090","_rn_":"BM_AMIL_1"},{"1":"BM","2":"AMIL","3":"1.2521730","4":"43.42942","_rn_":"BM_AMIL_2"},{"1":"BM","2":"AMIL","3":"0.8317523","4":"29.90683","_rn_":"BM_AMIL_3"},{"1":"JJ","2":"DMSO","3":"1.0132260","4":"37.55140","_rn_":"JJ_CTRL_2"},{"1":"JJ","2":"DMSO","3":"0.6720967","4":"25.26493","_rn_":"JJ_CTRL_3"},{"1":"JJ","2":"AMIL","3":"0.6667752","4":"23.70756","_rn_":"JJ_AMIL_1"},{"1":"JJ","2":"AMIL","3":"1.0994127","4":"38.87287","_rn_":"JJ_AMIL_2"},{"1":"JJ","2":"AMIL","3":"1.2136785","4":"41.75515","_rn_":"JJ_AMIL_3"},{"1":"BM","2":"TG","3":"1.1125837","4":"36.30557","_rn_":"BM_TG_1"},{"1":"BM","2":"TG","3":"0.9072609","4":"29.79480","_rn_":"BM_TG_2"},{"1":"BM","2":"TG","3":"1.1596233","4":"38.85234","_rn_":"BM_TG_3"},{"1":"JJ","2":"TG","3":"0.7719960","4":"27.56359","_rn_":"JJ_TG_1"},{"1":"JJ","2":"TG","3":"1.2800491","4":"44.60110","_rn_":"JJ_TG_2"},{"1":"JJ","2":"TG","3":"0.9103010","4":"32.00536","_rn_":"JJ_TG_3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<p>There is no extreme outlier for the size factor</p>
 </div>
 <div id="b.-dispersions" class="section level3">
 <h3>b. Dispersions</h3>
@@ -865,18 +869,22 @@ values</em> have <em>similar dispersion values</em>.</p>
 <pre class="r"><code>plotDispEsts(dds_clean)</code></pre>
 <p><img src="day02_files/figure-html/plot%20dispersions-1.png" width="672" /></p>
 <p>what would be ‘bad’ dispersion ?</p>
-<pre class="r"><code>metadata_thrash &lt;- metadata 
-metadata_thrash$celltype &lt;- sample(metadata$celltype)
-metadata_thrash$condition &lt;- sample(metadata$condition)
-dds_thrash &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata_thrash, design=~celltype+condition+celltype:condition)
-dds_thrash &lt;- DESeq(dds_thrash)</code></pre>
+<pre class="r"><code># remove sizeFactor from metadata and shuffle (=sample) all columns
+meta_shuffled &lt;- dds_clean %&gt;% colData %&gt;% data.frame() %&gt;% select(-sizeFactor) %&gt;% mutate_all(sample)
+
+dds_shuffled &lt;- DESeqDataSetFromMatrix(
+  countData=dds_clean %&gt;% counts, 
+  colData=meta_shuffled, 
+  design= dds_clean %&gt;% design)
+
+dds_shuffled &lt;- DESeq(dds_shuffled)</code></pre>
 <pre><code>## estimating size factors</code></pre>
 <pre><code>## estimating dispersions</code></pre>
 <pre><code>## gene-wise dispersion estimates</code></pre>
 <pre><code>## mean-dispersion relationship</code></pre>
 <pre><code>## final dispersion estimates</code></pre>
 <pre><code>## fitting model and testing</code></pre>
-<pre class="r"><code>plotDispEsts(dds_thrash)</code></pre>
+<pre class="r"><code>plotDispEsts(dds_shuffled)</code></pre>
 <p><img src="day02_files/figure-html/baddisp-1.png" width="672" /></p>
 <p>Signs of a ‘good’ dispersion plot:</p>
 <ul>
@@ -964,9 +972,10 @@ log2FoldChange.</li>
 <div id="d.-exporting-results-and-further-analyses"
 class="section level3">
 <h3>d. Exporting results and further analyses</h3>
-<div class="figure">
-<img src="images/day2_analysis_tools.png" style="width:80.0%" alt="" />
-<p class="caption">Export data</p>
+<div class="float">
+<img src="images/day2_analysis_tools.png" style="width:80.0%"
+alt="Export data" />
+<div class="figcaption">Export data</div>
 </div>
 <blockquote>
 <p><strong>Task</strong>: Please export your results table to a csv /
@@ -977,25 +986,21 @@ tsv file.</p>
 <p>shiny apps on MPI-IE website (<a
 href="https://rsconnect.ie-freiburg.mpg.de/shiny/"
 class="uri">https://rsconnect.ie-freiburg.mpg.de/shiny/</a>)</p>
-<div class="figure">
-<img src="images/day2_shinyapps.png" style="width:80.0%" alt="" />
-<p class="caption">Shiny apps</p>
+<div class="float">
+<img src="images/day2_shinyapps.png" style="width:80.0%"
+alt="Shiny apps" />
+<div class="figcaption">Shiny apps</div>
 </div>
 <p><em>Genes2Functions</em></p>
-<div class="figure">
+<div class="float">
 <img src="images/day2_genes2functions_maplot.png" style="width:80.0%"
-alt="" />
-<p class="caption">genes2functions_maplot</p>
+alt="genes2functions_maplot" />
+<div class="figcaption">genes2functions_maplot</div>
 </div>
-<div class="figure">
-<img src="images/day2_genes2functions_computing.png" style="width:80.0%"
-alt="" />
-<p class="caption">genes2functions_GO</p>
-</div>
-<div class="figure">
+<div class="float">
 <img src="images/day2_genes2functions_dotplot.png" style="width:80.0%"
-alt="" />
-<p class="caption">genes2functions_GO</p>
+alt="genes2functions_GO" />
+<div class="figcaption">genes2functions_GO</div>
 </div>
 </div>
 </div>

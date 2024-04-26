@@ -14,7 +14,7 @@
 
 <title>DESeq2 Analysis with R: Part 03</title>
 
-<script src="site_libs/header-attrs-2.22/header-attrs.js"></script>
+<script src="site_libs/header-attrs-2.25/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
@@ -39,8 +39,8 @@
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 <link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
 <script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
-<link href="site_libs/font-awesome-6.4.0/css/all.min.css" rel="stylesheet" />
-<link href="site_libs/font-awesome-6.4.0/css/v4-shims.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet" />
 
 <style type="text/css">
   code{white-space: pre-wrap;}
@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Sun Apr 21 11:50:48 2024</h4>
+<h4 class="date">Fri Apr 26 09:52:19 2024</h4>
 
 </div>
 
@@ -1057,12 +1057,14 @@ res2 %&gt;% data.frame() %&gt;% head() %&gt;% drop_na()</code></pre>
 <pre class="r"><code>ggplot(data=res %&gt;% data.frame()) +
   geom_point(size=0.5, aes(x=log10(baseMean+1), y=-log10(padj))) +
   theme_minimal()</code></pre>
-<pre><code>## Warning: Removed 6898 rows containing missing values (`geom_point()`).</code></pre>
+<pre><code>## Warning: Removed 6898 rows containing missing values or values outside the scale range
+## (`geom_point()`).</code></pre>
 <p><img src="day03_files/figure-html/plot%20norm_count%20vs%20p%20values-1.png" width="672" /></p>
 <pre class="r"><code>ggplot(data=res %&gt;% data.frame()) +
   geom_point(size=0.5, aes(x=log2FoldChange, y=-log10(padj))) +
   theme_minimal()</code></pre>
-<pre><code>## Warning: Removed 6898 rows containing missing values (`geom_point()`).</code></pre>
+<pre><code>## Warning: Removed 6898 rows containing missing values or values outside the scale range
+## (`geom_point()`).</code></pre>
 <p><img src="day03_files/figure-html/plot%20l2fc%20vs%20p%20values-1.png" width="672" /></p>
 </div>
 <div id="c.-shrinking" class="section level3">

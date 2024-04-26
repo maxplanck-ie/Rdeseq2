@@ -14,7 +14,7 @@
 
 <title>DESeq2 Analysis with R: outline</title>
 
-<script src="site_libs/header-attrs-2.22/header-attrs.js"></script>
+<script src="site_libs/header-attrs-2.25/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
@@ -39,8 +39,8 @@
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 <link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
 <script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
-<link href="site_libs/font-awesome-6.4.0/css/all.min.css" rel="stylesheet" />
-<link href="site_libs/font-awesome-6.4.0/css/v4-shims.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet" />
 
 <style type="text/css">
   code{white-space: pre-wrap;}
@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: outline</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Sun Apr 21 11:53:46 2024</h4>
+<h4 class="date">Fri Apr 26 09:55:01 2024</h4>
 
 </div>
 
@@ -406,11 +406,16 @@ div.tocify {
 <hr />
 <div id="libraries" class="section level1">
 <h1>Libraries</h1>
+<blockquote>
+<p><strong>Poll 0.1</strong>: What is the first element in your
+.libPaths() ?</p>
+</blockquote>
 <p>We will use a couple of libraries in this course. We have to make
-sure these are installed. These installations can take a while. So it’s
-best to tackle this first. The following code chunk will checks if a
-required library is available and will attempt to install it if this is
-not the case.</p>
+sure these are installed - in a suitable location defined by
+.libPaths().</p>
+<p>These installations can take a while. So it’s best to tackle this
+first. The following code chunk will checks if a required library is
+available and will attempt to install it if this is not the case.</p>
 <pre class="r"><code># Bioconductor
 if (!require(&quot;BiocManager&quot;, quietly = TRUE))
     install.packages(&quot;BiocManager&quot;)
@@ -525,16 +530,18 @@ class="section level2">
 <div id="recap" class="section level1">
 <h1>Recap</h1>
 <p>The Rstudio GUI.</p>
-<div class="figure">
-<img src="images/outline_script.png" alt="" />
-<p class="caption">An Rscript in the Rstudio GUI</p>
+<div class="float">
+<img src="images/outline_script.png"
+alt="An Rscript in the Rstudio GUI" />
+<div class="figcaption">An Rscript in the Rstudio GUI</div>
 </div>
-<div class="figure">
-<img src="images/outline_book.png" alt="" />
-<p class="caption">An R notebook in the Rstudio GUI</p>
+<div class="float">
+<img src="images/outline_book.png"
+alt="An R notebook in the Rstudio GUI" />
+<div class="figcaption">An R notebook in the Rstudio GUI</div>
 </div>
 <blockquote>
-<p><strong>Poll 0.1</strong>: How will you keep track of the code,
+<p><strong>Poll 0.2</strong>: How will you keep track of the code,
 course material and notes during this course ?</p>
 </blockquote>
 <hr />
@@ -592,9 +599,11 @@ will retrieve your project directory:</p>
 <li>myeloma</li>
 </ul>
 <p>How it should look like:</p>
-<div class="figure">
-<img src="images/outline_clonedrepo.png" alt="" />
-<p class="caption">An new R notebook in our freshly cloned project</p>
+<div class="float">
+<img src="images/outline_clonedrepo.png"
+alt="An new R notebook in our freshly cloned project" />
+<div class="figcaption">An new R notebook in our freshly cloned
+project</div>
 </div>
 </div>
 </div>
