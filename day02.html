@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 02</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Fri Apr 26 09:51:32 2024</h4>
+<h4 class="date">Fri Apr 26 16:05:25 2024</h4>
 
 </div>
 
@@ -672,8 +672,8 @@ function. The 3 main steps are of the workflow are:</p>
 <li>general linear model fit for each gene and testing -
 <em>nbinomWaldTest()</em></li>
 </ul>
-<div id="a.-normalization" class="section level3">
-<h3>a. Normalization</h3>
+<div id="normalization-and-size-factors" class="section level3">
+<h3>Normalization and size factors</h3>
 <p>As mentioned yesterday, raw counts cannot be directly used to compare
 samples. To allow comparison we need to normalize. Note that this is
 also needed for exploratory analysis and visualisation.</p>
@@ -766,108 +766,131 @@ pheatmap(Y, annotation=meta)</code></pre>
 sophisticated way to account for sequencing depth and underpins the
 normalization used above. It is good practice to inspect the size
 factors and try to detect outlier samples</p>
-<p><strong>Task</strong>: - add the sequencing depth as additional
-column to metadata <code>meta</code> - plot the size factor vs
-sequencing depth</p>
-<pre class="r"><code>meta$sizeFactor %&gt;% summary</code></pre>
+<p><strong>Task</strong>:</p>
+<ul>
+<li>add the sequencing depth as additional column to metadata
+<code>meta</code></li>
+<li>plot the size factor vs sequencing depth</li>
+</ul>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 ##  0.6668  0.8884  1.1038  1.0350  1.1731  1.4179</code></pre>
-<pre class="r"><code>meta$seq_depth &lt;- dds_clean %&gt;% counts %&gt;% colSums()/1e6 
-
-ggplot(meta) +
-  geom_point(aes(x=seq_depth, y=sizeFactor)) +
-  xlab(&quot;sequencing depth&quot;) +
-  ylab(&quot;sizefactor&quot;)</code></pre>
-<p><img src="day02_files/figure-html/seq%20depth%20factors%20vs%20median%20of%20ratios%20factors-1.png" width="672" /></p>
-<pre class="r"><code># colSums(counts(dds_clean)) are not strictly the sequencing depth (after gene filtering), but
+<p><img src="day02_files/figure-html/sizeFactor_vs_seqdepth-1.png" width="672" /></p>
+<pre class="r"><code># Notice that
+# colSums(counts(dds_clean)) are not strictly the sequencing depths (after gene filtering), but
 # colSums(counts(dds))       may contain more samples (before sample filtering)
-sd = dds %&gt;% counts %&gt;% colSums %&gt;% enframe(name=&quot;sample&quot;, value=&quot;seq_depth&quot;)
 
+meta &lt;- dds_clean %&gt;% colData %&gt;% data.frame 
 
+# The code below uses original dds
+sd &lt;- dds %&gt;% counts %&gt;% colSums %&gt;% enframe(name=&quot;sample&quot;, value=&quot;seq_depth&quot;) %&gt;% mutate(seq_depth=seq_depth/1e6)
 
-# therefore we ne 
-meta </code></pre>
-<div data-pagedtable="false">
-<script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["celltype"],"name":[1],"type":["fct"],"align":["left"]},{"label":["condition"],"name":[2],"type":["fct"],"align":["left"]},{"label":["sizeFactor"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["seq_depth"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"BM","2":"DMSO","3":"1.1433547","4":"40.85696","_rn_":"BM_CTRL_2"},{"1":"BM","2":"DMSO","3":"1.4178968","4":"50.57000","_rn_":"BM_CTRL_3"},{"1":"BM","2":"AMIL","3":"1.1081712","4":"37.00090","_rn_":"BM_AMIL_1"},{"1":"BM","2":"AMIL","3":"1.2521730","4":"43.42942","_rn_":"BM_AMIL_2"},{"1":"BM","2":"AMIL","3":"0.8317523","4":"29.90683","_rn_":"BM_AMIL_3"},{"1":"JJ","2":"DMSO","3":"1.0132260","4":"37.55140","_rn_":"JJ_CTRL_2"},{"1":"JJ","2":"DMSO","3":"0.6720967","4":"25.26493","_rn_":"JJ_CTRL_3"},{"1":"JJ","2":"AMIL","3":"0.6667752","4":"23.70756","_rn_":"JJ_AMIL_1"},{"1":"JJ","2":"AMIL","3":"1.0994127","4":"38.87287","_rn_":"JJ_AMIL_2"},{"1":"JJ","2":"AMIL","3":"1.2136785","4":"41.75515","_rn_":"JJ_AMIL_3"},{"1":"BM","2":"TG","3":"1.1125837","4":"36.30557","_rn_":"BM_TG_1"},{"1":"BM","2":"TG","3":"0.9072609","4":"29.79480","_rn_":"BM_TG_2"},{"1":"BM","2":"TG","3":"1.1596233","4":"38.85234","_rn_":"BM_TG_3"},{"1":"JJ","2":"TG","3":"0.7719960","4":"27.56359","_rn_":"JJ_TG_1"},{"1":"JJ","2":"TG","3":"1.2800491","4":"44.60110","_rn_":"JJ_TG_2"},{"1":"JJ","2":"TG","3":"0.9103010","4":"32.00536","_rn_":"JJ_TG_3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
-  </script>
-</div>
-<p>There is no extreme outlier for the size factor</p>
-</div>
-<div id="b.-dispersions" class="section level3">
-<h3>b. Dispersions</h3>
-<p>Why do we need to model count data ?</p>
-<pre class="r"><code>ggplot(data=counts(dds_clean) %&gt;% data.frame()) +
-  geom_histogram(
-    aes(x=BM_CTRL_2),
-    stat=&#39;bin&#39;, bins=200
-  ) +
-  theme_minimal()</code></pre>
-<p><img src="day02_files/figure-html/plotcounts-1.png" width="672" /></p>
-<p>Recall that:</p>
-<ul>
-<li>Most genes have no counts (0-inflation)</li>
-<li>very large range of values</li>
-</ul>
-<p>Even a non-trained eye can see that this is not normally distributed,
-so what distribution do we use ? For count data in general:</p>
-<ul>
-<li>Binomial distribution: e.g. number of heads upon tossing a coin n
-times.</li>
-<li>Poisson distribution: ~= binomial though n = infinite and event is
-very small (e.g. lottery). Appropriate for data where mean ==
-variance</li>
-</ul>
-<p>In RNA-seq data we have a very large number of RNA molecules, finding
-a particular gene ~= winning the lottery ?</p>
-<p>Let’s have a look at the mean and variance of our counts within TG
-treated BM cells (the replicates).</p>
-<p><img src="day02_files/figure-html/mean%20vs%20variance-1.png" width="672" /></p>
+# pay more attention to proper sample name matching: inner_join by sample name 
+meta %&gt;% inner_join(sd, by=&quot;sample&quot;) %&gt;% 
+  ggplot(aes(x=seq_depth, y=sizeFactor)) + geom_point()</code></pre>
+<p><strong>Observation:</strong>. No outliers. sizeFactors behaves as
+expected.</p>
+<p><strong>Task</strong> Study the effect of sizeFactor normalization
+for a single gene. The code below is for unnormalized count data - with
+a simple modification you can obtain the normalized data.</p>
+<pre class="r"><code>gene &lt;- dds_clean %&gt;% counts(normalized=T) %&gt;%
+  as_tibble(rownames=&#39;gene_id&#39;) %&gt;%       # tibble does not like rownames
+  filter(gene_id==&quot;ENSG00000003509&quot;) %&gt;%  # pick gene (previously slice 42)
+  pivot_longer(-gene_id, names_to = &quot;sample&quot;, values_to = &quot;count&quot;)   %&gt;% # convert to long
+  inner_join(meta, by=&quot;sample&quot;)
+
+gene %&gt;%
+  ggplot(aes(x=condition, y=count, col=condition,shape=celltype)) +
+  geom_point(size=3) </code></pre>
+<p><img src="day02_files/figure-html/effect_of_sizefactor-1.png" width="672" /></p>
 <blockquote>
 <p><strong>Poll 2.3 </strong>: what kind of distribution would be the
 most appropriate for this data ?</p>
 </blockquote>
-<p>A few remarks:</p>
+</div>
+<div id="variance-estimates-and-dispersions" class="section level3">
+<h3>Variance estimates and dispersions</h3>
+<p>To determine if the expression of a gene differs between different
+factor levels, we will also need to estimate its variance.<br />
+Moreover, it is assumed that the variance <span
+class="math inline">\(\sigma^2\)</span> is independent for each sample
+<span class="math inline">\(i\)</span></p>
+<p><span class="math display">\[
+y_i = f(x_i, \theta) + \epsilon_i ~~~~~~~~~ \epsilon_i \propto N(0,
+\sigma^2)
+\]</span> In general the variance <span
+class="math inline">\(\sigma^2\)</span> is gene dependent, and it would
+take many replicates to estimate it properly.</p>
+<p>Unfortunately this is rarely the case in an RNA-seq setting, but it
+would be great if <span class="math inline">\(\sigma^2\)</span> could be
+estimated from its mean expression. This hope drives much of the work in
+gene expression analysis, and the discussion below.</p>
+<p>To keep things simple let’s focus on 3 samples from the <em>same</em>
+celltype and condition.</p>
+<pre class="r"><code>var_mu_plot &lt;- function(dds,title=&quot;variance-vs-mean&quot;){ 
+  means &lt;- dds %&gt;% counts %&gt;% rowMeans()
+  vars &lt;- dds %&gt;% counts %&gt;% rowVars(useNames = TRUE)
+  data.frame(mean=means,variance=vars) %&gt;% 
+    ggplot(aes(x=mean, y=variance)) + 
+    geom_point() +
+    scale_x_log10() + 
+    scale_y_log10() +
+    geom_abline(intercept = 0, slope = 1, color=&quot;red&quot;) +
+    ggtitle(title)
+}
+
+dds_clean[, 3:5] %&gt;% var_mu_plot</code></pre>
+<pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
+<pre><code>## Warning in scale_y_log10(): log-10 transformation introduced infinite values.</code></pre>
+<p><img src="day02_files/figure-html/var_vs_mu_plot-1.png" width="672" />
+<strong>Notice</strong>:</p>
 <ul>
-<li>Mean != variance</li>
-<li>higher expressed genes tend to have higher variances</li>
-<li>the variance in the ‘lower expressed regions’ is quite
-scattered</li>
+<li>wide range of means</li>
+<li>many genes are not shown because of logarithmic scale and <span
+class="math inline">\(\mu=0\)</span></li>
+<li>for large means: variance is larger than predicted by Poisson (red
+curve: <span class="math inline">\(var = \mu\)</span>)</li>
+<li>for small means: variance fluctuates strongly</li>
 </ul>
-<p>“heteroscedasticity”</p>
-<p>If we would have money (and time) for a very large number of
-replicates, the high expression data points would move closer to the red
-line -&gt; Poisson.</p>
-<p>In practice, we stick to the negative binomial distribution as it’s a
-good approximation for data where mean &lt; variance</p>
-<p>Enter: <strong>Dispersion</strong></p>
+<p>These properties are commonly observed for all RNA-seq experiments
+and these observations have guided the choice of distributions to be
+used for modelling of sequence counts. In fact there are simple tools to
+generate your own synthetic data sets:</p>
+<p><strong>Task</strong>:</p>
+<p>Compare this plot with a <em>simulated</em> data set with <span
+class="math inline">\(n=5000\)</span> genes, <span
+class="math inline">\(m\)</span> samples from two different choices of
+distributions</p>
+<pre class="r"><code>DESeq2::makeExampleDESeqDataSet(n=5000, m=3, dispMeanRel = function(x) 0) %&gt;% var_mu_plot(title=&quot;Poisson&quot;)</code></pre>
+<pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
+<pre><code>## Warning in scale_y_log10(): log-10 transformation introduced infinite values.</code></pre>
+<p><img src="day02_files/figure-html/var_mu_sim-1.png" width="672" /></p>
+<pre class="r"><code>DESeq2::makeExampleDESeqDataSet(n=5000, m=3) %&gt;% var_mu_plot(title=&quot;Negative Binomial&quot;)</code></pre>
+<pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.
+## log-10 transformation introduced infinite values.</code></pre>
+<p><img src="day02_files/figure-html/var_mu_sim-2.png" width="672" />
+<strong>Try it out</strong>: change the number of samples (<span
+class="math inline">\(m\)</span>) in these simulations and observe the
+changes</p>
+<p><strong>Upshot</strong>:</p>
+<p><span class="math display">\[
+Var(\mu) = \mu + \alpha \mu^2
+\]</span> and hence we will have to determine <span
+class="math inline">\(\alpha\)</span> - the <em>dispersion</em>
+parameter.</p>
+<p>This is part of the DESeq2 workflow and can be illustrated as
+follows</p>
 <div id="gene-wise-dispersion-estimates" class="section level4">
 <h4>gene-wise dispersion estimates</h4>
-<p>Within group variability (e.g. between replicates) is modeled by
-parameter <code>α</code>, which describes variance of counts with:
-<code>Var = μ + α*μ²</code>, where <code>α</code> = dispersion,
-<code>Var</code> = variance, and <code>μ</code> = mean. Accurate
-estimation of <code>α</code> is critical:</p>
-<ul>
-<li>not a problem for large studies with many replicates</li>
-<li>but usually we only have 2-3 replicates =&gt; estimates of
-<code>α</code> per gene are usually unreliable (genes with similar means
-usually have different dispersion values).</li>
-</ul>
-<p>What do the dispersions represent ?</p>
-<ul>
-<li>dispersions are inversely related to the mean</li>
-<li>directly related to the variance</li>
-</ul>
-<p>(Higher for small mean counts, lower for high mean counts)</p>
-</div>
-<div id="mean-dispersion-relationship-shrinking" class="section level4">
-<h4>mean-dispersion relationship &amp; shrinking</h4>
-<p>DESeq2 shares dispersion information across genes to better estimate
-variation. The assumption here is that genes with <em>similar expression
-values</em> have <em>similar dispersion values</em>.</p>
 <pre class="r"><code>plotDispEsts(dds_clean)</code></pre>
 <p><img src="day02_files/figure-html/plot%20dispersions-1.png" width="672" /></p>
+<p>The black dots denote gene-wise estimates for <span
+class="math inline">\(\alpha\)</span>. They fluctuate strongly but
+empirically there seems to be a trend <span
+class="math inline">\(\alpha=\alpha(\mu)\)</span> than could be
+exploited (red line). In DESeq2 parlance we can share information across
+genes for a more robust (and opinionated estimates). These are the blue
+dots that represent the adjusted estimates of <span
+class="math inline">\(\alpha\)</span> and hence the variance.</p>
 <p>what would be ‘bad’ dispersion ?</p>
 <pre class="r"><code># remove sizeFactor from metadata and shuffle (=sample) all columns
 meta_shuffled &lt;- dds_clean %&gt;% colData %&gt;% data.frame() %&gt;% select(-sizeFactor) %&gt;% mutate_all(sample)
@@ -877,7 +900,8 @@ dds_shuffled &lt;- DESeqDataSetFromMatrix(
   colData=meta_shuffled, 
   design= dds_clean %&gt;% design)
 
-dds_shuffled &lt;- DESeq(dds_shuffled)</code></pre>
+# re-run DESeq including sizeFactor and dispersion estimates
+dds_shuffled &lt;- DESeq(dds_shuffled) </code></pre>
 <pre><code>## estimating size factors</code></pre>
 <pre><code>## estimating dispersions</code></pre>
 <pre><code>## gene-wise dispersion estimates</code></pre>
@@ -895,8 +919,8 @@ outliers</li>
 </ul>
 </div>
 </div>
-<div id="c.-fitting-model-and-testing" class="section level3">
-<h3>c. fitting model and testing</h3>
+<div id="model-fit-and-testing" class="section level3">
+<h3>Model fit and testing</h3>
 <p>Finally we get a fit for each gene, and a Wald test can be used to
 test for significance of coefficients of interest.</p>
 <p>Luckily DESeq2 wraps this in a convenient function as well:
@@ -969,9 +993,8 @@ log2FoldChange.</li>
   </script>
 </div>
 </div>
-<div id="d.-exporting-results-and-further-analyses"
-class="section level3">
-<h3>d. Exporting results and further analyses</h3>
+<div id="exporting-results-and-further-analyses" class="section level3">
+<h3>Exporting results and further analyses</h3>
 <div class="float">
 <img src="images/day2_analysis_tools.png" style="width:80.0%"
 alt="Export data" />
