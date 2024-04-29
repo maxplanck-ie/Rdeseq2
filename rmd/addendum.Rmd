@@ -15,7 +15,9 @@ output:
 
 ```{r load, message=FALSE}
 library("DESeq2")
-library("MASS")
+library("ggplot2")
+library("tidyr")
+library("ggExtra")
 ```
 
 ## Example on disbalanced issues with colMeans trick
@@ -28,14 +30,14 @@ and four KO samples:
 2 KO = DMSO treated
 2 KO = DRUG treated
 
-and let's try to investigate the DRUG effect OVER the genotypes
+and let's try to investigate the DRUG effect OVER the genotypes.
 
 ```{r}
 coldata <- data.frame(
     cond = c("DMSO", "DMSO", "DRUG", "DRUG", "DRUG", "DMSO", "DMSO", "DRUG", "DRUG"),
     genotype = c("WT", "WT", "WT", "WT", "WT", "KO", "KO", "KO", "KO")
 )
-modmat <- model.matrix(~cond + genotype, coldata)
+modmat <- model.matrix(~cond * genotype, coldata)
 
 a <- modmat[coldata$cond == "DMSO", , drop = FALSE]
 b <- modmat[coldata$cond == "DRUG", , drop = FALSE]
@@ -50,7 +52,7 @@ coldata <- data.frame(
     cond = c("DMSO", "DMSO", "DRUG", "DRUG", "DMSO", "DMSO", "DRUG", "DRUG"),
     genotype = c("WT", "WT", "WT", "WT", "KO", "KO", "KO", "KO")
 )
-modmat <- model.matrix(~cond + genotype, coldata)
+modmat <- model.matrix(~ cond * genotype, coldata)
 
 a <- modmat[coldata$cond == "DMSO", , drop = FALSE]
 b <- modmat[coldata$cond == "DRUG", , drop = FALSE]
@@ -59,50 +61,130 @@ colMeans(b) - colMeans(a)
 ```
 
 
-## Dispersion estimation under different conditions
+```{r load_data}
+data <- readr::read_tsv("data/myeloma/myeloma_counts.tsv")
+data <- data %>% 
+  column_to_rownames(var="gene_id") %>%
+  mutate(across(where(is.double), as.integer))
+```
+```{r}
+means <- data %>% select("BM_TG_1", "BM_TG_2", "BM_TG_3") %>% filter_all(any_vars(. != 0)) %>% apply(1, mean)
+vars <- data %>% select("BM_TG_1", "BM_TG_2", "BM_TG_3") %>% filter_all(any_vars(. != 0)) %>% apply(1, var)
+ggplot(data.frame(means,vars)) +
+  geom_point(size=0.5, aes(x=means, y=vars)) +
+  scale_y_log10(limits=c(1,1e10)) +
+  scale_x_log10(limits=c(1,1e10)) +
+  geom_abline(intercept = 0, slope = 1, color="red") +
+  theme_minimal()
 
-First simulate data under Poisson
+```
 
 ```{r}
-df <- data.frame()
-for (i in seq(1, 5000)) {
-  # Sample a coef
-  beta_cond = sample(c(rep(1, 11), 2, 4, 0.2, 0.5), 1)
-  # sample a mean of counts
-  mu = as.integer(runif(1, min=5, max=10000))
-  df = rbind(
-    df,
-    c(rpois(4, lambda=mu), rpois(4, lambda=mu*beta_cond))
-  )
-}
-colnames(df) <- c("WT_1", "WT_2", "WT_3", "WT_4", "KO_1", "KO_2", "KO_3", "KO_4")
-coldata <- data.frame(
-    genotype = factor(c("WT", "WT", "WT", "WT", "KO", "KO", "KO", "KO"), levels=c("WT", "KO"))
+dds_normal <- makeExampleDESeqDataSet(
+  n = 10000,
+  m = 4,
+  betaSD = 5,
+  interceptMean = 4,
+  interceptSD = 2
 )
-dds <- DESeqDataSetFromMatrix(countData=df, colData=coldata, design=~genotype)
+dds_normal <- DESeq(dds_normal)
+plotDispEsts(dds_normal)
+p <- ggplot(data=mcols(dds_normal)) +
+  geom_point(aes(x=baseMean, y=dispGeneEst)) +
+  scale_y_log10() +
+  scale_x_log10(limits=c(0.1,1e5)) +
+  theme_minimal()
+ggMarginal(p)
+```
+
+```{r }
+dds_overdisp <- makeExampleDESeqDataSet(
+  n = 10000,
+  m = 4,
+  betaSD = 5,
+  interceptMean = 4,
+  interceptSD = 2,
+  dispMeanRel = function(x) x
+)
+dds_overdisp <- DESeq(dds_overdisp)
+plotDispEsts(dds_overdisp)
+p <- ggplot(data=mcols(dds_overdisp)) +
+  geom_point(aes(x=baseMean, y=dispGeneEst)) +
+  scale_y_log10() +
+  scale_x_log10(limits=c(0.1,1e5)) +
+  theme_minimal()
+ggMarginal(p)
+```
+```{r poisson}
+dds_poisson <- makeExampleDESeqDataSet(
+  n = 10000,
+  m = 6,
+  betaSD = 0,
+  interceptMean = 4,
+  interceptSD = 2,
+  dispMeanRel = function(x) 0
+)
+dds_poisson <- DESeq(dds_poisson)
+plotDispEsts(dds_poisson)
+p <- ggplot(data=mcols(dds_poisson)) +
+  geom_point(aes(x=baseMean, y=dispGeneEst)) +
+  scale_y_log10() +
+  scale_x_log10(limits=c(0.1,1e5)) +
+  theme_minimal()
+ggMarginal(p)
+```
+
+
+```{r}
+dds_normal2 <- makeExampleDESeqDataSet(
+  n = 10000,
+  m = 4,
+  betaSD = 2,
+  interceptMean = 8,
+  interceptSD = 2
+)
+
+mixdf <- cbind(
+  counts(dds_normal)[,c(1,2)],
+  counts(dds_normal2)[,c(1,2)]
+)
+colnames(mixdf) <- c('wt_1', 'ko_1','wt_2', 'ko_2')
+metadf <- data.frame(
+  c('wt','ko','wt','ko')
+)
+colnames(metadf) <- 'genotype'
+rownames(metadf) <- c('wt_1', 'ko_1','wt_2', 'ko_2')
+metadf$genotype <- factor(metadf$genotype)
+dds <- DESeqDataSetFromMatrix(mixdf, colData=metadf, design=~genotype)
 dds <- DESeq(dds)
 plotDispEsts(dds)
 ```
-Now simulate data under negative binomial
 
-```{r}
-df <- data.frame()
-for (i in seq(1, 5000)) {
-  # Sample a coef
-  beta_cond = sample(c(rep(1, 11), 2, 4, 0.2, 0.5), 1)
-  # sample a mean of counts
-  mu = as.integer(runif(1, min=5, max=50000))
-  df = rbind(
-    df,
-    c(rnegbin(4, mu = mu, theta=2000), rnegbin(4, mu = mu*beta_cond, theta=2000))
-  )
+
+```{r }
+explode_var <- function(x){
+  y = list()
+  for (i in x){
+    if (i > 10 & i < 1000){
+      y <- c(y, 15)
+    }
+    else{
+      y <- c(y, 4/i+0.1)
+    }
+  }
+  return(unlist(y))
 }
-colnames(df) <- c("WT_1", "WT_2", "WT_3", "WT_4", "KO_1", "KO_2", "KO_3", "KO_4")
-coldata <- data.frame(
-    genotype = factor(c("WT", "WT", "WT", "WT", "KO", "KO", "KO", "KO"), levels=c("WT", "KO"))
+
+dds_normal <- makeExampleDESeqDataSet(
+  n = 10000,
+  m = 6,
+  betaSD = 5,
+  interceptMean = 4,
+  interceptSD = 2,
+  dispMeanRel = explode_var
 )
-dds <- DESeqDataSetFromMatrix(countData=df, colData=coldata, design=~genotype)
-dds <- DESeq(dds)
-plotDispEsts(dds)
+dds_normal <- DESeq(dds_normal)
+plotDispEsts(dds_normal)
+
 ```
 
