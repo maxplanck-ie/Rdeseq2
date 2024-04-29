@@ -376,6 +376,13 @@ div.tocify {
     summary
   </a>
 </li>
+<li>
+  <a href="addendum.html">
+    <span class="fa fa-grill-hot"></span>
+     
+    addendum
+  </a>
+</li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         
@@ -398,67 +405,150 @@ div.tocify {
 
 <h1 class="title toc-ignore">Additions</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Fri Apr 26 16:05:07 2024</h4>
+<h4 class="date">Mon Apr 29 11:02:29 2024</h4>
 
 </div>
 
 
 <pre class="r"><code>library(&quot;DESeq2&quot;)
-library(&quot;MASS&quot;)</code></pre>
+library(&quot;ggplot2&quot;)
+library(&quot;tidyverse&quot;)
+library(&quot;ggExtra&quot;)</code></pre>
 <div id="example-on-disbalanced-issues-with-colmeans-trick"
 class="section level2">
 <h2>Example on disbalanced issues with colMeans trick</h2>
-<p>Let’s have five WT samples: 2 WT = DMSO treated 3 WT = DRUG
-treated</p>
-<p>and four KO samples: 2 KO = DMSO treated 2 KO = DRUG treated</p>
-<p>and let’s try to investigate the DRUG effect OVER the genotypes</p>
+<p>Let’s have five WT samples:<br />
+2 WT = DMSO treated<br />
+3 WT = DRUG treated</p>
+<p>and four KO samples:<br />
+2 KO = DMSO treated<br />
+2 KO = DRUG treated</p>
+<p>and let’s try to investigate the DRUG effect OVER the genotypes.</p>
 <pre class="r"><code>coldata &lt;- data.frame(
     cond = c(&quot;DMSO&quot;, &quot;DMSO&quot;, &quot;DRUG&quot;, &quot;DRUG&quot;, &quot;DRUG&quot;, &quot;DMSO&quot;, &quot;DMSO&quot;, &quot;DRUG&quot;, &quot;DRUG&quot;),
     genotype = c(&quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;)
 )
-modmat &lt;- model.matrix(~cond + genotype, coldata)
+modmat &lt;- model.matrix(~cond * genotype, coldata)
 
 a &lt;- modmat[coldata$cond == &quot;DMSO&quot;, , drop = FALSE]
 b &lt;- modmat[coldata$cond == &quot;DRUG&quot;, , drop = FALSE]
 
 colMeans(b) - colMeans(a)</code></pre>
-<pre><code>## (Intercept)    condDRUG  genotypeWT 
-##         0.0         1.0         0.1</code></pre>
+<pre><code>##         (Intercept)            condDRUG          genotypeWT condDRUG:genotypeWT 
+##                 0.0                 1.0                 0.1                 0.6</code></pre>
 <p>And compare this to what we get when we have BALANCED sampling:</p>
 <pre class="r"><code>coldata &lt;- data.frame(
     cond = c(&quot;DMSO&quot;, &quot;DMSO&quot;, &quot;DRUG&quot;, &quot;DRUG&quot;, &quot;DMSO&quot;, &quot;DMSO&quot;, &quot;DRUG&quot;, &quot;DRUG&quot;),
     genotype = c(&quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;)
 )
-modmat &lt;- model.matrix(~cond + genotype, coldata)
+modmat &lt;- model.matrix(~ cond * genotype, coldata)
 
 a &lt;- modmat[coldata$cond == &quot;DMSO&quot;, , drop = FALSE]
 b &lt;- modmat[coldata$cond == &quot;DRUG&quot;, , drop = FALSE]
 
 colMeans(b) - colMeans(a)</code></pre>
-<pre><code>## (Intercept)    condDRUG  genotypeWT 
-##           0           1           0</code></pre>
+<pre><code>##         (Intercept)            condDRUG          genotypeWT condDRUG:genotypeWT 
+##                 0.0                 1.0                 0.0                 0.5</code></pre>
 </div>
-<div id="dispersion-estimation-under-different-conditions"
-class="section level2">
-<h2>Dispersion estimation under different conditions</h2>
-<p>First simulate data under Poisson</p>
-<pre class="r"><code>df &lt;- data.frame()
-for (i in seq(1, 5000)) {
-  # Sample a coef
-  beta_cond = sample(c(rep(1, 11), 2, 4, 0.2, 0.5), 1)
-  # sample a mean of counts
-  mu = as.integer(runif(1, min=5, max=10000))
-  df = rbind(
-    df,
-    c(rpois(4, lambda=mu), rpois(4, lambda=mu*beta_cond))
-  )
-}
-colnames(df) &lt;- c(&quot;WT_1&quot;, &quot;WT_2&quot;, &quot;WT_3&quot;, &quot;WT_4&quot;, &quot;KO_1&quot;, &quot;KO_2&quot;, &quot;KO_3&quot;, &quot;KO_4&quot;)
-coldata &lt;- data.frame(
-    genotype = factor(c(&quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;), levels=c(&quot;WT&quot;, &quot;KO&quot;))
+<div id="dispersion-examples" class="section level2">
+<h2>Dispersion examples</h2>
+<pre class="r"><code>data &lt;- readr::read_tsv(&quot;data/myeloma/myeloma_counts.tsv&quot;)
+data &lt;- data %&gt;% 
+  column_to_rownames(var=&quot;gene_id&quot;) %&gt;%
+  mutate(across(where(is.double), as.integer))</code></pre>
+<div id="behavior-of-a-true-dataset" class="section level4">
+<h4>Behavior of a true dataset</h4>
+<pre class="r"><code>means &lt;- data %&gt;% select(&quot;BM_TG_1&quot;, &quot;BM_TG_2&quot;, &quot;BM_TG_3&quot;) %&gt;% filter_all(any_vars(. != 0)) %&gt;% apply(1, mean)
+vars &lt;- data %&gt;% select(&quot;BM_TG_1&quot;, &quot;BM_TG_2&quot;, &quot;BM_TG_3&quot;) %&gt;% filter_all(any_vars(. != 0)) %&gt;% apply(1, var)
+ggplot(data.frame(means,vars)) +
+  geom_point(size=0.5, aes(x=means, y=vars)) +
+  scale_y_log10(limits=c(1,1e10)) +
+  scale_x_log10(limits=c(1,1e10)) +
+  geom_abline(intercept = 0, slope = 1, color=&quot;red&quot;) +
+  theme_minimal()</code></pre>
+<p><img src="addendum_files/figure-html/plot%20gene%20sample%20means%20and%20variances-1.png" width="672" /></p>
+</div>
+<div id="dispersion-example-when-expected-distribution-is-followed"
+class="section level3">
+<h3>Dispersion example when ‘expected’ distribution is followed</h3>
+<pre class="r"><code>dds_normal &lt;- makeExampleDESeqDataSet(
+  n = 10000,
+  m = 4,
+  betaSD = 2,
+  interceptMean = 4,
+  interceptSD = 2
 )
-dds &lt;- DESeqDataSetFromMatrix(countData=df, colData=coldata, design=~genotype)
-dds &lt;- DESeq(dds)</code></pre>
+means &lt;- counts(dds_normal)  %&gt;% apply(1, mean)
+vars &lt;- counts(dds_normal) %&gt;% apply(1, var)
+ggplot(data.frame(means,vars)) +
+  geom_point(size=0.5, aes(x=means, y=vars)) +
+  scale_y_log10(limits=c(1,1e10)) +
+  scale_x_log10(limits=c(1,1e10)) +
+  geom_abline(intercept = 0, slope = 1, color=&quot;red&quot;) +
+  theme_minimal()</code></pre>
+<p><img src="addendum_files/figure-html/disp-expected-1.png" width="672" /></p>
+<pre class="r"><code>dds_normal &lt;- DESeq(dds_normal)
+plotDispEsts(dds_normal)</code></pre>
+<p><img src="addendum_files/figure-html/disp-expected%20plotest-1.png" width="672" /></p>
+<pre class="r"><code>p &lt;- ggplot(data=mcols(dds_normal)) +
+  geom_point(size=0.5, aes(x=baseMean, y=dispGeneEst)) +
+  scale_y_log10() +
+  scale_x_log10(limits=c(0.1,1e5)) +
+  theme_minimal()
+ggMarginal(p)</code></pre>
+<p><img src="addendum_files/figure-html/disp-expected%20ggplot-1.png" width="672" />
+### Dispersion estimation when variance is very high</p>
+<pre class="r"><code>dds_overdisp &lt;- makeExampleDESeqDataSet(
+  n = 10000,
+  m = 4,
+  betaSD = 2,
+  interceptMean = 4,
+  interceptSD = 2,
+  dispMeanRel = function(x) x
+)
+means &lt;- counts(dds_overdisp)  %&gt;% apply(1, mean)
+vars &lt;- counts(dds_overdisp) %&gt;% apply(1, var)
+ggplot(data.frame(means,vars)) +
+  geom_point(size=0.5, aes(x=means, y=vars)) +
+  scale_y_log10(limits=c(1,1e10)) +
+  scale_x_log10(limits=c(1,1e10)) +
+  geom_abline(intercept = 0, slope = 1, color=&quot;red&quot;) +
+  theme_minimal()</code></pre>
+<p><img src="addendum_files/figure-html/disp-highvar-1.png" width="672" /></p>
+<pre class="r"><code>dds_overdisp &lt;- DESeq(dds_overdisp)</code></pre>
+<pre><code>## estimating size factors</code></pre>
+<pre><code>## estimating dispersions</code></pre>
+<pre><code>## gene-wise dispersion estimates</code></pre>
+<pre><code>## mean-dispersion relationship</code></pre>
+<pre><code>## final dispersion estimates</code></pre>
+<pre><code>## fitting model and testing</code></pre>
+<pre class="r"><code>plotDispEsts(dds_overdisp)</code></pre>
+<p><img src="addendum_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<pre class="r"><code>p &lt;- ggplot(data=mcols(dds_overdisp)) +
+  geom_point(size=0.5, aes(x=baseMean, y=dispGeneEst)) +
+  scale_y_log10() +
+  scale_x_log10(limits=c(0.1,1e5)) +
+  theme_minimal()
+ggMarginal(p)</code></pre>
+<p><img src="addendum_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>dds_poisson &lt;- makeExampleDESeqDataSet(
+  n = 10000,
+  m = 4,
+  betaSD = 0,
+  interceptMean = 4,
+  interceptSD = 2,
+  dispMeanRel = function(x) 0
+)
+means &lt;- counts(dds_poisson)  %&gt;% apply(1, mean)
+vars &lt;- counts(dds_poisson) %&gt;% apply(1, var)
+ggplot(data.frame(means,vars)) +
+  geom_point(size=0.5, aes(x=means, y=vars)) +
+  scale_y_log10(limits=c(1,1e10)) +
+  scale_x_log10(limits=c(1,1e10)) +
+  geom_abline(intercept = 0, slope = 1, color=&quot;red&quot;) +
+  theme_minimal()</code></pre>
+<p><img src="addendum_files/figure-html/poisson-1.png" width="672" /></p>
+<pre class="r"><code>dds_poisson &lt;- DESeq(dds_poisson)</code></pre>
 <pre><code>## estimating size factors</code></pre>
 <pre><code>## estimating dispersions</code></pre>
 <pre><code>## gene-wise dispersion estimates</code></pre>
@@ -468,25 +558,96 @@ dds &lt;- DESeq(dds)</code></pre>
 ##    specify fitType=&#39;local&#39; or &#39;mean&#39; to avoid this message next time.</code></pre>
 <pre><code>## final dispersion estimates</code></pre>
 <pre><code>## fitting model and testing</code></pre>
-<pre class="r"><code>plotDispEsts(dds)</code></pre>
-<p><img src="addendum_files/figure-html/unnamed-chunk-3-1.png" width="672" />
-Now simulate data under negative binomial</p>
-<pre class="r"><code>df &lt;- data.frame()
-for (i in seq(1, 5000)) {
-  # Sample a coef
-  beta_cond = sample(c(rep(1, 11), 2, 4, 0.2, 0.5), 1)
-  # sample a mean of counts
-  mu = as.integer(runif(1, min=5, max=50000))
-  df = rbind(
-    df,
-    c(rnegbin(4, mu = mu, theta=2000), rnegbin(4, mu = mu*beta_cond, theta=2000))
-  )
-}
-colnames(df) &lt;- c(&quot;WT_1&quot;, &quot;WT_2&quot;, &quot;WT_3&quot;, &quot;WT_4&quot;, &quot;KO_1&quot;, &quot;KO_2&quot;, &quot;KO_3&quot;, &quot;KO_4&quot;)
-coldata &lt;- data.frame(
-    genotype = factor(c(&quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;WT&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;, &quot;KO&quot;), levels=c(&quot;WT&quot;, &quot;KO&quot;))
+<pre class="r"><code>plotDispEsts(dds_poisson)
+p &lt;- ggplot(data=mcols(dds_poisson)) +
+  geom_point(size=0.5, aes(x=baseMean, y=dispGeneEst)) +
+  scale_y_log10() +
+  scale_x_log10(limits=c(0.1,1e5)) +
+  theme_minimal()
+ggMarginal(p)</code></pre>
+<p><img src="addendum_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<pre class="r"><code>dds_normal2 &lt;- makeExampleDESeqDataSet(
+  n = 10000,
+  m = 4,
+  betaSD = 2,
+  interceptMean = 8,
+  interceptSD = 2
 )
-dds &lt;- DESeqDataSetFromMatrix(countData=df, colData=coldata, design=~genotype)
+
+mixdf &lt;- cbind(
+  counts(dds_normal),
+  counts(dds_normal2)
+)
+colnames(mixdf) &lt;- c(&#39;wt_1&#39;, &#39;ko_1&#39;,&#39;wt_2&#39;, &#39;ko_2&#39;, &#39;wt_3&#39;, &#39;ko_3&#39;, &#39;wt_4&#39; ,&#39;ko_4&#39;)
+metadf &lt;- data.frame(
+  c(&#39;wt&#39;,&#39;ko&#39;,&#39;wt&#39;,&#39;ko&#39;, &#39;wt&#39;,&#39;ko&#39;,&#39;wt&#39;,&#39;ko&#39;)
+)
+colnames(metadf) &lt;- &#39;genotype&#39;
+rownames(metadf) &lt;- c(&#39;wt_1&#39;, &#39;ko_1&#39;,&#39;wt_2&#39;, &#39;ko_2&#39;, &#39;wt_3&#39;, &#39;ko_3&#39;, &#39;wt_4&#39; ,&#39;ko_4&#39;)
+metadf$genotype &lt;- factor(metadf$genotype)
+dds &lt;- DESeqDataSetFromMatrix(mixdf, colData=metadf, design=~genotype)
+means &lt;- counts(dds)  %&gt;% apply(1, mean)
+vars &lt;- counts(dds) %&gt;% apply(1, var)
+ggplot(data.frame(means,vars)) +
+  geom_point(size=0.5, aes(x=means, y=vars)) +
+  scale_y_log10(limits=c(1,1e10)) +
+  scale_x_log10(limits=c(1,1e10)) +
+  geom_abline(intercept = 0, slope = 1, color=&quot;red&quot;) +
+  theme_minimal()</code></pre>
+<p><img src="addendum_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>dds &lt;- DESeq(dds)
+plotDispEsts(dds)</code></pre>
+<p><img src="addendum_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<pre class="r"><code>explode_var &lt;- function(x){
+  y = list()
+  for (i in x){
+    if (i &gt; 10 &amp; i &lt; 1000){
+      y &lt;- c(y, 15)
+    }
+    else{
+      y &lt;- c(y, 4/i+0.1)
+    }
+  }
+  return(unlist(y))
+}
+blowup_var &lt;- function(x){
+  y = list()
+  for (i in x){
+    if (i &gt;= 50 &amp; i &lt;= 200){
+      y &lt;- c(y, 15)
+    }
+    else {
+      y &lt;- c(y, 0)
+    }
+  }
+  return(unlist(y))
+}</code></pre>
+</div>
+</div>
+<div id="interception" class="section level2">
+<h2>INTERCEPTION</h2>
+<pre class="r"><code># Get the data directory
+dfile &lt;- &quot;data/myeloma/myeloma_counts.tsv&quot;
+data &lt;- read_tsv(file=dfile)
+data &lt;- data %&gt;%
+  column_to_rownames(&quot;gene_id&quot;) %&gt;%
+  mutate(across(where(is.double), as.integer))
+
+# Read samplesheet , detects conditions, generate the formula
+mfile &lt;- &quot;data/myeloma/myeloma_meta.tsv&quot;
+metadata &lt;- read_tsv(file=mfile)
+metadata &lt;- metadata %&gt;% column_to_rownames(&quot;sample&quot;) 
+
+metadata$condition &lt;- as.factor(metadata$condition)
+metadata$celltype  &lt;- as.factor(metadata$celltype)
+# sanity check
+all(rownames(metadata) == colnames(data))</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(
+  countData=data,
+  colData=metadata,
+  design= ~celltype + condition + celltype:condition
+)
 dds &lt;- DESeq(dds)</code></pre>
 <pre><code>## estimating size factors</code></pre>
 <pre><code>## estimating dispersions</code></pre>
@@ -494,8 +655,43 @@ dds &lt;- DESeq(dds)</code></pre>
 <pre><code>## mean-dispersion relationship</code></pre>
 <pre><code>## final dispersion estimates</code></pre>
 <pre><code>## fitting model and testing</code></pre>
-<pre class="r"><code>plotDispEsts(dds)</code></pre>
-<p><img src="addendum_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>resultsNames(dds)</code></pre>
+<pre><code>## [1] &quot;Intercept&quot;                &quot;celltype_JJ_vs_BM&quot;       
+## [3] &quot;condition_DMSO_vs_AMIL&quot;   &quot;condition_TG_vs_AMIL&quot;    
+## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
+<pre class="r"><code>dds_noint &lt;- DESeqDataSetFromMatrix(
+  countData=data,
+  colData=metadata,
+  design= ~0 + celltype + condition + celltype:condition
+)
+dds_noint &lt;- DESeq(dds_noint)</code></pre>
+<pre><code>## estimating size factors</code></pre>
+<pre><code>## estimating dispersions</code></pre>
+<pre><code>## gene-wise dispersion estimates</code></pre>
+<pre><code>## mean-dispersion relationship</code></pre>
+<pre><code>## final dispersion estimates</code></pre>
+<pre><code>## fitting model and testing</code></pre>
+<pre class="r"><code>resultsNames(dds_noint)</code></pre>
+<pre><code>## [1] &quot;celltypeBM&quot;               &quot;celltypeJJ&quot;              
+## [3] &quot;conditionDMSO&quot;            &quot;conditionTG&quot;             
+## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
+<pre class="r"><code>intres &lt;- results(dds, contrast=c(0,1,0,0,0,0)) %&gt;% data.frame() %&gt;% drop_na()
+nointres &lt;- results(dds_noint, contrast=c(-1, 1, 0,0,0,0)) %&gt;% data.frame() %&gt;% drop_na()
+
+ggplot() + 
+  geom_point(aes(
+    x=intres$log2FoldChange,
+    y=nointres$log2FoldChange
+  )
+  ) + theme_minimal()</code></pre>
+<p><img src="addendum_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<pre class="r"><code>ggplot() + 
+  geom_point(aes(
+    x=intres$padj,
+    y=nointres$padj
+  )
+  ) + theme_minimal()</code></pre>
+<p><img src="addendum_files/figure-html/unnamed-chunk-11-2.png" width="672" /></p>
 </div>
 
 
