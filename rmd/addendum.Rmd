@@ -16,19 +16,19 @@ output:
 ```{r load, message=FALSE}
 library("DESeq2")
 library("ggplot2")
-library("tidyr")
+library("tidyverse")
 library("ggExtra")
 ```
 
 ## Example on disbalanced issues with colMeans trick
 
-Let's have five WT samples:
-2 WT = DMSO treated
-3 WT = DRUG treated
-
-and four KO samples:
-2 KO = DMSO treated
-2 KO = DRUG treated
+Let's have five WT samples:  
+2 WT = DMSO treated  
+3 WT = DRUG treated  
+  
+and four KO samples:  
+2 KO = DMSO treated  
+2 KO = DRUG treated  
 
 and let's try to investigate the DRUG effect OVER the genotypes.
 
@@ -61,13 +61,18 @@ colMeans(b) - colMeans(a)
 ```
 
 
-```{r load_data}
+## Dispersion examples
+
+```{r load_data, message=FALSE, warning=FALSE}
 data <- readr::read_tsv("data/myeloma/myeloma_counts.tsv")
 data <- data %>% 
   column_to_rownames(var="gene_id") %>%
   mutate(across(where(is.double), as.integer))
 ```
-```{r}
+
+#### Behavior of a true dataset
+
+```{r plot gene sample means and variances, message=FALSE, warning=FALSE}
 means <- data %>% select("BM_TG_1", "BM_TG_2", "BM_TG_3") %>% filter_all(any_vars(. != 0)) %>% apply(1, mean)
 vars <- data %>% select("BM_TG_1", "BM_TG_2", "BM_TG_3") %>% filter_all(any_vars(. != 0)) %>% apply(1, var)
 ggplot(data.frame(means,vars)) +
@@ -79,55 +84,99 @@ ggplot(data.frame(means,vars)) +
 
 ```
 
-```{r}
+### Dispersion example when 'expected' distribution is followed
+
+```{r disp-expected, warning=FALSE}
 dds_normal <- makeExampleDESeqDataSet(
   n = 10000,
   m = 4,
-  betaSD = 5,
+  betaSD = 2,
   interceptMean = 4,
   interceptSD = 2
 )
+means <- counts(dds_normal)  %>% apply(1, mean)
+vars <- counts(dds_normal) %>% apply(1, var)
+ggplot(data.frame(means,vars)) +
+  geom_point(size=0.5, aes(x=means, y=vars)) +
+  scale_y_log10(limits=c(1,1e10)) +
+  scale_x_log10(limits=c(1,1e10)) +
+  geom_abline(intercept = 0, slope = 1, color="red") +
+  theme_minimal()
+
+```
+
+
+```{r disp-expected plotest, message=FALSE}
 dds_normal <- DESeq(dds_normal)
 plotDispEsts(dds_normal)
+```
+
+```{r disp-expected ggplot, warning=FALSE}
 p <- ggplot(data=mcols(dds_normal)) +
-  geom_point(aes(x=baseMean, y=dispGeneEst)) +
+  geom_point(size=0.5, aes(x=baseMean, y=dispGeneEst)) +
   scale_y_log10() +
   scale_x_log10(limits=c(0.1,1e5)) +
   theme_minimal()
 ggMarginal(p)
 ```
+### Dispersion estimation when variance is very high
 
-```{r }
+```{r disp-highvar, warning=FALSE}
 dds_overdisp <- makeExampleDESeqDataSet(
   n = 10000,
   m = 4,
-  betaSD = 5,
+  betaSD = 2,
   interceptMean = 4,
   interceptSD = 2,
   dispMeanRel = function(x) x
 )
+means <- counts(dds_overdisp)  %>% apply(1, mean)
+vars <- counts(dds_overdisp) %>% apply(1, var)
+ggplot(data.frame(means,vars)) +
+  geom_point(size=0.5, aes(x=means, y=vars)) +
+  scale_y_log10(limits=c(1,1e10)) +
+  scale_x_log10(limits=c(1,1e10)) +
+  geom_abline(intercept = 0, slope = 1, color="red") +
+  theme_minimal()
+```
+
+```{r, warning=FALSE}
 dds_overdisp <- DESeq(dds_overdisp)
 plotDispEsts(dds_overdisp)
+```
+
+```{r, warning=FALSE}
 p <- ggplot(data=mcols(dds_overdisp)) +
-  geom_point(aes(x=baseMean, y=dispGeneEst)) +
+  geom_point(size=0.5, aes(x=baseMean, y=dispGeneEst)) +
   scale_y_log10() +
   scale_x_log10(limits=c(0.1,1e5)) +
   theme_minimal()
 ggMarginal(p)
 ```
-```{r poisson}
+```{r poisson, warning=FALSE}
 dds_poisson <- makeExampleDESeqDataSet(
   n = 10000,
-  m = 6,
+  m = 4,
   betaSD = 0,
   interceptMean = 4,
   interceptSD = 2,
   dispMeanRel = function(x) 0
 )
+means <- counts(dds_poisson)  %>% apply(1, mean)
+vars <- counts(dds_poisson) %>% apply(1, var)
+ggplot(data.frame(means,vars)) +
+  geom_point(size=0.5, aes(x=means, y=vars)) +
+  scale_y_log10(limits=c(1,1e10)) +
+  scale_x_log10(limits=c(1,1e10)) +
+  geom_abline(intercept = 0, slope = 1, color="red") +
+  theme_minimal()
+```
+
+```{r, warning=FALSE}
 dds_poisson <- DESeq(dds_poisson)
 plotDispEsts(dds_poisson)
 p <- ggplot(data=mcols(dds_poisson)) +
-  geom_point(aes(x=baseMean, y=dispGeneEst)) +
+  geom_point(size=0.5, aes(x=baseMean, y=dispGeneEst)) +
   scale_y_log10() +
   scale_x_log10(limits=c(0.1,1e5)) +
   theme_minimal()
@@ -135,7 +184,7 @@ ggMarginal(p)
 ```
 
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 dds_normal2 <- makeExampleDESeqDataSet(
   n = 10000,
   m = 4,
@@ -145,21 +194,30 @@ dds_normal2 <- makeExampleDESeqDataSet(
 )
 
 mixdf <- cbind(
-  counts(dds_normal)[,c(1,2)],
-  counts(dds_normal2)[,c(1,2)]
+  counts(dds_normal),
+  counts(dds_normal2)
 )
-colnames(mixdf) <- c('wt_1', 'ko_1','wt_2', 'ko_2')
+colnames(mixdf) <- c('wt_1', 'ko_1','wt_2', 'ko_2', 'wt_3', 'ko_3', 'wt_4' ,'ko_4')
 metadf <- data.frame(
-  c('wt','ko','wt','ko')
+  c('wt','ko','wt','ko', 'wt','ko','wt','ko')
 )
 colnames(metadf) <- 'genotype'
-rownames(metadf) <- c('wt_1', 'ko_1','wt_2', 'ko_2')
+rownames(metadf) <- c('wt_1', 'ko_1','wt_2', 'ko_2', 'wt_3', 'ko_3', 'wt_4' ,'ko_4')
 metadf$genotype <- factor(metadf$genotype)
 dds <- DESeqDataSetFromMatrix(mixdf, colData=metadf, design=~genotype)
+means <- counts(dds)  %>% apply(1, mean)
+vars <- counts(dds) %>% apply(1, var)
+ggplot(data.frame(means,vars)) +
+  geom_point(size=0.5, aes(x=means, y=vars)) +
+  scale_y_log10(limits=c(1,1e10)) +
+  scale_x_log10(limits=c(1,1e10)) +
+  geom_abline(intercept = 0, slope = 1, color="red") +
+  theme_minimal()
+```
+```{r, message=F, warning=F}
 dds <- DESeq(dds)
 plotDispEsts(dds)
 ```
-
 
 ```{r }
 explode_var <- function(x){
@@ -174,17 +232,81 @@ explode_var <- function(x){
   }
   return(unlist(y))
 }
+blowup_var <- function(x){
+  y = list()
+  for (i in x){
+    if (i >= 50 & i <= 200){
+      y <- c(y, 15)
+    }
+    else {
+      y <- c(y, 0)
+    }
+  }
+  return(unlist(y))
+}
 
-dds_normal <- makeExampleDESeqDataSet(
-  n = 10000,
-  m = 6,
-  betaSD = 5,
-  interceptMean = 4,
-  interceptSD = 2,
-  dispMeanRel = explode_var
+```
+
+
+
+## INTERCEPTION
+
+```{r read_data, message=FALSE, warning=FALSE}
+# Get the data directory
+dfile <- "data/myeloma/myeloma_counts.tsv"
+data <- read_tsv(file=dfile)
+data <- data %>%
+  column_to_rownames("gene_id") %>%
+  mutate(across(where(is.double), as.integer))
+
+# Read samplesheet , detects conditions, generate the formula
+mfile <- "data/myeloma/myeloma_meta.tsv"
+metadata <- read_tsv(file=mfile)
+metadata <- metadata %>% column_to_rownames("sample") 
+
+metadata$condition <- as.factor(metadata$condition)
+metadata$celltype  <- as.factor(metadata$celltype)
+# sanity check
+all(rownames(metadata) == colnames(data))
+```
+
+
+```{r}
+dds <- DESeqDataSetFromMatrix(
+  countData=data,
+  colData=metadata,
+  design= ~celltype + condition + celltype:condition
 )
-dds_normal <- DESeq(dds_normal)
-plotDispEsts(dds_normal)
+dds <- DESeq(dds)
+resultsNames(dds)
+```
+
+```{r}
+dds_noint <- DESeqDataSetFromMatrix(
+  countData=data,
+  colData=metadata,
+  design= ~0 + celltype + condition + celltype:condition
+)
+dds_noint <- DESeq(dds_noint)
+resultsNames(dds_noint)
+```
+```{r}
+intres <- results(dds, contrast=c(0,1,0,0,0,0)) %>% data.frame() %>% drop_na()
+nointres <- results(dds_noint, contrast=c(-1, 1, 0,0,0,0)) %>% data.frame() %>% drop_na()
+
+ggplot() + 
+  geom_point(aes(
+    x=intres$log2FoldChange,
+    y=nointres$log2FoldChange
+  )
+  ) + theme_minimal()
+
+ggplot() + 
+  geom_point(aes(
+    x=intres$padj,
+    y=nointres$padj
+  )
+  ) + theme_minimal()
 
 ```
 
