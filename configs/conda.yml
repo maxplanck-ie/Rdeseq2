@@ -12,3 +12,4 @@ dependencies:
   - r-ashr
   - r-ggrepel
   - r-upsetr
+  - r-ggextra
