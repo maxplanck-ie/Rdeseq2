@@ -405,7 +405,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Mon Apr 29 11:04:36 2024</h4>
+<h4 class="date">Fri May 3 15:32:19 2024</h4>
 
 </div>
 
@@ -416,7 +416,7 @@ class="section level2">
 <ul>
 <li>repeat: generating DESeq-object (data, metadata, design)</li>
 <li>repeat: run DESeq workflow</li>
-<li>coefficients and contrasts</li>
+<li>coefficients, contrasts and shrinking</li>
 <li>summarize and visualize results</li>
 <li>LRT vs Wald test</li>
 <li>Biological interpretation</li>
@@ -451,42 +451,46 @@ metadata</code></pre>
 {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["celltype"],"name":[1],"type":["fct"],"align":["left"]},{"label":["condition"],"name":[2],"type":["fct"],"align":["left"]}],"data":[{"1":"JJ","2":"DMSO","_rn_":"JJ_CTRL_1"},{"1":"BM","2":"DMSO","_rn_":"BM_CTRL_2"},{"1":"BM","2":"DMSO","_rn_":"BM_CTRL_3"},{"1":"BM","2":"AMIL","_rn_":"BM_AMIL_1"},{"1":"BM","2":"AMIL","_rn_":"BM_AMIL_2"},{"1":"BM","2":"AMIL","_rn_":"BM_AMIL_3"},{"1":"BM","2":"DMSO","_rn_":"BM_CTRL_1"},{"1":"JJ","2":"DMSO","_rn_":"JJ_CTRL_2"},{"1":"JJ","2":"DMSO","_rn_":"JJ_CTRL_3"},{"1":"JJ","2":"AMIL","_rn_":"JJ_AMIL_1"},{"1":"JJ","2":"AMIL","_rn_":"JJ_AMIL_2"},{"1":"JJ","2":"AMIL","_rn_":"JJ_AMIL_3"},{"1":"BM","2":"TG","_rn_":"BM_TG_1"},{"1":"BM","2":"TG","_rn_":"BM_TG_2"},{"1":"BM","2":"TG","_rn_":"BM_TG_3"},{"1":"JJ","2":"TG","_rn_":"JJ_TG_1"},{"1":"JJ","2":"TG","_rn_":"JJ_TG_2"},{"1":"JJ","2":"TG","_rn_":"JJ_TG_3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
-<pre class="r"><code># sanity check
-all(rownames(metadata) == colnames(data))</code></pre>
-<pre><code>## [1] TRUE</code></pre>
 </div>
-<div id="coefficients-explained-30-minutes" class="section level2">
-<h2>1. Coefficients explained (30 minutes)</h2>
+<div id="coefficients-and-design-30-minutes" class="section level2">
+<h2>1. Coefficients and design (30 minutes)</h2>
 <div id="a.-factors-and-design" class="section level3">
 <h3>a. factors and design</h3>
-<p>Remember:</p>
-<ul>
-<li>that all sources of variation to control are specified in the
-design.</li>
-<li>the first factor level is considered as “the factor of interest” to
-test for during the differential expression testing.</li>
-</ul>
-<pre class="r"><code>meta_releveled &lt;- metadata
-meta_releveled$condition &lt;- relevel(meta_releveled$condition, ref=&#39;DMSO&#39;)
-pheatmap(
+<p>Remember that ideally all sources of variation to control should be
+specified in the design. Also recall that we saw two different ways to
+specify (‘parametrize’) our model.</p>
+<blockquote>
+<p>~ condition == ~ 1 + condition</p>
+</blockquote>
+<p><span class="math display">\[
+y_{ij} = \beta_0 + \beta_1X_1 + ... + \beta_kX_k + \epsilon_{ij}
+\]</span> where K = i - 1</p>
+<pre class="r"><code>pheatmap(
   model.matrix(~condition, data=metadata),
   cluster_cols = FALSE,
   cluster_rows=FALSE,
-  main=&quot;amiloride base&quot;
+  main=&quot;~ condition&quot;
 )</code></pre>
 <p><img src="day03_files/figure-html/plot_designs-1.png" width="672" /></p>
+<blockquote>
+<p>~ 0 + condition</p>
+</blockquote>
+<p><span class="math display">\[
+y_{ij} = \mu_i + \epsilon_{ij}
+\]</span></p>
 <pre class="r"><code>pheatmap(
-  model.matrix(~condition, data=meta_releveled),
+  model.matrix(~ 0 + condition, data=metadata),
   cluster_cols = FALSE,
   cluster_rows=FALSE,
-  main=&quot;DMSO base&quot;
+  main=&quot;~ 0 + condition&quot;
 )</code></pre>
-<p><img src="day03_files/figure-html/plot_designs-2.png" width="672" /></p>
+<p><img src="day03_files/figure-html/plot_design_noint-1.png" width="672" /></p>
 </div>
 <div id="b.-design-examples" class="section level3">
 <h3>b. design examples</h3>
-<div id="a-single-factor-with-two-levels." class="section level4">
-<h4>A single factor with two levels.</h4>
+<div id="a-single-factor-with-two-levels---intercept"
+class="section level4">
+<h4>A single factor with two levels - intercept</h4>
 <table>
 <thead>
 <tr class="header">
@@ -518,28 +522,22 @@ pheatmap(
   colData=metadata,
   design= ~celltype
 )
-dds &lt;- DESeq(dds)</code></pre>
-<pre><code>## estimating size factors</code></pre>
-<pre><code>## estimating dispersions</code></pre>
-<pre><code>## gene-wise dispersion estimates</code></pre>
-<pre><code>## mean-dispersion relationship</code></pre>
-<pre><code>## final dispersion estimates</code></pre>
-<pre><code>## fitting model and testing</code></pre>
-<pre><code>## -- replacing outliers and refitting for 1248 genes
-## -- DESeq argument &#39;minReplicatesForReplace&#39; = 7 
-## -- original counts are preserved in counts(dds)</code></pre>
-<pre><code>## estimating dispersions</code></pre>
-<pre><code>## fitting model and testing</code></pre>
+dds &lt;- DESeq(dds)
+plotDispEsts(dds)</code></pre>
+<p><img src="day03_files/figure-html/simplefactordesign-1.png" width="672" /></p>
 <pre class="r"><code>resultsNames(dds)</code></pre>
 <pre><code>## [1] &quot;Intercept&quot;         &quot;celltype_JJ_vs_BM&quot;</code></pre>
 <p>Design:</p>
 <pre><code>  ~1 + celltype (or ~celltype)
   expression = beta0 + beta1 * JJ</code></pre>
 <p>Our coefficients here are our intercept, and condition for our
-celltype effect versus the base level.</p>
+celltype effect versus the base level. Remember, the base level is the
+first level in your celltype factor (which by default is alphabetically
+determined).</p>
 <p><img src="day03_files/figure-html/coefplot%20celltype-1.png" width="672" /></p>
 <blockquote>
-<p><strong>Poll 3.1</strong> What does the intercept value reflect ?</p>
+<p><strong>Poll 3.1</strong> What does the intercept (beta0) value
+reflect ?</p>
 </blockquote>
 <pre class="r"><code>dds$celltype</code></pre>
 <pre><code>##  [1] JJ BM BM BM BM BM BM JJ JJ JJ JJ JJ BM BM BM JJ JJ JJ
@@ -581,11 +579,25 @@ celltype effect versus the base level.</p>
 <p>Null hypothesis:</p>
 <pre><code>BM vs JJ
 beta1 = 0</code></pre>
+</div>
+<div id="a-single-factor-with-two-levels---no-intercept"
+class="section level4">
+<h4>A single factor with two levels - no intercept</h4>
+<p>Let’s look at the same setup, but this time omit our intercept</p>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(
+  countData=data,
+  colData=metadata,
+  design= ~0+celltype
+)
+dds &lt;- DESeq(dds)</code></pre>
+<pre class="r"><code>resultsNames(dds)</code></pre>
+<pre><code>## [1] &quot;celltypeBM&quot; &quot;celltypeJJ&quot;</code></pre>
+<p><img src="day03_files/figure-html/coefplot%20celltype_nooint-1.png" width="672" /></p>
 <hr />
 </div>
-<div id="a-single-factor-with-more-then-two-levels."
+<div id="a-single-factor-with-more-than-two-levels---intercept"
 class="section level4">
-<h4>A single factor with more then two levels.</h4>
+<h4>A single factor with more than two levels - intercept</h4>
 <table>
 <thead>
 <tr class="header">
@@ -622,29 +634,25 @@ class="section level4">
 </table>
 <blockquote>
 <p><strong>Tasks:</strong> Recreate the dds object, now with a design
-that incorporates ‘condition’ (alone!)</p>
+that incorporates ‘condition’ AND an intercept.</p>
 </blockquote>
 <blockquote>
 <p><strong>Poll 3.2</strong> What coefficients do we get when we specify
 ‘condition’ alone as a design?</p>
 </blockquote>
 <pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~condition)
-dds &lt;- DESeq(dds)</code></pre>
-<pre><code>## estimating size factors</code></pre>
-<pre><code>## estimating dispersions</code></pre>
-<pre><code>## gene-wise dispersion estimates</code></pre>
-<pre><code>## mean-dispersion relationship</code></pre>
-<pre><code>## final dispersion estimates</code></pre>
-<pre><code>## fitting model and testing</code></pre>
+dds &lt;- DESeq(dds)
+plotDispEsts(dds)</code></pre>
+<p><img src="day03_files/figure-html/simplefactordesign%20condition-1.png" width="672" /></p>
 <pre class="r"><code>resultsNames(dds)</code></pre>
 <pre><code>## [1] &quot;Intercept&quot;              &quot;condition_DMSO_vs_AMIL&quot; &quot;condition_TG_vs_AMIL&quot;</code></pre>
-<p><img src="day03_files/figure-html/coefplot%20drug-1.png" width="672" /></p>
 <p>Design:</p>
 <pre><code>  ~1+condition  
   = beta0 + beta1 * DMSO + beta2 * TG  
   beta0 = Intercept  
   beta1 = condition_DMSO_vs_AMIL  
   beta2 = condition_TG_vs_AMIL  </code></pre>
+<p><img src="day03_files/figure-html/coefplot%20drug-1.png" width="672" /></p>
 <p>Model matrix:</p>
 <table>
 <thead>
@@ -703,10 +711,26 @@ beta2 = 0
 
 DMSO vs TG
 beta1 - beta2 = 0</code></pre>
+</div>
+<div id="a-single-factor-with-more-than-two-levels---no-intercept"
+class="section level4">
+<h4>A single factor with more than two levels - no intercept</h4>
+<p>Let’s again look at the scenario where we don’t include an
+intercept.</p>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(
+  countData=data,
+  colData=metadata,
+  design= ~0+condition
+)
+dds &lt;- DESeq(dds)</code></pre>
+<pre class="r"><code>resultsNames(dds)</code></pre>
+<pre><code>## [1] &quot;conditionAMIL&quot; &quot;conditionDMSO&quot; &quot;conditionTG&quot;</code></pre>
+<p><img src="day03_files/figure-html/coefplot%20cond_nooint-1.png" width="672" /></p>
 <hr />
 </div>
-<div id="two-factors-with-an-interaction" class="section level4">
-<h4>two factors, with an interaction</h4>
+<div id="two-factors-with-an-interaction---intercept"
+class="section level4">
+<h4>two factors, with an interaction - intercept</h4>
 <p>What about celltype and condition?</p>
 <ul>
 <li>Two factors, with interaction</li>
@@ -798,13 +822,9 @@ as the effect of celltype on the condition (celltype:condtion)</p>
 <pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(
   countData=data, colData=metadata, design= ~celltype+condition+celltype:condition
 )
-dds &lt;- DESeq(dds)</code></pre>
-<pre><code>## estimating size factors</code></pre>
-<pre><code>## estimating dispersions</code></pre>
-<pre><code>## gene-wise dispersion estimates</code></pre>
-<pre><code>## mean-dispersion relationship</code></pre>
-<pre><code>## final dispersion estimates</code></pre>
-<pre><code>## fitting model and testing</code></pre>
+dds &lt;- DESeq(dds)
+plotDispEsts(dds)</code></pre>
+<p><img src="day03_files/figure-html/fulldesign-1.png" width="672" /></p>
 <pre class="r"><code>resultsNames(dds)</code></pre>
 <pre><code>## [1] &quot;Intercept&quot;                &quot;celltype_JJ_vs_BM&quot;       
 ## [3] &quot;condition_DMSO_vs_AMIL&quot;   &quot;condition_TG_vs_AMIL&quot;    
@@ -832,6 +852,21 @@ beta2 + beta3 = 0</code></pre>
 in Hugo Tavares’ <a
 href="https://docs.google.com/presentation/d/1B9zW1_F-kBqQEu4xqxIJrudYP5DecytYMRR6bY4H6aM/edit?usp=sharing">slides</a></li>
 </ul>
+</div>
+<div id="two-factors-with-an-interaction---no-intercept"
+class="section level4">
+<h4>two factors, with an interaction - no intercept</h4>
+<pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(
+  countData=data, colData=metadata, design= ~0+celltype+condition+celltype:condition
+)
+dds &lt;- DESeq(dds)
+plotDispEsts(dds)</code></pre>
+<p><img src="day03_files/figure-html/fulldesign%20noint-1.png" width="672" /></p>
+<pre class="r"><code>resultsNames(dds)</code></pre>
+<pre><code>## [1] &quot;celltypeBM&quot;               &quot;celltypeJJ&quot;              
+## [3] &quot;conditionDMSO&quot;            &quot;conditionTG&quot;             
+## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
+<p><img src="day03_files/figure-html/coefplot%20fulldesign%20noint-1.png" width="960" /></p>
 </div>
 </div>
 <div id="c.-recap" class="section level3">
