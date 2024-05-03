@@ -80,6 +80,7 @@
 
    a) The average gene counts for celltype JJ
    b) The average gene counts for celltype BM
+   c) The average gene counts for celltype JJ and celltype BM combined
 
 3.2 What coefficients will we have when we specify ~condition as the design ?
 
