@@ -35,7 +35,7 @@ In case you do have your own (multifactorial) RNA-seq data, we encourage you to 
 
 * **basic R understanding**: Introductory material has been covered by our introductory [course](https://github.com/maxplanck-ie/Rintro). We will spend a (very) limited amount of time refreshing some basic concepts, so we encourage you to re-familiarise yourself with the Rstudio IDE and [data types and structures in R](https://swcarpentry.github.io/r-novice-inflammation/13-supp-data-structures.html) if that's needed.
 
-* an **account for [workbench](https://workbench.ie-freiburg.mpg.de)**: We will use the Rstudio server at the MPI-IE. If you do not have an account yet, you will need to request an account from core-IT. Please do so well before the course starts. You can use a local installation of R as well. Note that we will be using R 4.3.3 during this course.
+* an **account for [workbench](https://workbench.ie-freiburg.mpg.de)**: We will use the Rstudio server at the MPI-IE. If you do not have an account yet, you will need to request an account from core-IT. Please do so well before the course starts. You can use a local installation of R as well. Note that we will be using R 4.2.3 during this course.
 
 * **Know your keyboard!** Special characters will be needed throughout the course, e.g. $ , | , [, ], {, }, >, <, #, ~, &, ^, %, !, ?
 
