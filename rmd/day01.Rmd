@@ -20,28 +20,35 @@ knitr::knit_child("parameters.Rmd")
 
 ***
 
-# Preparation (60 min)
+# Preparation (30 min)
 
-## 1. Story
+## Story
 
 The story we'll work with is a 'drug repurposing' effort to use an old diuretic drug as a cancer treatment:
 <br> 
 [Amiloride to treat multiple myeloma](https://pubmed.ncbi.nlm.nih.gov/28790111/)
 
 Note that this is publically available data under GEO accession ID GSE95077, but the data shipped with this repository is altered for educational purposes.  
-In this study, RNA-seq data is available to compare amiloride to a state-of-the-art drug (TG003) in two cancer (multiple myeloma) cell lines with different mutations (BM: p53mut, JJ: del(17p)).
+In this study, RNA-seq data is available to compare amiloride (AMIL) to a state-of-the-art drug (TG003) in two cancer (multiple myeloma) cell lines with different mutations (BM: p53mut, JJ: del(17p)).
+
+In total we have 18 samples:
+
+- 3 conditions (drugs): AMIL, TG and DMSO (control)
+- 2 cell types: BM and JJ
+- 3 replicates for each combination of conditions and cell-types
+
 <br> 
 
 ***
 
-## 2. Tools
+## Tools
 
 > **Poll 1.1**: 
 > How do you get information about the current R-version and loaded packages?
 
 <br> 
 
-### a. Packages
+### Packages
 
 Many useful functions are already available with R: *base packages*.
 Most analysis tools come with software packages that will need to be installed before use.
@@ -58,7 +65,7 @@ For R, two of the most common and reliable package repositories are:
 3. Most packages have **dependencies** on other packages that should also be installed 
 4. Installation can be very **time consuming** but needs to be done only once. 
 
-### b. Load packages
+### Load packages
 
 > **Task**:  Load the following packages: DESeq2, tidyverse, pheatmap
 
@@ -82,7 +89,7 @@ In case of doubt, use package name explicitly: e.g. stats::sd()
 
 ***
 
-## 3. Get Data
+## Data and Metadata
 We assume that the sequencing data has already been processed  (QC, mapping, counting)
 to obtain a so-called *count matrix*. Data received in-house (given that it's a model organism) will have count matrices generated that you can start with immediately.
 A count matrix contains the number of reads that have been mapped to each gene, for each sample.
@@ -99,7 +106,7 @@ For this course, we have already prepared the data that will be used in in a con
 
 **Recommendation**: It is good style to put data into a separate directory (e.g. data/).
 
-### a. Import Data 
+### Import Data 
 Data can come in various formats. Here we have prepared the data as tab-separated file with header information.
 
 > **Task**: Read the data e.g. using read_tsv()
@@ -128,7 +135,7 @@ data %>% pull("BM_CTRL_3") %>% median()
 
 Where are the gene names, and which convention is chosen for them?
 
-### b. Import Metadata
+### Import Metadata
 
 Metadata (=data about data); typically contains important information on the samples and their origin. 
 Often these are categorical data such as cell type, experimental condition or other batch assignments. But it could also be quantitative data (e.g. age, weight, ...).
@@ -165,16 +172,14 @@ metadata$sample    <- as.factor(metadata$sample)
 #metadata <- metadata %>% mutate_if(is.character,as.factor)
 ```
 
-***
-# Break (10 min)
-***
 
-# Design (20 min)
+
+# Design (30 min)
 For each gene (=row), the data matrix contains a vector of counts ($y$) which depends on the vector of samples ($x$)
 
-> **Tasks (optional)**: Extract the 42nd gene in the data matrix and plot it against all samples
+> **Tasks**: Extract the 42nd gene in the data matrix and plot it against all samples
 
-```{r gene_plot}
+```{r gene_plot, echo=FALSE}
 gene = data %>%
   slice(42) %>%                                                      # pick gene
   pivot_longer(-gene_id, names_to = "sample", values_to = "count")   # convert to long
@@ -192,23 +197,34 @@ ggplot(gene, aes(x=sample, y=count)) +
 ```
 
 
-## 1. Hope
-Gene expression (counts $y$) could be predicted (and controlled) given sufficient sample information $x$ (up to some noise $\epsilon$):
+## Hope
+
+Gene expression can be predicted (and controlled) given relevant sample information $x$ and a model $f(x, \theta)$
 
 $$
-y_i = f(x_i, \theta) + \epsilon_i ~~~~~~~~~ (i = 1\ldots n)\\
+y_i = f(x_i, \theta) ~~~~~~(i = 1\ldots n)\\
 $$
-
 > **Poll 1.5**: What is $n$ in our example?
 
-## 2. What should $x$ be?
+Qualifications:
+
+- probabilitstic model: predict *expectations* up to some noise term  $\to E[y_i] + \epsilon_i$
+- for count data: model the *logarithm* of the expectation $\to \log E[y_i] = f(x_i, \theta)$
+
+To keep notation simple we use $y_i = \log E[y_i]$ below.
+
+Today we will focus on the function $f$. Day 2 will cover more about $\epsilon \propto P(\mu=0, \sigma^2)$
+
+
+## What should $x$ be?
 
 **Reminder**: The researcher needs to decide *which factors* should be included in the model.
 
-- none: all samples have their own values $\to y = \mu + \epsilon$
-- quantitative variable: e.g. sequence depth $\to y = f(sequencing~depth)$
-- categorical variable: e.g. condition $\to y = f(condition)$
-- combination of variables: e.g. condition and celltype
+- none: all samples have their own values $y$
+- simple average: samples are spread around some global mean $\to y = \mu + \epsilon$
+- quantitative variable: e.g. sequence depth $\to y = f(sequencing~depth) + \epsilon$
+- categorical variable: e.g. condition $\to y = f(condition) + \epsilon$
+- combination of variables: e.g. condition and celltype $\to y = f(condition, celltype) + \epsilon$
 
 ```{r gene_plot_factors}
 gene %>%
@@ -224,9 +240,9 @@ gene %>%
 **Notice**:
 
 - ggplot understands factors for plotting 
-- R understands formulae with factors:  $Y \sim X$
+- R understands formulae with factors:  $Y \sim F$
 
-## 3. Under the hood: the model matrix
+## Under the hood: the model matrix
 
 How are factorial variables (e.g. condition) encoded into something numerical ?
 
@@ -260,23 +276,15 @@ y_n \\
 \vdots \\
 \mu_p \\
 \end{array}
-\right] + 
-\left[
-\begin{array}{c}
-\epsilon_1 \\
-\epsilon_2 \\
-\vdots \\
-\epsilon_i \\
-\vdots \\
-\epsilon_n \\
-\end{array}
-\right] 
+\right]
 $$
 and in compact notation:
 $$
-y = X \mu + \epsilon
+y = X \mu
 $$
-$X$: $n\times p$ *incidence model matrix* $\to$ multivariate linear regression
+$X$: $n\times p$ *incidence model matrix* $\to$ multivariate linear regression.
+
+**Recall:** $y=log E[y]$ so this amounts to a generalized linear regression (GLM).
 
 ***
 An equivalent alternative parameterization is:
@@ -308,48 +316,65 @@ y_n \\
 \vdots \\
 \beta_{p-1} \\
 \end{array}
-\right] + 
-\left[
-\begin{array}{c}
-\epsilon_1 \\
-\epsilon_2 \\
-\vdots \\
-\epsilon_i \\
-\vdots \\
-\epsilon_n \\
-\end{array}
-\right]
+\right] 
 $$
 and in compact notation:
 $$
-y = \beta_0 + X' \beta + \epsilon
+y = \beta_0 + X' \beta
 $$
-$X'$: $n \times (p-1)$ model matrix with intersept.
-
-In this parameterization one factor level serves as reference level $\beta_0 = \mu_1$. 
+$X'$: $n \times (p-1)$ model matrix with intersept. With this parameterization one factor level serves as reference level $\beta_0 = \mu_1$. 
 
 Sometimes this choice is preferable since then all the other parameters $\beta_i=\mu_{i+1} - \mu_1$ can be interpreted as `effects` of level $i \ge 1$ with respect to reference level.
 
 We are free to chose from many different parameterizations 
 $\mu \leftrightarrow \beta$ which will have different interpretations.
 
-## 4. Design In Action
+![Linear Model](images/linear_model.png){width=80%}
 
-**Define Design**: 
-The design formula should only include variables from the columns of the metadata!
-In the example below we decide to model only the dependency on the factor "condition"
+<br>
 
-```{r design, echo=TRUE}
-my_design <- ~ 0 + condition   # without intersect
-# my_design <- ~ 1 + condition # with intersect
+
+***
+
+## Design In Action
+
+In R, the model matrix $X$ can be obtained easily from metadata + *design formula*.
+$$
+\mbox{R syntax:} ~~~Y \sim V
+$$
+
+where the formula should only refer to variables $V$ that are defined as columns of the metadata.
+
+```{r}
+metadata %>% colnames
 ```
 
-**Define Model Matrix**: from design formula and metadata
-A factorial design can be translated into a (binary) *model matrix*
+
+Examples are given below.
+
+### Simple designs (1 factor, p-levels)
+
+We may presuppose that gene expression (or rather the logarithm of the expected counts) is a function of "condition" only
+
+$$
+Y \sim condition
+$$
+
+Per default this notation refers to equation $y = \beta_0 + X' \beta$ with an intercept term $\beta_0$, but the latter can also be switched off. 
+
+```{r design, echo=TRUE}
+my_design <- ~ 1 + condition   # with intersect (identical to " ~ condition")
+my_design <- ~ 0 + condition   # without intersect
+```
+
+The design formula together with a metadata implicitly defines the model matrix $X$.
+
+We need $X$ only occasionally, but it may be helpful to visualize it here:
+
 ```{r model_matrix}
-MM <- model.matrix(my_design, data=metadata)
-rownames(MM) = metadata$sample
-pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
+X <- model.matrix(my_design, data=metadata)
+rownames(X) = metadata$sample
+pheatmap(X, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
 
 **Notice**: A factor with $p$ levels will have $p$ dummy variables and $p$ corresponding parameters (e.g. the means for $p$ different groups).
@@ -365,19 +390,23 @@ More complicated designs are possible and often necessary ($\to$ day 2 and 3)
 > **Bonus**: Include an interaction term (+ condition*celltype) and discuss its interpretation  
 
 ```{r model_matrix_interaction}
-MM <- model.matrix(~ 1 + condition * celltype, data=metadata)
-rownames(MM) = metadata$sample
-pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
+X <- model.matrix(~ 1 + condition * celltype, data=metadata)
+rownames(X) = metadata$sample
+pheatmap(X, cluster_cols = FALSE, cluster_rows=FALSE)
 ```
 
 ***
 
-## 5. Experimental design
+# Experimental Design (10 min)
 A more elaborate (highly recommended) tutorial can be found [here](https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md)
 
-![**A typical experiment** ](images/day1_expdesign.jpg)
+![A typical experiment](images/day1_expdesign.jpg)
 
-### a. The problem: more factors!
+<br>
+
+***
+
+### The problem: more factors!
 Usually there are other factors in addition to a simple treatment:
 
 - known and interesting: multi-factorial design and interaction effects (condition * celltype)
@@ -391,50 +420,73 @@ Usually there are other factors in addition to a simple treatment:
 > **Poll 1.6** You are planning an experiment with 3 treatment levels $(X_1, X_2, X_3)$ and aim for 3 replicates each. Unfortunately, you can process at most 3 samples per day. So you'll need three days $(Z_1, Z_2, Z_3)$. How should you assign your samples to different treatments?
 
 
-![**Experimental Design - Poll** ](images/day1_expdesign_poll.jpg)
+![Experimental Design - Poll ](images/day1_expdesign_poll.jpg)
+
+***
+
+### Design Checks
+
+For sanity checks it is useful to prepare a table of the metadata
+```{r check_metadata}
+metadata %>% select(-sample) %>% table
+```
+
+This should answer a few common design questions - even **before** any data $Y$ is collected !
+
+- Are all cells occupied (full design)?
+- Do all cells have the same number of observations (balanced design)
+- Are there missing observations - empty cells?
+- Is there confounding between factors?
+
+***
 
 ### Sources of Variability
 
 
-| Source | What can be done about it |
-|-------|:-----|
-Treatment            | Observe!?
-Biological           | Estimate with **replication**
-Sample Preparation   | Estimate with batch controls (**blocking**)
-Unknown Confounders  | Reduce risk by **randomization** 
-Sequencing           | Control with sequencing depth (read sampling)
-Analysis             | Control software version and parameters
+| Source | What can be done about it ? |
+|:-------|:-----|
+Treatment                  | **Control** - or observe?
+Biological                 | Estimate with **replication**
+Technical                  | Control with sequencing depth (read **sampling**)
+Sample Preparation         | Estimate with batch controls (**blocking**)
+Unknown Confounders        | Reduce risk by **randomization** 
+Errors (e.g. sample swaps) | **Detection**, Documentation, SOPs
+Analysis                   | **Control** software version and parameters
  
 Some *nuisance factors* (e.g. batches) may be known and measurable, but are not of primary interest - they should be included as metadata and in the model.
 
 $$
 \mbox{R syntax:} ~~~Y \sim X + Z
 $$
-```{r alt_design, echo=TRUE, eval=FALSE}
-my_alt_design <- ~ celltype + condition
-```
 
 **Reminder**: The choice of factors rests with the researcher.
 
 ![**Factor Choices**.](images/day1_myelomafactors.jpg)
 
 
+
+
+
+***
+# Break (10 min)
+***
+# Break (10 min)
 ***
 
 # Create DESeq2 object (5 min)
-Each software has their own data representation.
+Each software has their own data representation :-(
+
 A DESeq2 data object combines data, metadata and the design formula in one single object
 
     dds = data + metadata + design
 
 All subsequent calculations will use this object (and modify it).
 
-
-> **Task**: Create a DESeq data set.
+> **Task**: Create a DESeq data set using DESeq::DESeqDataSetFromMatrix()
 
 ```{r combine, echo=TRUE}
 dds <- DESeqDataSetFromMatrix(
-  # countData= expects matrix, so remove "gene_id" column and keep as rowname
+  # countData= expects matrix, so remove "gene_id" column but keep as rowname
   countData=data %>% column_to_rownames("gene_id"),
   colData=metadata, 
   design= my_design)
@@ -451,12 +503,12 @@ dds <- DESeqDataSetFromMatrix(
 - Re-extract the count matrix (Hint: ?counts) and save as `Y`
 - Re-extract the metadata (Hint: ?colData), remove column "sample" and save as `meta`
 
-```{r dds_access}
+```{r dds_access, echo=FALSE}
 dds                     # dds object --> inspect: class(dds), str(dds), dim(dds)
-Y <- counts(dds)        # get gene-sample data matrix from dds
+Y <- dds %>% counts     # get gene-sample data matrix from dds
 
 # get metadata from dds and remove column 'sample'
-meta <- data.frame(colData(dds)) %>% select(-sample)
+meta <- dds %>% colData %>% data.frame %>% select(-sample)
 ```
 
 > **Tasks**: 
@@ -465,9 +517,10 @@ meta <- data.frame(colData(dds)) %>% select(-sample)
 - Optional: Extract 10 randomly sampled genes.
 
 ```{r downsample}
-Yr <- Y %>% head(10)    # extract first 10 rows (for illustrations only)
+Yr <- Y %>% head(10)                        # extract first 10 rows (for illustrations only)
 #Yr <- Y %>% data.frame() %>% sample_n(10)  # random rows
 ```
+
 
 ## 2. Data Visualization
 
@@ -523,7 +576,9 @@ pheatmap(Yr, cluster_rows=FALSE, cluster_cols=FALSE,
          annotation=meta, annotation_colors = my_colors, 
          main="Data + Metadata")
 ```
+
 The colour encoding of the heatmap can also be customized (code not run)
+
 ```{r adjust_heatmap_colors, eval=FALSE, echo=TRUE}
 blue_colors = RColorBrewer::brewer.pal(9,"Blues")
 pheatmap(Yr, cluster_rows=FALSE, cluster_cols=FALSE,
@@ -570,7 +625,9 @@ What happened to zero counts ? What might be the source of remaining variability
 - **Normalization**: make samples comparable
 
 
-## 4. Sample-Sample correlations (genome-wide)
+## 4. Sample-Sample correlations
+
+Here the goal is to derive the overall similarity of samples based on the genome-wide expression data.
 
 **Question**: How to calculate the sample-sample correlation matrix?
 
