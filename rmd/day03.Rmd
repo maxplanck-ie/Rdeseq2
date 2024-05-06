@@ -599,7 +599,7 @@ Columns of results dataframe:
 
   * padj: BH adjusted p-values
   
-```{r comp mods}
+```{r comp mods amil_dmso}
 ggplot() +
   geom_point(aes(x=res$log2FoldChange, y=res_noint$log2FoldChange)) +
   theme_minimal() +
