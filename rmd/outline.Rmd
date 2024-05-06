@@ -12,6 +12,11 @@ output:
     toc_float: true
     df_print: paged
 ---
+
+```{r include=FALSE}
+knitr::knit_child("parameters.Rmd")
+```
+
 ***
 
 # Libraries
@@ -150,7 +155,7 @@ In your session (local or workbench):
 > Project directory name: chose a folder name  
 
 * create the project as a subdirectory under your group volume (e.g. /data/PI/group/MYFOLDER), or a processing volume (/data/processing/MYFOLDER), or the scratch space (/scratch/local/MYFOLDER)
-* Remember to choose version 4.2.3 
+* Remember to choose version `r RVERS`
 
 ## Local users
 
