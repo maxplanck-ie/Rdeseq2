@@ -13,6 +13,11 @@ output:
     df_print: paged
 ---
 
+```{r include=FALSE}
+knitr::knit_child("parameters.Rmd")
+```
+
+
 ***
 
 # Preparation (60 min)
@@ -48,7 +53,7 @@ For R, two of the most common and reliable package repositories are:
 
 **Reminder** 
 
-1. All packages come for a **specific R-version**. This tutorial uses R version 4.2.3.
+1. All packages come for a **specific R-version**. This tutorial uses R version `r RVERS`.
 2. All packages have specific **package version** (e.g. DESeq2 is version 1.36.0), and can come from different sources (CRAN, Bioconductor, github, ...).
 3. Most packages have **dependencies** on other packages that should also be installed 
 4. Installation can be very **time consuming** but needs to be done only once. 

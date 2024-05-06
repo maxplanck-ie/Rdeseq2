@@ -26,9 +26,6 @@ navbar:
     - text: "summary"
       href: "summary.html"
       icon: fa-truck-medical
-    - text: "addendum"
-      href: "addendum.html"
-      icon: fa-grill-hot
 
 output:
   html_document:

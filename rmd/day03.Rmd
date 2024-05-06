@@ -465,14 +465,18 @@ ggplot(data=tdf, aes(x=name, y=value)) +
 
 ### Build object
 ```{r build the matrix, message=FALSE, warning=FALSE}
+
 my_design <- as.formula(~celltype + condition + celltype:condition)
+my_design_noint <- as.formula(~ 0 + celltype + condition + celltype:condition)
 # my_design <- ~celltype*condition   # identical alternative
 
 dds <- DESeq2::DESeqDataSetFromMatrix(countData = data, colData = metadata, design = my_design)
-
+dds_noint <- DESeq2::DESeqDataSetFromMatrix(countData = data, colData = metadata, design = my_design_noint)
 # filtering as in day 1 and 2
 dds <- dds[, -c(1,7)]                   # sample filtering
 dds <- dds[counts(dds) %>% rowSums() > 1, ]  # gene filtering
+dds_noint <- dds_noint[, -c(1,7)]                   # sample filtering
+dds_noint <- dds_noint[counts(dds_noint) %>% rowSums() > 1, ]  # gene filtering
 ```
 
 ```{r estimate size factors, message=FALSE, warning=FALSE}
@@ -490,6 +494,7 @@ dds <- estimateDispersions(dds)
 
 ```{r deseq analysis, message=FALSE, warning=FALSE}
 dds <- DESeq(dds)
+dds_noint <- DESeq(dds_noint)
 ```
 ## 2. Give me results! (30 min)
 
@@ -501,19 +506,21 @@ By default DESeq2 uses the Wald test to identify genes that are differentially e
   * Each gene model coefficient (LFC) is estimated using a maximum likelihood estimation,
   * The shrunken estimate of LFC is divided by its standard error, resulting in a z-statistic,
   * z-statistic is compared to a standard normal distribution to compute the p-values,
-  * P values are adjusted for multiple testing using the procedure of Benjamini and Hochberg.
+  * P values are adjusted for multiple testing
   
 ```{r getresults!, eval=TRUE}
 res_dds <- results(dds)
-res.df <- res_dds %>% data.frame() %>% drop_na
+res_dds <- res_dds %>% data.frame()
+res_dds %>% head()
+res_dds <- res_dds %>% drop_na
+res_dds_noint <- results(dds) %>% data.frame() %>% drop_na()
 ```
 
 P-value distribution
 ```{r pvalue, eval=TRUE, message=FALSE, warning=FALSE}
-ggplot(res.df) +
-    geom_histogram(aes(res.df$pvalue, fill = "a"), colour = "grey20", alpha = 0.5, stat = "bin") +
+ggplot(res_dds) +
+    geom_histogram(aes(pvalue, fill = "a"), colour = "grey20", alpha = 0.5, stat = "bin") +
     xlab("p-value") +
-    # geom_histogram(aes(res.df$padj, fill = "b"), colour = "grey20", alpha = 0.5, stat = "bin") +
     scale_fill_manual(name = "group", values = c("a" = "steelblue"), labels = "p-value") +
     geom_vline(xintercept = 0.05, colour = "red") +
     theme_minimal()
@@ -527,9 +534,6 @@ There are three reasons to set p-values to NA (From the [DESeq2 vignette](https:
    * a row contains a sample with an extreme count outlier.  
    * A row is filtered by automatic filtering  
 
-```{r showres}
-res.df %>% head()
-```
 We have called results here, but what did we actually compare ?
 
 **Reminder**: 
@@ -543,10 +547,25 @@ resultsNames(dds)
 res_dds
 ```
 
+How is this for our cell-means model ?
+
+```{r showcoeffnoint}
+resultsNames(dds_noint)
+#res_dds
+```
+```{r comp mods}
+ggplot() +
+  geom_point(aes(x=res_dds$log2FoldChange, y=res_dds_noint$log2FoldChange)) +
+  theme_minimal() +
+  xlab("Log2FC - intercept") +
+  ylab("Log2FC - no-intercept")
+```
+
+
 ### b. Contrasts and results
 
-Contrasts are used in our results call to get a specific pairwise comparison.
-If there is only two factor levels, There is no need to  specify contrasts, DESeq2 will choose the base factor level based on the alphabetical order of the levels.
+Contrasts are used in our results call to get a specific comparison.
+If there is only one factor with two levels, There is no need to  specify contrasts, DESeq2 will choose the base factor level based on the alphabetical order of the levels.
 
 Contrasts can be specified in three different ways:
 
@@ -560,9 +579,10 @@ Let's try!
 resultsNames(dds) # to see what names to use
 contrast <- c("condition", "AMIL", "DMSO")
 res <- results(dds, contrast = contrast, alpha = 0.05)
-res
-# What is in the results?
-res %>% data.frame() %>% head() %>% drop_na()
+res_noint <- results(dds_noint, contrast = contrast, alpha = 0.05)
+res <- res %>% data.frame() %>% drop_na()
+res_noint <- res_noint %>% data.frame() %>% drop_na()
+res %>% head()
 ```
 
 Columns of results dataframe:
@@ -579,26 +599,84 @@ Columns of results dataframe:
 
   * padj: BH adjusted p-values
   
-```{r contrast2, message=FALSE, warning=FALSE}
-resultsNames(dds) # to see what names to use
-res2 <- results(dds, contrast = c("condition", "AMIL", "TG"), alpha = 0.05)
-res2
-# What is in the results?
-res2 %>% data.frame() %>% head() %>% drop_na()
+```{r comp mods amil_dmso}
+ggplot() +
+  geom_point(aes(x=res$log2FoldChange, y=res_noint$log2FoldChange)) +
+  theme_minimal() +
+  xlab("Log2FC - intercept") +
+  ylab("Log2FC - no-intercept") +
+  ggtitle(" c(\"condition\", \"AMIL\", \"DMSO\") ")
 ```
 
-```{r plot norm_count vs p values}
-ggplot(data=res %>% data.frame()) +
+
+```{r contrast2, message=FALSE, warning=FALSE}
+res2 <- results(dds, contrast = c("condition", "AMIL", "TG"), alpha = 0.05)
+res2_noint <- results(dds_noint, contrast = c("condition", "AMIL", "TG"), alpha = 0.05)
+res2 <- res2 %>% data.frame() %>% drop_na()
+res2_noint <- res2_noint %>% data.frame() %>% drop_na()
+ggplot() +
+  geom_point(aes(x=res2$log2FoldChange, y=res2_noint$log2FoldChange)) +
+  theme_minimal() +
+  xlab("Log2FC - intercept") +
+  ylab("Log2FC - no-intercept") +
+  ggtitle(" c(\"condition\", \"AMIL\", \"TG\") ")
+```
+
+Let's look at a 'list' example.
+by asking 'condition_DMSO_vs_AMIL' we ask for the DMSO effect (relative to AMIL), and 'celltypeJJ.conditionDMSO' we ask for the DMSO effect in JJ cells.
+
+```{r}
+res2 <- results(dds, contrast = list(c("condition_DMSO_vs_AMIL", "celltypeJJ.conditionDMSO")), alpha = 0.05)
+res2 <- res2 %>% data.frame %>% drop_na()
+res2_noint <- results(dds_noint, contrast = list(c("conditionDMSO", "celltypeJJ.conditionDMSO")), alpha = 0.05)
+res2_noint <- res2_noint %>% data.frame() %>% drop_na()
+ggplot() +
+  geom_point(aes(x=res2$log2FoldChange, y=res2_noint$log2FoldChange)) +
+  theme_minimal() +
+  xlab("Log2FC - intercept") +
+  ylab("Log2FC - no-intercept") +
+  ggtitle(" list(c(\"condition_DMSO_vs_AMIL\", \"celltypeJJ.conditionDMSO\")) //  ")
+```
+And finally, let's have a look at a numerical contrast.
+```{r}
+print("Intercept:")
+print(resultsNames(dds))
+print("No Intercept:")
+print(resultsNames(dds_noint))
+```
+
+```{r}
+res2 <- results(dds, contrast = c(0,1,0,0,0,0), alpha = 0.05)
+res2 <- res2 %>% data.frame %>% drop_na()
+res2_noint <- results(dds_noint, contrast = c(-1,1,0,0,0,0), alpha = 0.05)
+res2_noint <- res2_noint %>% data.frame() %>% drop_na()
+ggplot() +
+  geom_point(aes(x=res2$log2FoldChange, y=res2_noint$log2FoldChange)) +
+  theme_minimal() +
+  xlab("Log2FC - intercept") +
+  ylab("Log2FC - no-intercept") +
+  ggtitle(" c(0,1,0,0,0,0) <-> c(-1,1,0,0,0,0) ")
+```
+
+Let's make some exploratory plots.
+
+```{r plot norm_count vs p values, warning=FALSE}
+ggplot(data=res) +
   geom_point(size=0.5, aes(x=log10(baseMean+1), y=-log10(padj))) +
   theme_minimal()
 ```
 
 ```{r plot l2fc vs p values}
-ggplot(data=res %>% data.frame()) +
+ggplot(data=res) +
   geom_point(size=0.5, aes(x=log2FoldChange, y=-log10(padj))) +
   theme_minimal()
 ```
 
+```{r}
+ggplot(data=res) +
+  geom_point(size=0.5, aes(x=log10(baseMean+1), y=log2FoldChange)) +
+  theme_minimal()
+```
 
 ### c. Shrinking
 
@@ -610,8 +688,8 @@ To generate more accurate log2 foldchange (LFC) estimates, DESeq2 allows for the
 LFC shrinkage generates a more accurate estimate.  It looks at the largest fold changes that are not due to low counts and uses these to inform a prior distribution. The genes with little information or high dispersion are then more likely to be assigned to a lower shrunk LFC.
 
 ```{r shrink, message=FALSE, warning=FALSE}
-# which coef to use?
-resultsNames(dds)
+print(contrast)
+res <- results(dds, contrast=contrast)
 res_shrink <- lfcShrink(dds, contrast=contrast, type="ashr")
 ```
 
@@ -628,12 +706,14 @@ The specifics about these methods is beyond the scope of this course.
 ```{r MA plot, message=FALSE, warning=FALSE}
 
 ggplot(data=res %>% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldChange)) +
-  geom_point(size=0.5, color=ifelse(data.frame(res)$padj < 0.05, 'red', 'black')) +
-  theme_minimal()
+  geom_point(size=0.5, color=ifelse(data.frame(res)$padj < 0.05, '#f62728', '#7f7f7f')) +
+  theme_minimal() +
+  ggtitle("un-shrunk")
 
 ggplot(data=res_shrink %>% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldChange)) +
-  geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj < 0.05, 'red', 'black')) +
-  theme_minimal()
+  geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj < 0.05, '#f62728', '#7f7f7f')) +
+  theme_minimal() +
+  ggtitle("shrunk")
 
 ```
 
@@ -644,16 +724,13 @@ ggplot(data=res_shrink %>% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldCh
 ## 3. Biological interpretation (60 min)
 
 ### a. Visualisation
-  Several ways to visualise the DESeq2 outputs:
+  Several ways to visualize the DESeq2 outputs:
   
   * Plot a single gene
 
     I. Try to plot "ENSG00000164062"
       
 ```{r visualisation, message=FALSE, warning=FALSE}
-# plot a single gene
-plotCounts(dds, gene = "ENSG00000164062", intgroup = "celltype")
-# To see the data underneath the figure
 d <- plotCounts(dds, gene = "ENSG00000164062", intgroup = "celltype", returnData=TRUE)
 d %>% head()
 # can be used for ggplot
@@ -671,7 +748,7 @@ ggplot(d, aes(x = celltype, y = count, color = celltype)) +
 
   * convert the res_shrink object to a dataframe ( data.frame() ), sort by padj( arrange() ), take the top 20 ( head() )
   * Extract the normalized (!) counts from the dds object and convert to dataframe ( counts(dds) )
-  * subset the dataframe with normalised counts for the gene ID's in the top20 ( filter() )
+  * subset the dataframe with normalized counts for the gene ID's in the top20 ( filter() )
   * plot with pheatmap, note that you can scale the values per row (scale='row')!
 
 **Reminder**: Some function between ensembldb (part of EnsDb.Hsapiens.v79) and dplyr overlap. Explicitely state the library when calling them to avoid errors.
@@ -694,32 +771,36 @@ pheatmap(top20_counts,
          height = 20)
 
 ```
-  * Volcano plot
+  * Volcano plot / MAplot
 
-  A commonly used plot to have a global view of the expression is volcano plot; in which the log transformed adjusted p-values plotted on the y-axis and log2 fold change values on the x-axis.
+  Commonly used plots to have a global view of the expression are:
+   - volcano plot; in which the log transformed adjusted p-values plotted on the y-axis and log2 fold change values on the x-axis.  
+   - MAplot; in which the log2FoldChanges are plotted on the y-axis, and the mean expression (log-transformed) on the x-axis.
     
   I. Generate a volcano plot of your result and color the siginificant genes differently
     
-```{r volcano plot, message=FALSE, warning=FALSE}
+```{r volcano plot and MAplot, message=FALSE, warning=FALSE}
 ggplot(data=res_shrink %>% data.frame(), aes(x=log2FoldChange, -log10(padj))) +
-  geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj < 0.05, 'red', 'black')) +
-  ylim(c(0,10)) +
+  geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj < 0.05, '#d62728', '#7f7f7f')) +
+  #ylim(c(0,10)) +
   theme_minimal()
 
-ggplot(data=res_shrink %>% data.frame(), aes(x=log2FoldChange, -log10(padj))) +
-  geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj < 0.05, 'red', 'black')) +
-  ylim(c(0,10)) +
+ggplot(data=res_shrink %>% data.frame(), aes(y=log2FoldChange, x=log10(baseMean))) +
+  geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj < 0.05, '#d62728', '#7f7f7f')) +
   theme_minimal()
+
 ```
 
 
 ### b. Likelihood ratio test
 
-DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative to Wald test when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one class compared to another, it identifies genes which are changing in expression in any direction across the different factor levels. Therefore, there is no need for contrasts since we are not making a pair-wise comparison.
+DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative to Wald test when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one group compared to another, it identifies genes whose residual variance decreases significantly upon inclusion of a specified set of covariates. There is no need for contrasts since we are not making a pair-wise comparison.
 
-The LRT is comparing the 'full' model to the 'reduced' model to identify significant genes. The p-values are determined solely by the difference in deviance between the ‘full’ and the ‘reduced’ model formula (not the log2 fold changes). Essentially the LRT test is testing whether the term(s) removed in the ‘reduced’ model explains a significant amount of variation in the data
+The LRT is comparing the 'full' model to the 'reduced' model to identify significant genes. The p-values are determined solely by the difference in deviance between the ‘full’ and the ‘reduced’ model formula (not the log2 fold changes).
 
 ```{r lrt, message=FALSE, warning=FALSE}
+print(design(dds))
+print(resultsNames(dds))
 dds_lrt <- DESeq(dds, test="LRT", reduced = ~celltype + condition)
 res_lrt <- results(dds_lrt)
 head(res_lrt)
@@ -804,7 +885,7 @@ Remember our coefficients:
 resultsNames(dds)
 ```
 
-Note:
+And remember:
 contrasts can be specified in a number of ways.
 
 1. Character vector with three elements: c(factor1, level1, level2) !
@@ -834,7 +915,7 @@ head( TGvAMIL %>% data.frame() )
 colData(dds)$celltype
 ```
 
-For celltype JJ, things are a bit more tricky. We cannot use the c(factor1, level1, level2) contrast (since BM is our baseline!), and the coefficient we are interested in is actually not in resultsNames (it's actually a combination of AMIL-TG + the interaction term TG-JJ). We thus have to specify the numerical vector. You can build these manually (which is error prone), but (as always) there is a trick to make our life easier. This is based on the model matrix:
+For celltype JJ, things are a bit more tricky. We cannot use the c(factor1, level1, level2) contrast (since BM is our baseline!), and the coefficient we are interested in is actually not in resultsNames (it's actually a combination of AMIL-TG + the interaction term TG-JJ). We thus have to specify the numerical vector or use a list. You can build these manually (which is error prone), but (as always) there is a trick to make our life easier. This is based on the model matrix:
 
 ```{r modelMat, message=FALSE, warning=FALSE}
 pheatmap(model.matrix(design(dds), colData(dds)),
@@ -852,7 +933,7 @@ The workflow is as follows:
 The convenient part about this method is that rather than thinking about the coefficients, you think about factor levels.
 A more elaborate tutorial can be found [here]( https://github.com/tavareshugo/tutorial_DESeq2_contrasts/blob/main/DESeq2_contrasts.Rmd)
 
-> ! Note that we also could rerun DESeq with the appropriate factor re-leveled.
+> ! Note that we also could rerun DESeq with the appropriate factor re-leveled, though this is cumbersome
 
 We'd like to see the difference between condition TG and AMIL in cellType JJ.
 (Note that based on our factor levels, this is essentially coefficient TG + interactionJJ:TG)
@@ -869,6 +950,13 @@ print(JJ_TG - JJ_AMIL)
 TGvAMIL_JJ <- lfcShrink(dds, contrast = JJ_TG - JJ_AMIL, type="ashr")
 ```
 
+```{r}
+TGvAMIL_JJ_2 <- lfcShrink(dds, contrast = list(c("condition_TG_vs_AMIL", "celltypeJJ.conditionTG")), type="ashr")
+TGvAMIL_JJ %>% head()
+TGvAMIL_JJ_2 %>% head()
+```
+
+
 > ! Make sure you have the 'TGvAMIL_JJ' results object.
 
 
@@ -880,13 +968,37 @@ compl2 <- colMeans(mod_mat[dds$celltype == 'JJ' & dds$condition == "TG",])
 
 print(compl1 - compl2)
 
-# Something even more obscure:
-compl1 <- colMeans(mod_mat[dds$celltype == 'BM' & dds$condition == "DMSO",])
-compl2 <- colMeans(mod_mat[dds$condition == "TG",])
+```
+> ! Cave ! The 'colMeans trick' needs BALANCED designs. An example where this goes wrong:
 
-print(compl1 - compl2)
+```{r}
+fake_coldata <- data.frame(
+    cond = c("DMSO", "DMSO", "DRUG", "DRUG", "DRUG", "DMSO", "DMSO", "DRUG", "DRUG"),
+    genotype = factor(c("WT", "WT", "WT", "WT", "WT", "KO", "KO", "KO", "KO"), levels=c("WT", "KO"))
+)
+fake_modmat <- model.matrix(~cond * genotype, fake_coldata)
+
+a <- fake_modmat[fake_coldata$cond == "DMSO",]
+b <- fake_modmat[fake_coldata$cond == "DRUG",]
+colMeans(b) - colMeans(a)
+
+```
+This is of course wrong. Note what happens under a balanced design:
+
+```{r}
+fake_coldata <- data.frame(
+    cond = c("DMSO", "DMSO", "DRUG", "DRUG", "DMSO", "DMSO", "DRUG", "DRUG"),
+    genotype = factor(c("WT", "WT", "WT", "WT", "KO", "KO", "KO", "KO"), levels=c("WT", "KO"))
+)
+fake_modmat <- model.matrix(~cond * genotype, fake_coldata)
+
+a <- fake_modmat[fake_coldata$cond == "DMSO",]
+b <- fake_modmat[fake_coldata$cond == "DRUG",]
+
+colMeans(b) - colMeans(a)
 ```
 
+So in general (and this goes beyond RNA-seq analysis), think about what you are doing and if it makes sense.
 
 ### e. Clean & Annotate
 
@@ -894,14 +1006,14 @@ print(compl1 - compl2)
  * Commonly used package to convert between them is [biomaRt](https://bioconductor.org/packages/release/bioc/html/biomaRt.html). 
  * Alternatively (without API/internet) is [org.Hs.eg.db](https://bioconductor.org/packages/release/data/annotation/html/org.Hs.eg.db.html) package.
 
-**Reminder**: Hs -> Homo Sapiens. As you probably guessed, for most model organisms there is a package like this (mm, sp, ...) ). Since the data is processed with GRCh37, we will use the following database: "EnsDb.Hsapiens.v75"
+**Reminder**: Hs -> Homo Sapiens. As you probably guessed, for most model organisms there is a package like this (mm, sp, ...) ). Since the data is processed with GRCh37, we will use the following database: "EnsDb.Hsapiens.v75". Which is already rather outdated at this time. Note that this should match the reference used to create the count matrix !
 
 In our case we can use:
 
 
 > ensembldb::select(EnsDb.Hsapiens.v75, keys= ensemble, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
 
-**Reminder**: Some function between ensembldb (part of EnsDb.Hsapiens.v79) and dplyr overlap. Explicitely state the library when calling them to avoid errors.
+**Reminder**: Some function between ensembldb (part of EnsDb.Hsapiens.v79) and dplyr overlap. Explicitly state the library when calling them to avoid errors.
 
 Remember. With our contrast juggling we have 2 results objects ('Large DESeqResults').
 
@@ -914,8 +1026,21 @@ TGvAMIL_JJ (for JJ cells).
   * convert the results object into a dataframe
   * remove the na values from the dataframe
   * Sort the dataframe by adjusted p value
+  * Include the gene names (== 'SYMBOL') as a 'gene_symbol' column in the dataframe
   * if you are feeling brave, you can wrap these operations in a function!
 
+
+> Hint for the symbols, this is how ensembldb::select works (to return a SYMBOL - GENEID mapping)
+
+```
+ensembldb::select(
+  EnsDb.Hsapiens.v75,
+  keys = GENEIDS,
+  keytype = "GENEID",
+  columns = c("SYMBOL", "GENEID")
+)
+```
+> Hint2: The accessions (==GENEIDS) were stored as rownames in our count matrix. Where are they in the dds object ?
 
 ```{r parseResults, message=FALSE, warning=FALSE}
 cleanDF <- function(RESobj){
@@ -967,7 +1092,7 @@ Finally, look at two specific geneSets.
  - genes involved in splicing
  - genes involved in apoptosis
  
- Note that we will read in the txt files as a vector (with gene symbols.
+ Note that we will read in the txt files as a vector (with gene symbols).
 
 ```{r Pathways, message = FALSE, warning = FALSE}
 
@@ -1005,13 +1130,11 @@ pheatmap(
 
 ```
 
-
 ### g. LRT
 
 Finally, let's look at the treatment factor using LRT. For this we'll use ~celltype as the reduced model.
 
 ```{r lrt-condition, message=FALSE, warning=FALSE}
-# which model are we interested in as reduced?
 dds_lrt <- DESeq(dds, test="LRT", reduced = ~celltype)
 res_lrt <- results(dds_lrt)
 ```
