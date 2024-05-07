@@ -124,23 +124,6 @@ sizeFactors(dds)
 ```{r Dispersion, message=FALSE, warning=FALSE, paged.print=FALSE}
 plotDispEsts(dds)
 ```
-```{r bad_dispers}
-
-set.seed(42)
-metadata_thrash <- metadata 
-metadata_thrash$celltype <- sample(metadata$celltype)
-metadata_thrash$condition <- sample(metadata$condition)
-
-MM=model.matrix(design(dds), metadata)
-pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)
-
-MM_thrash=model.matrix(design(dds), metadata_thrash)
-pheatmap(MM_thrash, cluster_cols = FALSE, cluster_rows=FALSE)
-
-dds_thrash <- DESeqDataSetFromMatrix(countData=data, colData=metadata_thrash, design=design(dds))
-dds_thrash <- DESeq(dds_thrash)
-plotDispEsts(dds_thrash)
-```
 
 ### f. LRT for age.
 
