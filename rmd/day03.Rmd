@@ -30,26 +30,25 @@ library("ggrepel")
 library("EnsDb.Hsapiens.v75")
 library("UpSetR")
 library("ashr")
+library("gridExtra")
 })
 ```
 
+Start by reading countdata, metadata, creating a dds object and performing the filtering as we did yesterday.
+
 ```{r read_data, message=FALSE, warning=FALSE}
-# Get the data directory
-dfile <- "data/myeloma/myeloma_counts.tsv"
-data <- read_tsv(file=dfile)
-data <- data %>%
-  column_to_rownames("gene_id") %>%
-  mutate(across(where(is.double), as.integer))
+data <- readr::read_tsv("data/myeloma/myeloma_counts.tsv")
+metadata <- readr::read_tsv("data/myeloma/myeloma_meta.tsv")
+metadata <- metadata %>% mutate_if(is.character,as.factor)
 
-# Read samplesheet , detects conditions, generate the formula
-mfile <- "data/myeloma/myeloma_meta.tsv"
-metadata <- read_tsv(file=mfile)
-metadata <- metadata %>% column_to_rownames("sample") 
-
-metadata$condition <- as.factor(metadata$condition)
-metadata$celltype  <- as.factor(metadata$celltype)
-
-metadata
+dds <- DESeqDataSetFromMatrix(
+  countData=data %>% column_to_rownames("gene_id"), 
+  colData=metadata, 
+  design=~1
+)
+dds <- dds[, -c(1,7)] 
+rs <- dds %>% counts %>% rowSums()
+dds <- dds[rs>1,]
 ```
 
 ## 1. Coefficients and design (30 minutes)
@@ -69,7 +68,7 @@ where K = i - 1
 
 ```{r plot_designs}
 pheatmap(
-  model.matrix(~condition, data=metadata),
+  model.matrix(~condition, data=colData(dds)),
   cluster_cols = FALSE,
   cluster_rows=FALSE,
   main="~ condition"
@@ -85,7 +84,7 @@ $$
 
 ```{r plot_design_noint}
 pheatmap(
-  model.matrix(~ 0 + condition, data=metadata),
+  model.matrix(~ 0 + condition, data=colData(dds)),
   cluster_cols = FALSE,
   cluster_rows=FALSE,
   main="~ 0 + condition"
@@ -93,6 +92,8 @@ pheatmap(
 ```
 
 ### b. design examples
+
+***
 
 #### A single factor with two levels - intercept
 
@@ -104,13 +105,8 @@ pheatmap(
 |sample4 |BM |
 
 ```{r simplefactordesign, message = FALSE}
-dds <- DESeqDataSetFromMatrix(
-  countData=data,
-  colData=metadata,
-  design= ~celltype
-)
+design(dds) <- ~celltype
 dds <- DESeq(dds)
-plotDispEsts(dds)
 ```
 
 ```{r}
@@ -126,22 +122,22 @@ Our coefficients here are our intercept, and condition for our celltype effect v
 
 ```{r coefplot celltype, echo=FALSE, warning=FALSE}
 source('funcs.R')
-tdf <- coeflist_to_ggplot(dds, "ENSG00000198932")
+tdf <- coeflist_to_ggplot(dds, "ENSG00000134775")
 tdf$name <- factor(tdf$name, levels=resultsNames(dds))
 ggplot(data=tdf, aes(x=name, y=value)) +
   geom_hline(linetype='dashed', aes(yintercept=tdf[[1,2]])) +
   geom_hline(aes(yintercept=0)) +
   theme_minimal() + 
-  ggtitle('ENSG00000198932') +
+  ggtitle('ENSG00000134775') +
   ylab("Value") +
-  ylim(c(0,8)) +
+  ylim(c(0,12)) +
   geom_segment(
     arrow = arrow(length = unit(0.03, "npc") ),
-    aes(xend=name,yend=c(tdf[[1,2]]-0.4, tdf[[2,2]]-0.4 ), y=c(0, tdf[[1,2]]), color='red')
+    aes(xend=name,yend=c(tdf[[1,2]]-0.5, tdf[[2,2]]-0.5 ), y=c(0, tdf[[1,2]]), color='red')
   ) +
   geom_point(size=10) +
   theme(legend.position = "none") +
-  geom_text(aes(x=name, y=value+1, label=c('β₀', 'β₁')))
+  geom_text(aes(x=name, y=value+1.5, label=c('β₀', 'β₁')))
 ```
 
 > **Poll 3.1** What does the intercept (beta0) value reflect ?
@@ -177,32 +173,30 @@ Null hypothesis:
 Let's look at the same setup, but this time omit our intercept
 
 ```{r simplefactordesign_noint, message = FALSE}
-dds <- DESeqDataSetFromMatrix(
-  countData=data,
-  colData=metadata,
-  design= ~0+celltype
-)
+design(dds) <- ~0+celltype
 dds <- DESeq(dds)
 ```
 
 ```{r}
 resultsNames(dds)
 ```
+
+
 ```{r coefplot celltype_nooint, echo=FALSE, warning=FALSE}
-tdf <- coeflist_to_ggplot(dds, "ENSG00000198932", int=FALSE)
+tdf <- coeflist_to_ggplot(dds, "ENSG00000134775", int=FALSE)
 tdf$name <- factor(tdf$name, levels=resultsNames(dds))
 ggplot(data=tdf, aes(x=name, y=value)) +
   theme_minimal() + 
-  ggtitle('ENSG00000198932') +
+  ggtitle('ENSG00000134775') +
   ylab("Value") +
-  ylim(c(0,8)) +
+  ylim(c(0,12)) +
   geom_segment(
      arrow = arrow(),
-     aes(xend = name, y=c(0,0), yend=value-0.4,  color='red')
+     aes(xend = name, y=c(0,0), yend=value-0.5,  color='red')
   ) +
   geom_point(size=10) +
   theme(legend.position = "none") +
-  geom_text(aes(x=name, y=value+1, label=c(resultsNames(dds)[0], resultsNames(dds)[1])))
+  geom_text(aes(x=name, y=value+1.5, label=c(resultsNames(dds)[1], resultsNames(dds)[2])))
 ```
 
 ***
@@ -223,9 +217,8 @@ ggplot(data=tdf, aes(x=name, y=value)) +
 > **Poll 3.2** What coefficients do we get when we specify 'condition' alone as a design?
 
 ```{r simplefactordesign condition, message = FALSE}
-dds <- DESeqDataSetFromMatrix(countData=data, colData=metadata, design= ~condition)
+design(dds) <- ~condition
 dds <- DESeq(dds)
-plotDispEsts(dds)
 ```
 
 ```{r}
@@ -257,7 +250,7 @@ ggplot(data=tdf, aes(x=name, y=value)) +
   geom_text(aes(x=name, y=c(tdf[[1,2]] + 1, tdf[[2,2]] - 1, tdf[[3,2]] + 1), label=c('β₀', 'β₁', 'β₂'))) +
   geom_segment(
      arrow = arrow(length = unit(0.03, "npc") ),
-     aes(xend=name,yend=c(tdf[[1,2]]-0.4, tdf[[2,2]]+0.5, tdf[[3,2]]-0.5 ), y=c(0, tdf[[1,2]], tdf[[1,2]]), color='red')
+     aes(xend=name,yend=c(tdf[[1,2]]-0.5, tdf[[2,2]]+0.5, tdf[[3,2]]-0.5 ), y=c(0, tdf[[1,2]], tdf[[1,2]]), color='red')
    )
 
 ```
@@ -289,11 +282,7 @@ Null hypothesis:
 Let's again look at the scenario where we don't include an intercept.
 
 ```{r conddesign_noint, message = FALSE}
-dds <- DESeqDataSetFromMatrix(
-  countData=data,
-  colData=metadata,
-  design= ~0+condition
-)
+design(dds) <- ~0+condition
 dds <- DESeq(dds)
 ```
 
@@ -359,11 +348,8 @@ Design:
 
 
 ```{r fulldesign, message=FALSE}
-dds <- DESeqDataSetFromMatrix(
-  countData=data, colData=metadata, design= ~celltype+condition+celltype:condition
-)
+design(dds) <- ~celltype+condition+celltype:condition
 dds <- DESeq(dds)
-plotDispEsts(dds)
 ```
 
 ```{r}
@@ -372,15 +358,14 @@ resultsNames(dds)
 
 
 ```{r coefplot interactions, echo=FALSE, fig.width=10, fig.height=7, warning=FALSE}
-source('funcs.R')
-tdf <- coeflist_to_ggplot(dds, "ENSG00000005102")
+tdf <- coeflist_to_ggplot(dds, "ENSG00000198886")
 tdf$name <- factor(tdf$name, levels=resultsNames(dds))
 
 ggplot(data=tdf, aes(x=name, y=value)) +
   geom_hline(linetype='dashed', aes(yintercept=tdf[[1,2]])) +
   geom_hline(aes(yintercept=0)) +
   theme_minimal() + 
-  ggtitle('ENSG00000005102') +
+  ggtitle('ENSG00000198886') +
   ylab("Value") +
   geom_point(size=10) +
   theme(legend.position = "none") +
@@ -388,7 +373,7 @@ ggplot(data=tdf, aes(x=name, y=value)) +
   geom_text(
     aes(
       x=name,
-      y=c(tdf[[1,2]] + 1.5, tdf[[2,2]] - 1.5, tdf[[3,2]] - 1.5, tdf[[4,2]] - 1.5, tdf[[5,2]] + 1.5, tdf[[6,2]] + 1.5),
+      y=c(tdf[[1,2]] + 1.5, tdf[[2,2]] + 1.5, tdf[[3,2]] + 1.5, tdf[[4,2]] + 1.5, tdf[[5,2]] - 1.5, tdf[[6,2]] - 1.5),
       label=c('β₀', 'β₁', 'β₂', 'β₃', 'β₄', 'β₅')
     )
   ) +
@@ -397,7 +382,7 @@ ggplot(data=tdf, aes(x=name, y=value)) +
      aes(
        xend=name,
        y=c(0, tdf[[1,2]], tdf[[1,2]], tdf[[1,2]], tdf[[1,2]], tdf[[1,2]]),
-       yend=c(tdf[[1,2]]-1, tdf[[2,2]]+1, tdf[[3,2]]+1, tdf[[4,2]]+1, tdf[[5,2]]-1, tdf[[6,2]]-1),
+       yend=c(tdf[[1,2]]-0.5, tdf[[2,2]]-0.5, tdf[[3,2]]-0.5, tdf[[4,2]]-0.5, tdf[[5,2]]+0.5, tdf[[6,2]]+0.5),
        color='red'
      )
   )
@@ -428,11 +413,8 @@ Null hypothesis:
 #### two factors, with an interaction - no intercept
 
 ```{r fulldesign noint, message=FALSE}
-dds <- DESeqDataSetFromMatrix(
-  countData=data, colData=metadata, design= ~0+celltype+condition+celltype:condition
-)
+design(dds) <- ~0+celltype:condition
 dds <- DESeq(dds)
-plotDispEsts(dds)
 ```
 
 ```{r}
@@ -440,20 +422,20 @@ resultsNames(dds)
 ```
 
 ```{r coefplot fulldesign noint, echo=FALSE, warning=FALSE, fig.width=10, fig.height=7}
-tdf <- coeflist_to_ggplot(dds, "ENSG00000005102", int=FALSE)
+tdf <- coeflist_to_ggplot(dds, "ENSG00000198886", int=FALSE)
 tdf$name <- factor(tdf$name, levels=resultsNames(dds))
 ggplot(data=tdf, aes(x=name, y=value)) +
   theme_minimal() + 
-  ggtitle('ENSG00000005102') +
+  ggtitle('ENSG00000198886') +
   ylab("Value") +
-  ylim(c(-10,12)) +
+  ylim(c(0,20)) +
   geom_segment(
      arrow = arrow(),
-     aes(xend = name, y=c(0,0,0,0,0,0), yend=value + c(-0.6, 0.6, 0.6, 0.6, -0.6, -0.6),  color='red')
+     aes(xend = name, y=c(0,0,0,0,0,0), yend=value + c(-0.5, -0.5, -0.5, -0.5, -0.5, -0.5),  color='red')
   ) +
   geom_point(size=10) +
   theme(legend.position = "none") +
-  geom_text(aes(x=name, y=value+c(2,-2,-2,-2,2,2), label=c(
+  geom_text(aes(x=name, y=value+c(2,2,2,2,2,2), label=c(
     resultsNames(dds)[1], resultsNames(dds)[2], resultsNames(dds)[3],
     resultsNames(dds)[4], resultsNames(dds)[5], resultsNames(dds)[6]
     )
@@ -465,18 +447,18 @@ ggplot(data=tdf, aes(x=name, y=value)) +
 
 ### Build object
 ```{r build the matrix, message=FALSE, warning=FALSE}
+data <- readr::read_tsv("data/myeloma/myeloma_counts.tsv")
+metadata <- readr::read_tsv("data/myeloma/myeloma_meta.tsv")
+metadata <- metadata %>% mutate_if(is.character,as.factor)
 
-my_design <- as.formula(~celltype + condition + celltype:condition)
-my_design_noint <- as.formula(~ 0 + celltype + condition + celltype:condition)
-# my_design <- ~celltype*condition   # identical alternative
-
-dds <- DESeq2::DESeqDataSetFromMatrix(countData = data, colData = metadata, design = my_design)
-dds_noint <- DESeq2::DESeqDataSetFromMatrix(countData = data, colData = metadata, design = my_design_noint)
-# filtering as in day 1 and 2
-dds <- dds[, -c(1,7)]                   # sample filtering
-dds <- dds[counts(dds) %>% rowSums() > 1, ]  # gene filtering
-dds_noint <- dds_noint[, -c(1,7)]                   # sample filtering
-dds_noint <- dds_noint[counts(dds_noint) %>% rowSums() > 1, ]  # gene filtering
+dds <- DESeqDataSetFromMatrix(
+  countData=data %>% column_to_rownames("gene_id"), 
+  colData=metadata, 
+  design=~celltype+condition+celltype:condition
+)
+dds <- dds[, -c(1,7)] 
+rs <- dds %>% counts %>% rowSums()
+dds <- dds[rs>1,]
 ```
 
 ```{r estimate size factors, message=FALSE, warning=FALSE}
@@ -488,13 +470,16 @@ sizeFactors(dds)
 
 ```{r estimate dispersions, message=FALSE, warning=FALSE}
 dds <- estimateDispersions(dds)
+plotDispEsts(dds)
+```
+```{r GLMs, message=FALSE, warning=FALSE}
+dds <- nbinomWaldTest(dds)
 ```
 
 ### Or everything in 1 go
 
 ```{r deseq analysis, message=FALSE, warning=FALSE}
 dds <- DESeq(dds)
-dds_noint <- DESeq(dds_noint)
 ```
 ## 2. Give me results! (30 min)
 
@@ -509,57 +494,43 @@ By default DESeq2 uses the Wald test to identify genes that are differentially e
   * P values are adjusted for multiple testing
   
 ```{r getresults!, eval=TRUE}
-res_dds <- results(dds)
-res_dds <- res_dds %>% data.frame()
-res_dds %>% head()
-res_dds <- res_dds %>% drop_na
-res_dds_noint <- results(dds) %>% data.frame() %>% drop_na()
-```
-
-P-value distribution
-```{r pvalue, eval=TRUE, message=FALSE, warning=FALSE}
-ggplot(res_dds) +
-    geom_histogram(aes(pvalue, fill = "a"), colour = "grey20", alpha = 0.5, stat = "bin") +
-    xlab("p-value") +
-    scale_fill_manual(name = "group", values = c("a" = "steelblue"), labels = "p-value") +
-    geom_vline(xintercept = 0.05, colour = "red") +
-    theme_minimal()
+res_dds <- results(dds) %>% data.frame()
+res_dds[c("ENSG00000001626", "ENSG00000130985", "ENSG00000100596", "ENSG00000196700", "ENSG00000039987"),] %>% arrange(log2FoldChange)
 ```
 
 A frequently asked question is: 'Why is my padj 'NA' but my p-values are significant ? It's my favorite gene!'
 
-There are three reasons to set p-values to NA (From the [DESeq2 vignette](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pvaluesNA))
+There are three reasons to set adjusted p-values to NA (From the [DESeq2 vignette](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pvaluesNA))
 
-   * within a row, all samples have zero counts  
-   * a row contains a sample with an extreme count outlier.  
-   * A row is filtered by automatic filtering  
+   * within a row, all samples have zero counts (remember that we filtered these, so this doesn't apply here !)
+   * a row contains a sample with an extreme count outlier
+   * A row is filtered by independent filtering  
+
+```{r, warning=FALSE}
+p1 <- ggplot() +
+  geom_point(size=0.5, aes(x=log10(res_dds$baseMean), y=-log10(res_dds$padj))) +
+  theme_minimal() +
+  ggtitle("Independent filtering") +
+  xlab("log10(baseMean)") +
+  ylab("-log10(padj)")
+p2 <- ggplot() +
+  geom_point(size=0.5, aes(x=log10(res_dds$baseMean), y=-log10(p.adjust(res_dds$pvalue, method='hochberg')))) +
+  theme_minimal() +
+  ggtitle("No independent filtering") +
+  ylab("-log10(padj)") +
+  xlab("log10(baseMean)")
+grid.arrange(p1, p2, nrow=1)
+```
+
 
 We have called results here, but what did we actually compare ?
+```{r}
+resultsNames(dds)
+```
 
 **Reminder**: 
 
-If 'results' is run without specifying 'contrast' or 'name', it will return the comparison of the last level of the last variable in the design formula over the first level of this variable.
-For example, for a simple two-group comparison, this would return the log2 fold changes of the second group over the first group (the reference level).
-
-Remember now our coefficients:
-```{r showcoeff}
-resultsNames(dds)
-res_dds
-```
-
-How is this for our cell-means model ?
-
-```{r showcoeffnoint}
-resultsNames(dds_noint)
-#res_dds
-```
-```{r comp mods}
-ggplot() +
-  geom_point(aes(x=res_dds$log2FoldChange, y=res_dds_noint$log2FoldChange)) +
-  theme_minimal() +
-  xlab("Log2FC - intercept") +
-  ylab("Log2FC - no-intercept")
-```
+If 'results' is run without specifying 'contrast' or 'name', the last coefficient will be tested. In this case 'celltypeJJ.conditionDMSO'.
 
 
 ### b. Contrasts and results
@@ -575,13 +546,13 @@ Contrasts can be specified in three different ways:
 
 Let's try!
 
+Specify a `c("condition", "AMIL", "DMSO")` contrast in the result function:
+
+
 ```{r contrast1, message=FALSE, warning=FALSE}
-resultsNames(dds) # to see what names to use
-contrast <- c("condition", "AMIL", "DMSO")
-res <- results(dds, contrast = contrast, alpha = 0.05)
-res_noint <- results(dds_noint, contrast = contrast, alpha = 0.05)
+contrast <- c("condition", "DMSO", "AMIL")
+res <- results(dds, contrast = contrast)
 res <- res %>% data.frame() %>% drop_na()
-res_noint <- res_noint %>% data.frame() %>% drop_na()
 res %>% head()
 ```
 
@@ -597,84 +568,100 @@ Columns of results dataframe:
 
   * pvalue: Wald test p-value
 
-  * padj: BH adjusted p-values
-  
-```{r comp mods amil_dmso}
-ggplot() +
-  geom_point(aes(x=res$log2FoldChange, y=res_noint$log2FoldChange)) +
-  theme_minimal() +
-  xlab("Log2FC - intercept") +
-  ylab("Log2FC - no-intercept") +
-  ggtitle(" c(\"condition\", \"AMIL\", \"DMSO\") ")
+  * padj: BH adjusted + independently filtered p-values
+
+Note that we are testing the the Amiloride effect (with DMSO as a baseline) under the base-levels of all other factors in the model.
+In this case this corresponds to a DMSO - Amiloride comparison in BM cells.
+
+```{r}
+sig_genes <- res %>% arrange(padj) %>% dplyr::filter(padj < 0.05)
+nonsig_jj <- c(
+  "ENSG00000002016","ENSG00000002549", "ENSG00000004139", "ENSG00000004838",
+  "ENSG00000005007", "ENSG00000005022", "ENSG00000005102", "ENSG00000005469",
+  "ENSG00000005884", "ENSG00000005889", "ENSG00000006114", "ENSG00000006194",
+  "ENSG00000006459", "ENSG00000006652", "ENSG00000007047"
+)
+pheatmap(counts(dds, normalized=T)[
+    sig_genes[nonsig_jj,] %>% rownames(),
+    c("BM_CTRL_2", "BM_CTRL_3", "BM_AMIL_1", "BM_AMIL_2", "BM_AMIL_3",
+      "JJ_CTRL_2", "JJ_CTRL_3", "JJ_AMIL_1", "JJ_AMIL_2", "JJ_AMIL_3")
+  ],
+  scale='row',
+  main='c(\'condition\', \'DMSO\', \'AMIL\')'
+)
 ```
 
-
-```{r contrast2, message=FALSE, warning=FALSE}
-res2 <- results(dds, contrast = c("condition", "AMIL", "TG"), alpha = 0.05)
-res2_noint <- results(dds_noint, contrast = c("condition", "AMIL", "TG"), alpha = 0.05)
-res2 <- res2 %>% data.frame() %>% drop_na()
-res2_noint <- res2_noint %>% data.frame() %>% drop_na()
-ggplot() +
-  geom_point(aes(x=res2$log2FoldChange, y=res2_noint$log2FoldChange)) +
-  theme_minimal() +
-  xlab("Log2FC - intercept") +
-  ylab("Log2FC - no-intercept") +
-  ggtitle(" c(\"condition\", \"AMIL\", \"TG\") ")
-```
+***
 
 Let's look at a 'list' example.
 by asking 'condition_DMSO_vs_AMIL' we ask for the DMSO effect (relative to AMIL), and 'celltypeJJ.conditionDMSO' we ask for the DMSO effect in JJ cells.
 
+
 ```{r}
 res2 <- results(dds, contrast = list(c("condition_DMSO_vs_AMIL", "celltypeJJ.conditionDMSO")), alpha = 0.05)
 res2 <- res2 %>% data.frame %>% drop_na()
-res2_noint <- results(dds_noint, contrast = list(c("conditionDMSO", "celltypeJJ.conditionDMSO")), alpha = 0.05)
-res2_noint <- res2_noint %>% data.frame() %>% drop_na()
-ggplot() +
-  geom_point(aes(x=res2$log2FoldChange, y=res2_noint$log2FoldChange)) +
-  theme_minimal() +
-  xlab("Log2FC - intercept") +
-  ylab("Log2FC - no-intercept") +
-  ggtitle(" list(c(\"condition_DMSO_vs_AMIL\", \"celltypeJJ.conditionDMSO\")) //  ")
-```
-And finally, let's have a look at a numerical contrast.
-```{r}
-print("Intercept:")
-print(resultsNames(dds))
-print("No Intercept:")
-print(resultsNames(dds_noint))
+res2 %>% head()
 ```
 
 ```{r}
-res2 <- results(dds, contrast = c(0,1,0,0,0,0), alpha = 0.05)
-res2 <- res2 %>% data.frame %>% drop_na()
-res2_noint <- results(dds_noint, contrast = c(-1,1,0,0,0,0), alpha = 0.05)
-res2_noint <- res2_noint %>% data.frame() %>% drop_na()
-ggplot() +
-  geom_point(aes(x=res2$log2FoldChange, y=res2_noint$log2FoldChange)) +
-  theme_minimal() +
-  xlab("Log2FC - intercept") +
-  ylab("Log2FC - no-intercept") +
-  ggtitle(" c(0,1,0,0,0,0) <-> c(-1,1,0,0,0,0) ")
+sig_genes <- res2 %>% arrange(padj) %>% dplyr::filter(padj < 0.05)
+nonsig_bm <- c(
+  "ENSG00000003147", "ENSG00000003989", "ENSG00000004142", "ENSG00000005189",
+  "ENSG00000006468", "ENSG00000006576", "ENSG00000007080",
+  "ENSG00000008256", "ENSG00000008311", "ENSG00000008323", "ENSG00000008405", "ENSG00000008513", "ENSG00000008517",
+  "ENSG00000012779", "ENSG00000013275", "ENSG00000013810", "ENSG00000014257"
+)
+pheatmap(counts(dds, normalized=T)[
+    sig_genes[nonsig_bm,] %>% rownames(),
+    c("BM_CTRL_2", "BM_CTRL_3", "BM_AMIL_1", "BM_AMIL_2", "BM_AMIL_3",
+      "JJ_CTRL_2", "JJ_CTRL_3", "JJ_AMIL_1", "JJ_AMIL_2", "JJ_AMIL_3")
+  ],
+  scale='row',
+  cluster_cols=F,
+  main='list(c(\"condition_DMSO_vs_AMIL\", \"celltypeJJ.conditionDMSO\"))'
+)
 ```
+***
+
+And finally, let's have a look at a numerical contrast.
+```{r}
+print(resultsNames(dds))
+```
+
+```{r}
+res3 <- results(dds, contrast = c(0,0,1,0,1,0), alpha = 0.05)
+res3 <- res3 %>% data.frame %>% drop_na()
+```
+
+```{r}
+ggplot() +
+  geom_point(aes(x=res2$log2FoldChange, y=res3$log2FoldChange)) +
+  theme_minimal() +
+  ylab("c(0,0,1,0,1,0)") +
+  xlab("list(c(\"condition_DMSO_vs_AMIL\", \"celltypeJJ.conditionDMSO\"))")
+```
+
+***
 
 Let's make some exploratory plots.
 
-```{r plot norm_count vs p values, warning=FALSE}
-ggplot(data=res) +
-  geom_point(size=0.5, aes(x=log10(baseMean+1), y=-log10(padj))) +
-  theme_minimal()
-```
-
 ```{r plot l2fc vs p values}
 ggplot(data=res) +
-  geom_point(size=0.5, aes(x=log2FoldChange, y=-log10(padj))) +
+  geom_point(
+    size=0.5,
+    color = ifelse(res$padj < 0.05, '#f62728', '#7f7f7f'),
+    aes(x=log2FoldChange, y=-log10(padj))
+  ) +
   theme_minimal()
 ```
 
 ```{r}
 ggplot(data=res) +
-  geom_point(size=0.5, aes(x=log10(baseMean+1), y=log2FoldChange)) +
+  geom_point(
+    size=0.5,
+    color = ifelse(res$padj < 0.05, '#f62728', '#7f7f7f'),
+    aes(x=log10(baseMean), y=log2FoldChange)
+  ) +
   theme_minimal()
 ```
 
@@ -692,6 +679,7 @@ print(contrast)
 res <- results(dds, contrast=contrast)
 res_shrink <- lfcShrink(dds, contrast=contrast, type="ashr")
 ```
+**Note**: Please run the lfcShrink, so you have the res_shrink object in memory for later !
 
 Note that there are three 'built-in' methods for shrinking:
  
@@ -705,16 +693,17 @@ The specifics about these methods is beyond the scope of this course.
 
 ```{r MA plot, message=FALSE, warning=FALSE}
 
-ggplot(data=res %>% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldChange)) +
+p1 <- ggplot(data=res %>% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldChange)) +
   geom_point(size=0.5, color=ifelse(data.frame(res)$padj < 0.05, '#f62728', '#7f7f7f')) +
   theme_minimal() +
   ggtitle("un-shrunk")
 
-ggplot(data=res_shrink %>% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldChange)) +
+p2 <- ggplot(data=res_shrink %>% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldChange)) +
   geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj < 0.05, '#f62728', '#7f7f7f')) +
   theme_minimal() +
   ggtitle("shrunk")
 
+grid.arrange(p1, p2, nrow=1)
 ```
 
 ***
@@ -724,12 +713,9 @@ ggplot(data=res_shrink %>% data.frame(), aes(x=log10(baseMean + 1), y=log2FoldCh
 ## 3. Biological interpretation (60 min)
 
 ### a. Visualisation
-  Several ways to visualize the DESeq2 outputs:
-  
-  * Plot a single gene
 
-    I. Try to plot "ENSG00000164062"
-      
+You can plot the (normalized) counts of a single gene over your conditions.
+
 ```{r visualisation, message=FALSE, warning=FALSE}
 d <- plotCounts(dds, gene = "ENSG00000164062", intgroup = "celltype", returnData=TRUE)
 d %>% head()
@@ -742,17 +728,17 @@ ggplot(d, aes(x = celltype, y = count, color = celltype)) +
     theme(plot.title = element_text(hjust = 0.5))
 ```
 
-  * Make a heatmap of several (or all) significant genes
+***
+
+We saw how to create heatmap multiple times, let's make another !
     
-> **Task**: Plot a heatmap of the normalised counts for the 'top 20' genes from our previously generated results table.
+> **Task**: Plot a heatmap of the normalized counts for the 'top 20' genes from our previously generated res_shrink object. (15 minutes)  
+  * convert the res_shrink object to a dataframe ( data.frame() ), sort by padj( arrange() ), take the top 20 ( head() )  
+  * Extract the normalized (!) counts from the dds object and convert to dataframe ( counts(dds) )  
+  * subset the dataframe with normalized counts for the gene ID's in the top20 ( filter() )  
+  * plot with pheatmap, note that you can scale the values per row (scale='row')!  
 
-  * convert the res_shrink object to a dataframe ( data.frame() ), sort by padj( arrange() ), take the top 20 ( head() )
-  * Extract the normalized (!) counts from the dds object and convert to dataframe ( counts(dds) )
-  * subset the dataframe with normalized counts for the gene ID's in the top20 ( filter() )
-  * plot with pheatmap, note that you can scale the values per row (scale='row')!
-
-**Reminder**: Some function between ensembldb (part of EnsDb.Hsapiens.v79) and dplyr overlap. Explicitely state the library when calling them to avoid errors.
-
+**Reminder**: Some function between ensembldb (part of EnsDb.Hsapiens.v79) and dplyr overlap. Explicitly state the library when calling them to avoid errors.
 
 ```{r heatmap, message=FALSE, warning=FALSE}
 top20 <- res_shrink %>% data.frame() %>% subset(padj < 0.05) %>% arrange(padj, descending=FALSE) %>% head(20)
@@ -771,24 +757,24 @@ pheatmap(top20_counts,
          height = 20)
 
 ```
-  * Volcano plot / MAplot
+Before the break we also saw an example of an MAplot and a volcano plot.
+Both are commonly used plots to have a global view of the expression changes.
 
-  Commonly used plots to have a global view of the expression are:
    - volcano plot; in which the log transformed adjusted p-values plotted on the y-axis and log2 fold change values on the x-axis.  
    - MAplot; in which the log2FoldChanges are plotted on the y-axis, and the mean expression (log-transformed) on the x-axis.
-    
-  I. Generate a volcano plot of your result and color the siginificant genes differently
+
     
 ```{r volcano plot and MAplot, message=FALSE, warning=FALSE}
-ggplot(data=res_shrink %>% data.frame(), aes(x=log2FoldChange, -log10(padj))) +
+p1 <- ggplot(data=res_shrink %>% data.frame(), aes(x=log2FoldChange, -log10(padj))) +
   geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj < 0.05, '#d62728', '#7f7f7f')) +
   #ylim(c(0,10)) +
   theme_minimal()
 
-ggplot(data=res_shrink %>% data.frame(), aes(y=log2FoldChange, x=log10(baseMean))) +
+p2 <- ggplot(data=res_shrink %>% data.frame(), aes(y=log2FoldChange, x=log10(baseMean))) +
   geom_point(size=0.5, color=ifelse(data.frame(res_shrink)$padj < 0.05, '#d62728', '#7f7f7f')) +
   theme_minimal()
 
+grid.arrange(p1, p2, nrow=1)
 ```
 
 
@@ -816,12 +802,10 @@ Columns relevant to the LRT test:
 **Reminder**: Note that the l2FC/lfcSE is again from our last coefficient ! (and thus doesn't tell us anything in this case).
 
 ```{r detect lrt sig genes and plot heatmap, message=FALSE, warning=FALSE}
-sig_res_lrt <- res_lrt %>% data.frame() %>% rownames_to_column(var="gene") %>% drop_na() %>% dplyr::filter(padj < 0.05) %>% arrange(padj, descending=FALSE)
+sig_res_lrt <- res_lrt %>% data.frame()  %>% drop_na() %>% dplyr::filter(padj < 0.05) %>% arrange(padj)
 nrow(sig_res_lrt)
 
-lrtcounts <- normcounts %>% subset(rownames(normcounts) %in% sig_res_lrt$gene)
-
-pheatmap(lrtcounts,
+pheatmap(counts(dds, normalized=TRUE)[sig_res_lrt %>% rownames(),],
          cluster_rows = T,
          show_rownames = F,
          border_color = NA,
@@ -830,7 +814,7 @@ pheatmap(lrtcounts,
          fontsize_row = 10,
          height = 20)
 
-pheatmap(lrtcounts,
+pheatmap(counts(dds, normalized=TRUE)[sig_res_lrt %>% rownames(),],
          cluster_rows = T,
          kmeans_k = 10,
          show_rownames = F,
@@ -915,7 +899,7 @@ head( TGvAMIL %>% data.frame() )
 colData(dds)$celltype
 ```
 
-For celltype JJ, things are a bit more tricky. We cannot use the c(factor1, level1, level2) contrast (since BM is our baseline!), and the coefficient we are interested in is actually not in resultsNames (it's actually a combination of AMIL-TG + the interaction term TG-JJ). We thus have to specify the numerical vector or use a list. You can build these manually (which is error prone), but (as always) there is a trick to make our life easier. This is based on the model matrix:
+For celltype JJ, things are a bit more tricky. We cannot use the c(factor1, level1, level2) contrast (since BM is our baseline!), and the coefficient we are interested in is actually not in resultsNames (it's a combination of AMIL-TG + the interaction term TG-JJ). We thus have to specify the numerical vector or use a list. You can build these manually (which is error prone), but there is a trick that could make our life easier. This is based on the model matrix:
 
 ```{r modelMat, message=FALSE, warning=FALSE}
 pheatmap(model.matrix(design(dds), colData(dds)),
@@ -928,7 +912,7 @@ The workflow is as follows:
 1. Get the model matrix.
 2. Get the colMeans of a subset of the matrix for each group of interest.
 3. Subtract the group vectors from each other.
-4. Publish in nature.
+4. graduate summa cum laude
 
 The convenient part about this method is that rather than thinking about the coefficients, you think about factor levels.
 A more elaborate tutorial can be found [here]( https://github.com/tavareshugo/tutorial_DESeq2_contrasts/blob/main/DESeq2_contrasts.Rmd)
@@ -936,7 +920,7 @@ A more elaborate tutorial can be found [here]( https://github.com/tavareshugo/tu
 > ! Note that we also could rerun DESeq with the appropriate factor re-leveled, though this is cumbersome
 
 We'd like to see the difference between condition TG and AMIL in cellType JJ.
-(Note that based on our factor levels, this is essentially coefficient TG + interactionJJ:TG)
+(Note that based on our factor levels, this is essentially coefficient TG_vs_AMIL + interactionJJ:TG)
 
 ```{r message=FALSE, warning=FALSE}
 mod_mat <- model.matrix(design(dds), colData(dds))
@@ -960,43 +944,7 @@ TGvAMIL_JJ_2 %>% head()
 > ! Make sure you have the 'TGvAMIL_JJ' results object.
 
 
-```{r a more complex comparison, message=FALSE, warning=FALSE}
-
-# we'd like to condition TG in cellType JJ
-compl1 <- colMeans(mod_mat[dds$celltype == 'BM' & dds$condition == "DMSO",])
-compl2 <- colMeans(mod_mat[dds$celltype == 'JJ' & dds$condition == "TG",])
-
-print(compl1 - compl2)
-
-```
-> ! Cave ! The 'colMeans trick' needs BALANCED designs. An example where this goes wrong:
-
-```{r}
-fake_coldata <- data.frame(
-    cond = c("DMSO", "DMSO", "DRUG", "DRUG", "DRUG", "DMSO", "DMSO", "DRUG", "DRUG"),
-    genotype = factor(c("WT", "WT", "WT", "WT", "WT", "KO", "KO", "KO", "KO"), levels=c("WT", "KO"))
-)
-fake_modmat <- model.matrix(~cond * genotype, fake_coldata)
-
-a <- fake_modmat[fake_coldata$cond == "DMSO",]
-b <- fake_modmat[fake_coldata$cond == "DRUG",]
-colMeans(b) - colMeans(a)
-
-```
-This is of course wrong. Note what happens under a balanced design:
-
-```{r}
-fake_coldata <- data.frame(
-    cond = c("DMSO", "DMSO", "DRUG", "DRUG", "DMSO", "DMSO", "DRUG", "DRUG"),
-    genotype = factor(c("WT", "WT", "WT", "WT", "KO", "KO", "KO", "KO"), levels=c("WT", "KO"))
-)
-fake_modmat <- model.matrix(~cond * genotype, fake_coldata)
-
-a <- fake_modmat[fake_coldata$cond == "DMSO",]
-b <- fake_modmat[fake_coldata$cond == "DRUG",]
-
-colMeans(b) - colMeans(a)
-```
+> ! Cave ! The colMeans trick should ONLY be used when you have BALANCED designs. If the number of samples differes between the groups you want to compare, this could lead to a WRONG contrast.
 
 So in general (and this goes beyond RNA-seq analysis), think about what you are doing and if it makes sense.
 
@@ -1021,8 +969,7 @@ TGvAMIL (for BM cells).
 TGvAMIL_JJ (for JJ cells).
 
 
-> **Task**: Clean our results classes (TGvAMIL & TGvAMIL_JJ)
-
+> **Task**: Clean our results classes (TGvAMIL & TGvAMIL_JJ) (15 min)
   * convert the results object into a dataframe
   * remove the na values from the dataframe
   * Sort the dataframe by adjusted p value
@@ -1031,16 +978,8 @@ TGvAMIL_JJ (for JJ cells).
 
 
 > Hint for the symbols, this is how ensembldb::select works (to return a SYMBOL - GENEID mapping)
-
-```
-ensembldb::select(
-  EnsDb.Hsapiens.v75,
-  keys = GENEIDS,
-  keytype = "GENEID",
-  columns = c("SYMBOL", "GENEID")
-)
-```
 > Hint2: The accessions (==GENEIDS) were stored as rownames in our count matrix. Where are they in the dds object ?
+
 
 ```{r parseResults, message=FALSE, warning=FALSE}
 cleanDF <- function(RESobj){
@@ -1059,14 +998,14 @@ TGvAMIL_BM_cleaned <- cleanDF(TGvAMIL)
 ``` {r plot_cleanedresults, message=FALSE, warning=FALSE}
 # Plot Zscores for top20 hits.
 pheatmap(
-  normcounts %>% subset(rownames(normcounts) %in% rownames(head(TGvAMIL_JJ_cleaned, 20))) %>% dplyr::select(8,9,10,14,15,16),
+  counts(dds, normalized=TRUE)[TGvAMIL_JJ_cleaned %>% rownames %>% head(20), c(8,9,10,14,15,16)],
   scale = 'row',
   main='TG v AMIL - JJ',
   labels_row = TGvAMIL_JJ_cleaned %>% head(20) %>% pull('gene_symbol')
 )
 
 pheatmap(
-  normcounts %>% subset(rownames(normcounts) %in% rownames(head(TGvAMIL_BM_cleaned, 20))) %>% dplyr::select(3,4,5,11,12,13),
+  counts(dds, normalized=TRUE)[TGvAMIL_BM_cleaned %>% rownames %>% head(20), c(3,4,5,11,12,13)],
   scale = 'row',
   main='TG v AMIL - BM',
   labels_row = TGvAMIL_JJ_cleaned %>% head(20) %>% pull('gene_symbol')
@@ -1077,10 +1016,10 @@ To look at the overlaps:
 
 ```{r UpsetPlot, message = FALSE, warning = FALSE}
 upsetList <- list(
-  "BM - Up" = TGvAMIL_BM_cleaned %>% subset( (padj < 0.05) & log2FoldChange > 2 ) %>% rownames(),
-  "BM - Down" = TGvAMIL_BM_cleaned %>% subset( (padj < 0.05) & log2FoldChange < -2 ) %>% rownames(),
-  "JJ - Up" = TGvAMIL_JJ_cleaned %>% subset( (padj < 0.05) & log2FoldChange > 2 ) %>% rownames(),
-  "JJ - Down" = TGvAMIL_JJ_cleaned %>% subset( (padj < 0.05) & log2FoldChange < -2 ) %>% rownames()
+  "BM - Up" = TGvAMIL_BM_cleaned %>% dplyr::filter(padj < 0.05, log2FoldChange > 2) %>% rownames(),
+  "BM - Down" = TGvAMIL_BM_cleaned %>% dplyr::filter(padj < 0.05, log2FoldChange < -2) %>% rownames(),
+  "JJ - Up" = TGvAMIL_JJ_cleaned %>% dplyr::filter(padj < 0.05, log2FoldChange > 2) %>% rownames(),
+  "JJ - Down" = TGvAMIL_JJ_cleaned %>% dplyr::filter(padj < 0.05, log2FoldChange < -2) %>% rownames()
   )
 
 upset(fromList(upsetList), order.by = "freq")
@@ -1113,7 +1052,10 @@ retIDsfromSymbolList <- function(df, symbols){
 # spliceosome
 
 pheatmap(
-  normcounts %>% subset(rownames(normcounts) %in% retIDsfromSymbolList(TGvAMIL_BM_cleaned, kegg_spliceosome)) %>% dplyr::select(3,4,5,11,12,13),
+  counts(dds, normalized=TRUE)[
+    retIDsfromSymbolList(TGvAMIL_BM_cleaned, kegg_spliceosome),
+    c(3,4,5,11,12,13)
+  ],
   scale = 'row',
   main='TG v AMIL - BM : spliceosome',
   fontsize=5
@@ -1122,7 +1064,10 @@ pheatmap(
 # Apoptosis
 
 pheatmap(
-  normcounts %>% subset(rownames(normcounts) %in% retIDsfromSymbolList(TGvAMIL_BM_cleaned, kegg_apoptosis)) %>% dplyr::select(3,4,5,11,12,13),
+  counts(dds, normalized=TRUE)[
+    retIDsfromSymbolList(TGvAMIL_BM_cleaned, kegg_apoptosis),
+    c(3,4,5,11,12,13)
+  ],
   scale = 'row',
   main='TG v AMIL - BM : apoptosis',
   fontsize=5
@@ -1151,7 +1096,9 @@ write.table(res_lrt_clean, file="lrtResults.tsv", quote = FALSE, sep = "\t")
 
 # spliceosome
 pheatmap(
-  normcounts %>% subset(rownames(normcounts) %in% retIDsfromSymbolList(res_lrt_clean, kegg_spliceosome)),
+  counts(dds, normalized=TRUE)[
+    retIDsfromSymbolList(res_lrt_clean, kegg_spliceosome),
+  ],
   scale = 'row',
   main='LRT : spliceosome',
   fontsize=5
@@ -1159,7 +1106,9 @@ pheatmap(
 
 # Apoptosis
 pheatmap(
-  normcounts %>% subset(rownames(normcounts) %in% retIDsfromSymbolList(res_lrt_clean, kegg_apoptosis)),
+  counts(dds, normalized=TRUE)[
+    retIDsfromSymbolList(res_lrt_clean, kegg_apoptosis),
+  ],
   scale = 'row',
   main='LRT : apoptosis',
   fontsize=5
