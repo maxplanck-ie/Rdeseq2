@@ -647,28 +647,18 @@ smoothScatter(Yt[,"JJ_TG_1"], Yt[,"JJ_AMIL_1"])
 PCA aims to project samples from a high-dimensional space (M=20k+ genes) to a lower dimension (D=2).
 Similar to correlation analysis, the main purpose is to identify distinct and similar samples.
 ```{r PCA_manual}
-#Yt is the transformed count matrix: log, rlog, vst, ...
+# vst() is one of many variance stabilization methods: log, vst, rlog, ...
+# DESeq::plotPCA() requires a 'DESeqTransform' object as input
 
-# set number of most variable genes
-nt <- 500     
-# calculate variance for each row (gene), sort and get top variable genes
-top <-  Yt %>% rowVars(useNames=TRUE) %>% order(decreasing=TRUE) %>% head(nt)   
-# subset, transpose and perform PCA
-pca <- Yt[top,] %>% t() %>% prcomp(scale=TRUE)      
-
-# calculate fraction of explained variance by PC 
-vars = round(pca$sdev^2 / sum(pca$sdev^2),3)
-
-S = pca$x[,1:2] %>%                    # pca$x: score matrix (nt=500 genes --> 2 PC)
-  as_tibble(rownames="sample") %>%     # convert to tibble
-  inner_join(metadata, by="sample")    # attach metadata for visualization
-
-ggplot(S, aes(x=PC1, y=PC2, color=condition, shape=celltype)) +
-  geom_point(size=3) +
-  xlab(paste0("PC1: ",vars[1])) +
-  ylab(paste0("PC2: ",vars[2])) +
-  scale_colour_manual(values=cn_col)
-  # scale_colour_brewer(palette="Dark2")
+PCA <- dds %>% vst %>% plotPCA(intgroup=c("condition","celltype"), returnData=TRUE)
+  
+# get percentage explained variation per PC
+percentVar <- round(100 * attr(PCA, "percentVar"), 1)
+  
+ggplot(PCA, aes(x=PC1, y=PC2, color=condition, shape=celltype)) +
+  geom_point(size=3, alpha=0.5) +
+  xlab(paste0("PC1: ",percentVar[1])) +
+  ylab(paste0("PC2: ",percentVar[2]))
 ```
 
 > **Homework** 
@@ -677,7 +667,7 @@ ggplot(S, aes(x=PC1, y=PC2, color=condition, shape=celltype)) +
 2. Which factor explains the separation?
 3. Can we go ahead with analysis ?
 4. Optional: 
-Repeat PCA analysis with more sophisticated normalization from the DESeq2 package "rlog()". Notice that the output is not a matrix but a more complicated object. It can be used by the plotPCA() function.
+Repeat PCA analysis with more sophisticated normalization from the DESeq2 package "rlog()". Notice that the output is not a matrix but a more complicated DESeqTransform object.
 
 
 ```{r plotPCA, eval=FALSE}
@@ -685,6 +675,7 @@ rld <- rlog(dds)  # more sophisticated log-transform to account for seq.depth=li
 
 plotPCA(rld)
 ```
+
 ```{r plotPCA_custom, eval=FALSE}
 rld_PCA <- plotPCA(rld, intgroup=c("condition", "celltype"), returnData=TRUE)
 percentVar <- round(100 * attr(rld_PCA, "percentVar"), 1)
