@@ -103,6 +103,9 @@
 
 3.5 Given our contrast c('condition', 'TG', 'AMIL'), what would a significant positive foldchange correspond to ?
 
-   a) Higher expression in TG-treated cells
-   b) Higher expression in AMIL-treated cells
-
+   a) Higher expression in TG-treated BM and JJ cells
+   b) Higher expression in AMIL-treated BM and JJ cells
+   c) Higher expression in TG-treated BM cells
+   d) Higher expression in AMIL-treated BM cells
+   e) Higher expression in TG-treated JJ cells
+   f) Higher expression in AMIL-treated BM cells
