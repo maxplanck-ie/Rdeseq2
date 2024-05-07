@@ -398,24 +398,13 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 02</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Mon May 6 10:59:33 2024</h4>
+<h4 class="date">Tue May 7 00:36:19 2024</h4>
 
 </div>
 
 
-<div id="goals-deseq2-workflow" class="section level2">
-<h2>Goals: DESeq2 workflow</h2>
-<ul>
-<li>repeat: generating DESeq-object (data, metadata, design)</li>
-<li>filtering: samples and genes</li>
-<li>transformations: normalization and sizefactors</li>
-<li>modeling: variance + dispersion</li>
-<li>statistical tests</li>
-<li>extracting results</li>
-</ul>
-</div>
-<div id="preparation-repeat" class="section level2">
-<h2>Preparation (Repeat)</h2>
+<div id="preparationrepetition-10-min" class="section level2">
+<h2>Preparation/Repetition (10 min)</h2>
 <div id="load-packages" class="section level3">
 <h3>Load packages</h3>
 <pre class="r"><code>suppressPackageStartupMessages({
@@ -424,32 +413,85 @@ library(&quot;DESeq2&quot;)
 library(&quot;pheatmap&quot;)
 })
 
-# a convenience function for PCA-plotting
-PCA_tm &lt;- function(dds, nt=500){
+
+PCA_tm &lt;- function(dds, groups=c(&quot;condition&quot;, &quot;celltype&quot;), trans_func=vst){
+  # a convenience function for PCA-plotting - rather specific to this course
+  # Usage: dds %&gt;% PCA_tm(c(&quot;condition&quot;,&quot;celltype&quot;), trans_func = rlog)
+
+  # Define color and shape variables - set to NULL if not used
+  color_var &lt;- if( length(groups) &gt; 0) { groups[1] } else { NULL }
+  shape_var &lt;- if( length(groups) &gt; 1) { groups[2] } else { NULL }
   
-  Y &lt;- dds %&gt;% counts %&gt;% {log2(. + 1)} # data + transformation
-#  Y &lt;- dds %&gt;% counts %&gt;% rlog          # rlog is slow
-  meta &lt;- dds %&gt;% colData               # metadata
-
-  # get nt top variable genes 
-  top &lt;-  Y %&gt;% rowVars(useNames=TRUE) %&gt;% order(decreasing=TRUE) %&gt;% head(nt)   
+  # transformation | PCA 
+  PCA &lt;- dds %&gt;% trans_func %&gt;% plotPCA(intgroup=groups, returnData=TRUE)
+  # get percentage explained variation per PC
+  percentVar &lt;- round(100 * attr(PCA, &quot;percentVar&quot;), 1)
   
-  # subset, transpose and perform PCA
-  pca &lt;- Y[top,] %&gt;% t %&gt;% prcomp(scale=TRUE)      
+  ggplot(PCA, aes_string(x=&quot;PC1&quot;, y=&quot;PC2&quot;, color=color_var, shape=shape_var)) +
+    geom_point(size=3, alpha=0.5) +
+    xlab(paste0(&quot;PC1: &quot;,percentVar[1])) +
+    ylab(paste0(&quot;PC2: &quot;,percentVar[2]))
 
-  # calculate fraction of explained variance by PC 
-  vars = round(pca$sdev^2 / sum(pca$sdev^2),3)
-
-  S = pca$x[,1:2] %&gt;%                    # pca$x: score matrix (nt=500 genes --&gt; 2 PC)
-    as_tibble(rownames=&quot;sample&quot;) %&gt;%     # convert to tibble
-    inner_join(metadata, by=&quot;sample&quot;)    # attach metadata for visualization
-
-  # aes() is specific to course material with &quot;condition&quot; and &quot;celltype&quot;
-  ggplot(S, aes(x=PC1, y=PC2, color=condition, shape=celltype)) +
-    geom_point(size=3) +
-    xlab(paste0(&quot;PC1: &quot;,vars[1])) +
-    ylab(paste0(&quot;PC2: &quot;,vars[2]))
 }</code></pre>
+<p>Remember how important sessionInfo() is:</p>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>## R version 4.2.3 (2023-03-15)
+## Platform: x86_64-conda-linux-gnu (64-bit)
+## Running under: Ubuntu 22.04.4 LTS
+## 
+## Matrix products: default
+## BLAS/LAPACK: /home/runner/micromamba/envs/Rdeseq2/lib/libopenblasp-r0.3.27.so
+## 
+## locale:
+##  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+##  [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+##  [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+## [10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+## 
+## attached base packages:
+## [1] stats4    stats     graphics  grDevices utils     datasets  methods  
+## [8] base     
+## 
+## other attached packages:
+##  [1] pheatmap_1.0.12             lubridate_1.9.3            
+##  [3] forcats_1.0.0               stringr_1.5.1              
+##  [5] dplyr_1.1.4                 purrr_1.0.2                
+##  [7] readr_2.1.5                 tidyr_1.3.1                
+##  [9] tibble_3.2.1                ggplot2_3.5.1              
+## [11] tidyverse_2.0.0             DESeq2_1.38.0              
+## [13] SummarizedExperiment_1.28.0 Biobase_2.58.0             
+## [15] MatrixGenerics_1.10.0       matrixStats_1.3.0          
+## [17] GenomicRanges_1.50.0        GenomeInfoDb_1.34.9        
+## [19] IRanges_2.32.0              S4Vectors_0.36.0           
+## [21] BiocGenerics_0.44.0        
+## 
+## loaded via a namespace (and not attached):
+##  [1] bitops_1.0-7           fontawesome_0.5.2      bit64_4.0.5           
+##  [4] RColorBrewer_1.1-3     httr_1.4.7             tools_4.2.3           
+##  [7] bslib_0.7.0            utf8_1.2.4             R6_2.5.1              
+## [10] KernSmooth_2.23-22     DBI_1.2.2              colorspace_2.1-0      
+## [13] withr_3.0.0            tidyselect_1.2.1       bit_4.0.5             
+## [16] compiler_4.2.3         cli_3.6.2              DelayedArray_0.24.0   
+## [19] labeling_0.4.3         sass_0.4.9             scales_1.3.0          
+## [22] genefilter_1.80.0      digest_0.6.35          rmarkdown_2.25        
+## [25] XVector_0.38.0         pkgconfig_2.0.3        htmltools_0.5.8.1     
+## [28] fastmap_1.1.1          highr_0.10             rlang_1.1.3           
+## [31] RSQLite_2.3.4          jquerylib_0.1.4        generics_0.1.3        
+## [34] farver_2.1.1           jsonlite_1.8.8         BiocParallel_1.32.5   
+## [37] vroom_1.6.5            RCurl_1.98-1.14        magrittr_2.0.3        
+## [40] GenomeInfoDbData_1.2.9 Matrix_1.6-5           Rcpp_1.0.12           
+## [43] munsell_0.5.1          fansi_1.0.6            lifecycle_1.0.4       
+## [46] stringi_1.8.4          yaml_2.3.8             zlibbioc_1.44.0       
+## [49] grid_4.2.3             blob_1.2.4             parallel_4.2.3        
+## [52] crayon_1.5.2           lattice_0.22-6         Biostrings_2.66.0     
+## [55] splines_4.2.3          annotate_1.76.0        hms_1.1.3             
+## [58] KEGGREST_1.38.0        locfit_1.5-9.9         knitr_1.46            
+## [61] pillar_1.9.0           geneplotter_1.76.0     codetools_0.2-20      
+## [64] XML_3.99-0.16.1        glue_1.7.0             evaluate_0.23         
+## [67] png_0.1-8              vctrs_0.6.5            tzdb_0.4.0            
+## [70] gtable_0.3.5           cachem_1.0.8           xfun_0.43             
+## [73] xtable_1.8-4           survival_3.6-4         AnnotationDbi_1.60.0  
+## [76] memoise_2.0.1          timechange_0.3.0</code></pre>
 </div>
 <div id="load-data" class="section level3">
 <h3>Load data</h3>
@@ -462,13 +504,7 @@ PCA_tm &lt;- function(dds, nt=500){
 ## 
 ## ℹ Use `spec()` to retrieve the full column specification for this data.
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
-<pre class="r"><code>#data &lt;- data %&gt;% 
-#  column_to_rownames(var=&quot;gene_id&quot;) %&gt;%
-#  mutate(across(where(is.double), as.integer))
-
-#data %&gt;% str()
-#data %&gt;% dim()
-data %&gt;% head()</code></pre>
+<pre class="r"><code>data %&gt;% head()</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":["gene_id"],"name":[1],"type":["chr"],"align":["left"]},{"label":["JJ_CTRL_1"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_3"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_1"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_2"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["BM_AMIL_3"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["BM_CTRL_1"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_2"],"name":[9],"type":["dbl"],"align":["right"]},{"label":["JJ_CTRL_3"],"name":[10],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_1"],"name":[11],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_2"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["JJ_AMIL_3"],"name":[13],"type":["dbl"],"align":["right"]},{"label":["BM_TG_1"],"name":[14],"type":["dbl"],"align":["right"]},{"label":["BM_TG_2"],"name":[15],"type":["dbl"],"align":["right"]},{"label":["BM_TG_3"],"name":[16],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_1"],"name":[17],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_2"],"name":[18],"type":["dbl"],"align":["right"]},{"label":["JJ_TG_3"],"name":[19],"type":["dbl"],"align":["right"]}],"data":[{"1":"ENSG00000000003","2":"0","3":"0","4":"0","5":"0","6":"0","7":"0","8":"0","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","19":"0"},{"1":"ENSG00000000005","2":"0","3":"0","4":"0","5":"0","6":"0","7":"0","8":"0","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","19":"0"},{"1":"ENSG00000000419","2":"1637","3":"1792","4":"2368","5":"2365","6":"4808","7":"2098","8":"1664","9":"1878","10":"1367","11":"1155","12":"3020","13":"3834","14":"2461","15":"1962","16":"2417","17":"1601","18":"3110","19":"2129"},{"1":"ENSG00000000457","2":"453","3":"614","4":"854","5":"623","6":"585","7":"431","8":"687","9":"869","10":"619","11":"512","12":"953","13":"1049","14":"845","15":"757","16":"859","17":"823","18":"1342","19":"904"},{"1":"ENSG00000000460","2":"719","3":"961","4":"1280","5":"937","6":"1247","7":"852","8":"884","9":"1058","10":"616","11":"840","12":"1320","13":"1161","14":"1944","15":"1528","16":"2106","17":"1350","18":"2569","19":"1654"},{"1":"ENSG00000000938","2":"2","3":"3","4":"6","5":"0","6":"0","7":"0","8":"1","9":"4","10":"1","11":"3","12":"3","13":"5","14":"5","15":"1","16":"3","17":"2","18":"2","19":"3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
@@ -486,32 +522,20 @@ data %&gt;% head()</code></pre>
 ## ℹ Use `spec()` to retrieve the full column specification for this data.
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
 <pre class="r"><code>metadata &lt;- metadata %&gt;% mutate_if(is.character,as.factor)
-
-#metadata &lt;- metadata %&gt;% 
-#  mutate(celltype = factor(celltype)) %&gt;%
-#  mutate(condition = factor(condition)) %&gt;%
-#  column_to_rownames(&quot;sample&quot;)  
-
-#metadata %&gt;% str()
-#metadata %&gt;% dim()
 metadata %&gt;% head()</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":["sample"],"name":[1],"type":["fct"],"align":["left"]},{"label":["celltype"],"name":[2],"type":["fct"],"align":["left"]},{"label":["condition"],"name":[3],"type":["fct"],"align":["left"]}],"data":[{"1":"JJ_CTRL_1","2":"JJ","3":"DMSO"},{"1":"BM_CTRL_2","2":"BM","3":"DMSO"},{"1":"BM_CTRL_3","2":"BM","3":"DMSO"},{"1":"BM_AMIL_1","2":"BM","3":"AMIL"},{"1":"BM_AMIL_2","2":"BM","3":"AMIL"},{"1":"BM_AMIL_3","2":"BM","3":"AMIL"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
-<pre class="r"><code>#check if the col and rows are in the same order:
-all(rownames(metadata) == colnames(data))</code></pre>
-<pre><code>## Warning in rownames(metadata) == colnames(data): longer object length is not a
-## multiple of shorter object length</code></pre>
-<pre><code>## [1] FALSE</code></pre>
 </div>
-<div id="create-design" class="section level3">
-<h3>Create Design</h3>
+<div id="define-design" class="section level3">
+<h3>Define Design</h3>
 <pre class="r"><code>my_design &lt;- ~ celltype + condition</code></pre>
 </div>
 <div id="create-deseq-object" class="section level3">
 <h3>Create DESeq Object</h3>
+<pre><code>dds = data + metadata + design</code></pre>
 <pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(
   countData=data %&gt;% column_to_rownames(&quot;gene_id&quot;), 
   colData=metadata, 
@@ -529,6 +553,12 @@ all(rownames(metadata) == colnames(data))</code></pre>
 <p>Previously you noticed that the PCA shows a problem with our
 data.</p>
 <pre class="r"><code>dds %&gt;% PCA_tm</code></pre>
+<pre><code>## Warning: `aes_string()` was deprecated in ggplot2 3.0.0.
+## ℹ Please use tidy evaluation idioms with `aes()`.
+## ℹ See also `vignette(&quot;ggplot2-in-packages&quot;)` for more information.
+## This warning is displayed once every 8 hours.
+## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+## generated.</code></pre>
 <p><img src="day02_files/figure-html/old_PCA-1.png" width="80%" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># DESeq2::plotPCA does not show this very clearly
 # dds %&gt;% rlog %&gt;% plotPCA(intgroup=c(&quot;celltype&quot;, &quot;condition&quot;)) # rlog slow
@@ -538,12 +568,15 @@ data.</p>
 </blockquote>
 </div>
 </div>
-<div id="filtering" class="section level2">
-<h2>Filtering</h2>
-<div id="filter-samples---10-min" class="section level3">
-<h3>Filter Samples - 10 min</h3>
-<p><strong>Task</strong>: Filter the problematic samples (columns 1 and
-7) from dds object and produce a new PCA plot.</p>
+<div id="pre-processing-30min" class="section level2">
+<h2>Pre-processing (30min)</h2>
+<p>Pre-processing is easier if done at the level of the dds object - and
+more consistent to keep data and metadata in sync.</p>
+<p>It also tends to be iterative.</p>
+<div id="filter-samples" class="section level3">
+<h3>Filter Samples</h3>
+<p><strong>Task (3 min)</strong>: Filter the problematic samples
+(columns 1 and 7) from dds object and produce a new PCA plot.</p>
 <p>Hint: Although the <code>dds</code> object is a more complex data
 class it also has dimensions assigned – check <code>dim(dds)</code> –
 and samples can be un/selected like columns in a standard
@@ -552,8 +585,8 @@ dataframes.</p>
 dds_clean %&gt;% PCA_tm</code></pre>
 <p><img src="day02_files/figure-html/filter_samples-1.png" width="80%" style="display: block; margin: auto;" /></p>
 </div>
-<div id="filter-genes---10-min" class="section level3">
-<h3>Filter Genes - 10 min</h3>
+<div id="filter-genes" class="section level3">
+<h3>Filter Genes</h3>
 <ul>
 <li>remove genes (rows) that have very low counts</li>
 <li>arbitrary threshold: &lt; 1, &lt; 10</li>
@@ -563,10 +596,10 @@ dds_clean %&gt;% PCA_tm</code></pre>
 <li>reduces memory size of ‘dds’ object =&gt; increases the speed</li>
 </ul></li>
 </ul>
-<p><strong>Task</strong> Filter out the genes from dds that have a total
-amount of only zero or 1 counts. Based on this filtering define a new
-data set and inspect its dimensions</p>
-<p>Hint: Have a look at the output of
+<p><strong>Task (5 min)</strong> Filter out the genes from dds_clean
+that have a total amount of only zero or 1 counts. Based on this
+filtering define a new data set and inspect its dimensions</p>
+<p>Hint 1: Have a look at the output of
 <code>dds_clean %&gt;% counts %&gt;% rowSums() %&gt;% head()</code></p>
 <pre class="r"><code>rs &lt;- dds_clean %&gt;% counts %&gt;% rowSums()
 
@@ -574,43 +607,36 @@ data set and inspect its dimensions</p>
 dds_clean &lt;- dds_clean[rs&gt;1,] 
 
 dim(dds_clean)</code></pre>
-<pre><code>## [1] 27351    16</code></pre>
 <blockquote>
 <p><strong>Poll 2.2</strong> How many samples and genes are left in the
 filtered data set?</p>
 </blockquote>
 </div>
-</div>
-<div id="relevel-factors---10-min" class="section level2">
-<h2>Relevel Factors - 10 min</h2>
+<div id="relevel-factors" class="section level3">
+<h3>Relevel Factors</h3>
 <p><strong>Remember</strong>: factors are used to represent categorical
 data !</p>
 <p>Internally they are stored as integers and per default they are
 sorted <em>alphanumerically</em>. It may be more convenient to sort them
 by some user defined order - this is called relevelling</p>
-<center>
 <div class="float">
 <img src="images/day2_factor_order_comparison.png" style="width:60.0%"
 alt="Factor order" />
 <div class="figcaption">Factor order</div>
 </div>
-</center>
 <p><br></p>
-<blockquote>
-<p><strong>Task</strong> Reorder the condition with ‘DMSO’ as baseline -
-2 min.</p>
-</blockquote>
-<p>Hint: Use the <code>relevel</code> function</p>
-<p>This is the order of the factors before and after re-arrangement:</p>
+<p>Th values and default level order of factor “condition”:</p>
 <pre class="r"><code>#initial factor arrangement:
 dds_clean$condition</code></pre>
 <pre><code>##  [1] DMSO DMSO AMIL AMIL AMIL DMSO DMSO AMIL AMIL AMIL TG   TG   TG   TG   TG  
 ## [16] TG  
 ## Levels: AMIL DMSO TG</code></pre>
-<pre class="r"><code>dds_clean$condition &lt;- relevel(dds_clean$condition, ref=&#39;DMSO&#39;)
-#dds_clean$condition &lt;- factor(dds_clean$condition, levels = c (&#39;DMSO&#39;, &#39;TG&#39;, &#39;AMIL&#39;)) # alternatively
-
-dds_clean$condition</code></pre>
+<blockquote>
+<p><strong>Task (2 min)</strong> Reorder the condition with ‘DMSO’ as
+baseline.</p>
+</blockquote>
+<p>Hint: Use the <code>relevel</code> function</p>
+<p>This should be the order after releveling:</p>
 <pre><code>##  [1] DMSO DMSO AMIL AMIL AMIL DMSO DMSO AMIL AMIL AMIL TG   TG   TG   TG   TG  
 ## [16] TG  
 ## Levels: DMSO AMIL TG</code></pre>
@@ -618,21 +644,23 @@ dds_clean$condition</code></pre>
 with respect to the 1st level, unless specified more explicitly using
 “contrasts” (see tomorrow).</p>
 </div>
-<div id="preparation-summary" class="section level2">
-<h2>Preparation Summary</h2>
-<p>We have now covered the most important preparation steps:</p>
+</div>
+<div id="preprocessing-summary" class="section level2">
+<h2>Preprocessing Summary</h2>
+<p>We have now covered the most important preprocessing steps:</p>
 <ul>
-<li>load library and data</li>
+<li>load software packages and data</li>
 <li>define DESeq data object
 <ul>
-<li>count data: <code>counts()</code> – not normalized. data frame of
-integers</li>
+<li>count data: <code>counts()</code> – not yet normalized. data frame
+of integers</li>
 <li>meta data: <code>colData()</code> – added data on samples. data
 frame of numerical or categorical variables</li>
 <li>design: <code>design()</code> – variables to be modeled. formula
 will be converted to design matrix with dummy variables</li>
 </ul></li>
-<li>Filtering &amp; Transformation &amp; Relevel</li>
+<li>Data Exploration: PCA</li>
+<li>Filtering &amp; Relevel</li>
 </ul>
 <blockquote>
 <p>This is <strong>before</strong> any statistical analysis ! A
@@ -640,8 +668,40 @@ real-world analysis would likely be iterative</p>
 </blockquote>
 <blockquote>
 <p><strong>Message</strong>: Document your decisions, parameters,
-workflows and software versions carefully - use notebooks !</p>
+workflows and software versions carefully - use scripts or notebooks
+!</p>
 </blockquote>
+</div>
+<div id="some-more-checks" class="section level2">
+<h2>Some more Checks</h2>
+<div id="factorial-design" class="section level3">
+<h3>Factorial Design</h3>
+<pre class="r"><code>meta = dds_clean %&gt;% colData %&gt;% data.frame
+
+( design_table &lt;- meta %&gt;% select(-sample) %&gt;% table  )</code></pre>
+<pre><code>##         condition
+## celltype DMSO AMIL TG
+##       BM    2    3  3
+##       JJ    2    3  3</code></pre>
+<pre class="r"><code>design_table %&gt;% pheatmap(cluster_cols=F, cluster_rows=F, display_numbers=T, fontsize_number=10)</code></pre>
+<p><img src="day02_files/figure-html/design_checks-1.png" width="672" />
+### Goal and Factorial Plot</p>
+<p>To highlight the goal of the subsequent analysis it will be useful to
+focus on a single gene and highlight the effects of the different factor
+level combinations (!) on the mean expression</p>
+<pre class="r"><code>gene_select &lt;- &quot;ENSG00000003509&quot;
+
+gene &lt;- dds_clean %&gt;% counts %&gt;% as_tibble(rownames=&#39;gene_id&#39;) %&gt;%       
+  filter(gene_id==gene_select) %&gt;%  
+  pivot_longer(-gene_id, names_to = &quot;sample&quot;, values_to = &quot;count&quot;) %&gt;% # convert to long
+  inner_join(meta, by=&quot;sample&quot;)                                        # add sample metadata from meta
+
+gene %&gt;% 
+  ggplot(aes(x=condition, y=count, col=celltype, group=celltype)) +
+  geom_point(size=1) +
+  stat_summary(fun=mean, geom=&quot;line&quot;,linewidth=2)</code></pre>
+<p><img src="day02_files/figure-html/factorial%20plot-1.png" width="672" /></p>
+</div>
 </div>
 <div id="break---10-min" class="section level2">
 <h2>Break - 10 min</h2>
@@ -652,9 +712,10 @@ workflows and software versions carefully - use notebooks !</p>
 <p>Everything we did until now was setup - and before any normalization,
 parameter estimates or statistical testing.</p>
 <p>Luckily for much of the following DESeq2 provides a convenient
-wrapper function:</p>
+wrapper function which takes a dds object, modifies it and returns a new
+dds object. To save memory we often just overwrite the old objects</p>
 <blockquote>
-<p>dds &lt;- DESeq(dds)</p>
+<p>dds_clean &lt;- DESeq(dds_clean)</p>
 </blockquote>
 <pre class="r"><code>dds_clean &lt;- DESeq(dds_clean)</code></pre>
 <pre><code>## estimating size factors</code></pre>
@@ -663,15 +724,17 @@ wrapper function:</p>
 <pre><code>## mean-dispersion relationship</code></pre>
 <pre><code>## final dispersion estimates</code></pre>
 <pre><code>## fitting model and testing</code></pre>
-<p>There are several steps to generating differential expression
-results, and they are wrapped together in the <strong>DESeq()</strong>
+<p>As you can tell from the verbose output, several distinct steps have
+been performed that are wrapped together in the <strong>DESeq()</strong>
 function. The 3 main steps are of the workflow are:</p>
 <ul>
-<li>Normalization - <em>estimateSizeFactors()</em></li>
-<li>estimating dispersions - <em>estimateDispersions()</em></li>
-<li>general linear model fit for each gene and testing -
+<li>Normalization (each sample) - <em>estimateSizeFactors()</em></li>
+<li>Estimating dispersion (<span class="math inline">\(\to\)</span>
+variance) (for each gene) - <em>estimateDispersions()</em></li>
+<li>Estimating GLM parameters and test (for each gene) -
 <em>nbinomWaldTest()</em></li>
 </ul>
+<p>We will briefly describe them below.</p>
 <div id="normalization-and-size-factors" class="section level3">
 <h3>Normalization and size factors</h3>
 <p>As mentioned yesterday, raw counts cannot be directly used to compare
@@ -679,7 +742,7 @@ samples. To allow comparison we need to normalize. Note that this is
 also needed for exploratory analysis and visualisation.</p>
 <p>A couple of reasons for normalization include:</p>
 <hr />
-<p><em>sequencing depth</em></p>
+<p><strong>sequencing depth</strong></p>
 <div class="float">
 <img src="images/day2_normalization_seqdepth.png" style="width:50.0%"
 alt="‘doubling of expression due to sequencing depth’. Image from github.com/hbctraining" />
@@ -687,7 +750,7 @@ alt="‘doubling of expression due to sequencing depth’. Image from github.com
 depth’. Image from github.com/hbctraining</div>
 </div>
 <hr />
-<p><em>gene length</em></p>
+<p><strong>gene length</strong></p>
 <div class="float">
 <img src="images/day2_normalization_genelength.png" style="width:35.0%"
 alt="‘gene x and y have similar levels of expression, though gene x has way more reads aligned due to its length.’. Image from github.com/hbctraining" />
@@ -696,7 +759,7 @@ though gene x has way more reads aligned due to its length.’. Image from
 github.com/hbctraining</div>
 </div>
 <hr />
-<p><em>compositional bias</em></p>
+<p><strong>compositional bias</strong></p>
 <div class="float">
 <img src="images/day2_normalization_compbias.png" style="width:50.0%"
 alt="‘compositional bias through contaminant (e.g. rRNA)’. Image from github.com/hbctraining" />
@@ -708,65 +771,66 @@ alt="‘compositional bias through contaminant (e.g. rRNA)’. Image from githu
 <table>
 <thead>
 <tr class="header">
-<th>method</th>
-<th align="left">factors taking into account</th>
+<th align="left">method</th>
+<th align="left">takes into account:</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>CPM</td>
+<td align="left">CPM</td>
 <td align="left">sequencing depth</td>
 </tr>
 <tr class="even">
-<td>RPKM</td>
+<td align="left">RPKM</td>
 <td align="left">sequencing depth and gene length</td>
 </tr>
 <tr class="odd">
-<td>DESeq2 median of ratios</td>
+<td align="left">DESeq2 median of ratios</td>
 <td align="left">sequencing depth and RNA composition</td>
 </tr>
 </tbody>
 </table>
-<p>Workflow for the ‘median of ratios’:</p>
+<p>… and many others exist.</p>
+<p>DESeq2 Workflow for the ‘median of ratios’:</p>
 <ul>
 <li>Take geometric mean per gene (of all samples!) -&gt;
 ‘pseudosample’</li>
 <li>calculate the count / pseudosample ratio</li>
 <li>‘sizefactor’ == median(ratios)</li>
 </ul>
-<p>and many others exist.</p>
-<p>Remember that DESeq2 needs <strong>raw counts</strong> as input (upon
-creating the dds object).</p>
 <blockquote>
-<p><strong>Task </strong>: Plot a heatmap of the first 10 rows of your
-counts (non-normalized), deseq normalized counts and if you are up for
-some manual labour, sequencing depth normalized counts.</p>
+<p><strong>Task (5 min)</strong>: Plot a heatmap of the first 10 genes
+(rows) of the counts matrix and add the metadata after DESeq was run as
+above. Hint: Remember that both the data and the metadata can be
+obtained from the dds object (counts(), colData()), but you might want
+to convert the output of colData() to a data frame, such that it can be
+passed as ‘annotation’ to pheatmap</p>
 </blockquote>
-<p>Hint, counts() can return DESeq normalized counts as well with the
-argument normalized=TRUE! Hint2: geometric mean of a vector x can be
-calculated with exp(mean(log(x)))</p>
 <pre class="r"><code>meta &lt;- dds_clean %&gt;% colData %&gt;% data.frame %&gt;% select(-sample)
 Y &lt;- dds_clean %&gt;% counts %&gt;% head(10) 
 pheatmap(Y, annotation=meta)</code></pre>
-<p><img src="day02_files/figure-html/heatmap_raw-1.png" width="672" />
-<strong>Notice</strong>:</p>
+<p><img src="day02_files/figure-html/heatmap_raw-1.png" width="672" /></p>
+<p><strong>Notice</strong>:</p>
 <ul>
 <li>a size factor was added to each sample (during the DESeq2 run)</li>
 <li>colours can of course be customized (as shown before)</li>
-<li>pheatmap is opinionated about possible inputs (need to convert)</li>
+<li>pheatmap is strict about input formats <span
+class="math inline">\(\to\)</span> convert annotations to data
+frame</li>
 </ul>
-<p><strong>Task</strong>: The counts() function has a parameter
+<blockquote>
+<p><strong>Task (2 min)</strong>: The counts() function has a parameter
 (normalized=TRUE) to extract the normalized counts after DESeq2 is run.
-Modify the above to plot the same heatmap with normalized counts and
-observe the differences.</p>
-<pre class="r"><code>Y &lt;- dds_clean %&gt;% counts(normalized=TRUE) %&gt;% head(10) 
-pheatmap(Y, annotation=meta)</code></pre>
-<p><img src="day02_files/figure-html/heatmap%20deseq_normalized-1.png" width="672" /></p>
+Modify the above to plot the same heatmap with <em>normalized
+counts</em> and observe the differences.</p>
+</blockquote>
 <p>Remember that the size factor for each sample (meta$sizeFactor) is a
 sophisticated way to account for sequencing depth and underpins the
 normalization used above. It is good practice to inspect the size
 factors and try to detect outlier samples</p>
+<blockquote>
 <p><strong>Task</strong>:</p>
+</blockquote>
 <ul>
 <li>add the sequencing depth as additional column to metadata
 <code>meta</code></li>
@@ -775,24 +839,14 @@ factors and try to detect outlier samples</p>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 ##  0.6668  0.8884  1.1038  1.0350  1.1731  1.4179</code></pre>
 <p><img src="day02_files/figure-html/sizeFactor_vs_seqdepth-1.png" width="672" /></p>
-<pre class="r"><code># Notice that
-# colSums(counts(dds_clean)) are not strictly the sequencing depths (after gene filtering), but
-# colSums(counts(dds))       may contain more samples (before sample filtering)
-
-meta &lt;- dds_clean %&gt;% colData %&gt;% data.frame 
-
-# The code below uses original dds
-sd &lt;- dds %&gt;% counts %&gt;% colSums %&gt;% enframe(name=&quot;sample&quot;, value=&quot;seq_depth&quot;) %&gt;% mutate(seq_depth=seq_depth/1e6)
-
-# pay more attention to proper sample name matching: inner_join by sample name 
-meta %&gt;% inner_join(sd, by=&quot;sample&quot;) %&gt;% 
-  ggplot(aes(x=seq_depth, y=sizeFactor)) + geom_point()</code></pre>
 <p><strong>Observation:</strong>. No outliers. sizeFactors behaves as
 expected.</p>
-<p><strong>Task</strong> Study the effect of sizeFactor normalization
+<blockquote>
+<p><strong>Task</strong>: Study the effect of sizeFactor normalization
 for a single gene. The code below is for unnormalized count data - with
 a simple modification you can obtain the normalized data.</p>
-<pre class="r"><code>gene &lt;- dds_clean %&gt;% counts(normalized=T) %&gt;%
+</blockquote>
+<pre class="r"><code>gene &lt;- dds_clean %&gt;% counts() %&gt;%
   as_tibble(rownames=&#39;gene_id&#39;) %&gt;%       # tibble does not like rownames
   filter(gene_id==&quot;ENSG00000003509&quot;) %&gt;%  # pick gene (previously slice 42)
   pivot_longer(-gene_id, names_to = &quot;sample&quot;, values_to = &quot;count&quot;)   %&gt;% # convert to long
@@ -803,6 +857,9 @@ gene %&gt;%
   geom_point(size=3) </code></pre>
 <p><img src="day02_files/figure-html/effect_of_sizefactor-1.png" width="672" /></p>
 <blockquote>
+<p><strong>Discussion</strong>: What do you observe?</p>
+</blockquote>
+<blockquote>
 <p><strong>Poll 2.3 </strong>: what kind of distribution would be the
 most appropriate for this data ?</p>
 </blockquote>
@@ -810,165 +867,205 @@ most appropriate for this data ?</p>
 <div id="variance-estimates-and-dispersions" class="section level3">
 <h3>Variance estimates and dispersions</h3>
 <p>To determine if the expression of a gene differs between different
-factor levels, we will also need to estimate its variance.<br />
-Moreover, it is assumed that the variance <span
-class="math inline">\(\sigma^2\)</span> is independent for each sample
-<span class="math inline">\(i\)</span></p>
-<p><span class="math display">\[
-y_i = f(x_i, \theta) + \epsilon_i ~~~~~~~~~ \epsilon_i \propto N(0,
-\sigma^2)
-\]</span> In general the variance <span
-class="math inline">\(\sigma^2\)</span> is gene dependent, and it would
-take many replicates to estimate it properly.</p>
-<p>Unfortunately this is rarely the case in an RNA-seq setting, but it
-would be great if <span class="math inline">\(\sigma^2\)</span> could be
-estimated from its mean expression. This hope drives much of the work in
-gene expression analysis, and the discussion below.</p>
-<p>To keep things simple let’s focus on 3 samples from the <em>same</em>
-celltype and condition.</p>
+factor levels, we will also need to estimate its variance.</p>
+<p>In an ideal world we would have many replicates (per level
+combination) to estimate this variance.</p>
+<p>In RNA-seq data we tend to only have a few replicates (<span
+class="math inline">\(n \propto 3\)</span>) and we need strong
+assumptions on the expected distributions.</p>
+<p>More specifically, it would be great if the variance could be
+estimated from the mean gene expression <span
+class="math inline">\(\mu\)</span> (c.f. Poisson)</p>
+<p>This hope drives much of the work in gene expression analysis, and
+the discussion below.</p>
+<p>Let’s look at the variance-mean relationship for all genes. To keep
+things simple let’s focus on 3 replicate samples from the <em>same</em>
+celltype (BM) and condition (AMIL):</p>
 <pre class="r"><code>var_mu_plot &lt;- function(dds,title=&quot;variance-vs-mean&quot;){ 
   means &lt;- dds %&gt;% counts %&gt;% rowMeans()
   vars &lt;- dds %&gt;% counts %&gt;% rowVars(useNames = TRUE)
   data.frame(mean=means,variance=vars) %&gt;% 
     ggplot(aes(x=mean, y=variance)) + 
-    geom_point() +
+    # geom_point(alpha=0.25) + 
+    # replace points by tile/density plot 
+    stat_density2d(aes(fill = after_stat(count)), geom = &quot;tile&quot;, n=50, contour=F) +
+    scale_fill_continuous(low = &quot;white&quot;, high = &quot;dodgerblue3&quot;) + 
+    # add Poisson line
+    geom_abline(intercept = 0, slope = 1, color=&quot;red&quot;) +
     scale_x_log10() + 
     scale_y_log10() +
-    geom_abline(intercept = 0, slope = 1, color=&quot;red&quot;) +
     ggtitle(title)
 }
 
+# pick 3 replicates (3,4,5) from same cell
 dds_clean[, 3:5] %&gt;% var_mu_plot</code></pre>
 <pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
 <pre><code>## Warning in scale_y_log10(): log-10 transformation introduced infinite values.</code></pre>
-<p><img src="day02_files/figure-html/var_vs_mu_plot-1.png" width="672" />
-<strong>Notice</strong>:</p>
+<pre><code>## Warning: Removed 34665 rows containing non-finite outside the scale range
+## (`stat_density2d()`).</code></pre>
+<p><img src="day02_files/figure-html/var_vs_mu_plot-1.png" width="672" /></p>
+<p><strong>Notice</strong>:</p>
 <ul>
 <li>wide range of means</li>
 <li>many genes are not shown because of logarithmic scale and <span
-class="math inline">\(\mu=0\)</span></li>
+class="math inline">\(\mu=0 \to\)</span> Warnings</li>
 <li>for large means: variance is larger than predicted by Poisson (red
-curve: <span class="math inline">\(var = \mu\)</span>)</li>
-<li>for small means: variance fluctuates strongly</li>
+curve: <span class="math inline">\(Var = \mu\)</span>)</li>
+<li>for small means: variance fluctuates strongly (for few samples)</li>
 </ul>
 <p>These properties are commonly observed for all RNA-seq experiments
 and these observations have guided the choice of distributions to be
 used for modelling of sequence counts. In fact there are simple tools to
 generate your own synthetic data sets:</p>
-<p><strong>Task</strong>:</p>
-<p>Compare this plot with a <em>simulated</em> data set with <span
-class="math inline">\(n=5000\)</span> genes, <span
-class="math inline">\(m\)</span> samples from two different choices of
-distributions</p>
-<pre class="r"><code>DESeq2::makeExampleDESeqDataSet(n=5000, m=3, dispMeanRel = function(x) 0) %&gt;% var_mu_plot(title=&quot;Poisson&quot;)</code></pre>
-<pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
-<pre><code>## Warning in scale_y_log10(): log-10 transformation introduced infinite values.</code></pre>
-<p><img src="day02_files/figure-html/var_mu_sim-1.png" width="672" /></p>
-<pre class="r"><code>DESeq2::makeExampleDESeqDataSet(n=5000, m=3) %&gt;% var_mu_plot(title=&quot;Negative Binomial&quot;)</code></pre>
-<pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.
-## log-10 transformation introduced infinite values.</code></pre>
-<p><img src="day02_files/figure-html/var_mu_sim-2.png" width="672" />
-<strong>Try it out</strong>: change the number of samples (<span
-class="math inline">\(m\)</span>) in these simulations and observe the
-changes</p>
-<p><strong>Upshot</strong>:</p>
+<p><strong>Upshot</strong>: RNA-seq data are
+<strong>over-dispersed</strong></p>
 <p><span class="math display">\[
-Var(\mu) = \mu + \alpha \mu^2
+Var = \mu + \alpha \mu^2 \\
+\alpha = \alpha_0 + \alpha_1 / \mu
 \]</span> and hence we will have to determine <span
-class="math inline">\(\alpha\)</span> - the <em>dispersion</em>
-parameter.</p>
-<p>This is part of the DESeq2 workflow and can be illustrated as
-follows</p>
-<div id="gene-wise-dispersion-estimates" class="section level4">
-<h4>gene-wise dispersion estimates</h4>
-<pre class="r"><code>plotDispEsts(dds_clean)</code></pre>
+class="math inline">\(\alpha = \alpha(\mu)\)</span> - the
+<em>dispersion</em> parameter.</p>
+<p>The estimation of <span class="math inline">\(\alpha\)</span> is part
+of the DESeq2 workflow and can be illustrated as follows</p>
+<pre class="r"><code>dds_clean %&gt;% plotDispEsts</code></pre>
 <p><img src="day02_files/figure-html/plot%20dispersions-1.png" width="672" /></p>
-<p>The black dots denote gene-wise estimates for <span
-class="math inline">\(\alpha\)</span>. They fluctuate strongly but
-empirically there seems to be a trend <span
-class="math inline">\(\alpha=\alpha(\mu)\)</span> than could be
-exploited (red line). In DESeq2 parlance we can share information across
-genes for a more robust (and opinionated estimates). These are the blue
-dots that represent the adjusted estimates of <span
-class="math inline">\(\alpha\)</span> and hence the variance.</p>
-<p>what would be ‘bad’ dispersion ?</p>
-<pre class="r"><code># remove sizeFactor from metadata and shuffle (=sample) all columns
-meta_shuffled &lt;- dds_clean %&gt;% colData %&gt;% data.frame() %&gt;% select(-sizeFactor) %&gt;% mutate_all(sample)
-
-dds_shuffled &lt;- DESeqDataSetFromMatrix(
-  countData=dds_clean %&gt;% counts, 
-  colData=meta_shuffled, 
-  design= dds_clean %&gt;% design)
-
-# re-run DESeq including sizeFactor and dispersion estimates
-dds_shuffled &lt;- DESeq(dds_shuffled) </code></pre>
-<pre><code>## estimating size factors</code></pre>
-<pre><code>## estimating dispersions</code></pre>
-<pre><code>## gene-wise dispersion estimates</code></pre>
-<pre><code>## mean-dispersion relationship</code></pre>
-<pre><code>## final dispersion estimates</code></pre>
-<pre><code>## fitting model and testing</code></pre>
-<pre class="r"><code>plotDispEsts(dds_shuffled)</code></pre>
-<p><img src="day02_files/figure-html/baddisp-1.png" width="672" /></p>
-<p>Signs of a ‘good’ dispersion plot:</p>
+<p>The <em>black</em> dots denote gene-wise estimates for dispersion
+<span class="math inline">\(\alpha\)</span>.</p>
+<p>For small number of samples, these dispersion estimates fluctuate
+strongly, and sometimes the estimates fail (<span
+class="math inline">\(NA \to 10^{-8}\)</span>)</p>
+<p>Empirically there seems to be a trend <span
+class="math inline">\(\alpha=\alpha(\mu)\)</span> that we seek to
+exploit (red line).</p>
+<p>In DESeq2 parlance, we <strong>share information</strong> across
+genes for a more robust (and opinionated) estimates of dispersion and
+variance. These are the blue dots that represent the adjusted estimates
+of <span class="math inline">\(\alpha\)</span> and hence the
+variance.</p>
+<p>Genes with very high dispersion will not be adjusted - as this might
+overly reduce their variance (and increase the false positive).</p>
+<p><em>Observations:</em></p>
 <ul>
-<li>data should scatter around the curve</li>
-<li>dispersion should decrease with increasing mean of counts</li>
-<li>‘clouds’ or ‘wonky shapes’ often indicate contamination /
-outliers</li>
+<li>genes with smaller mean should have larger dispersion (<span
+class="math inline">\(\to\)</span> larger variance)</li>
+<li>genes with higher mean and higher variance are not effected <span
+class="math inline">\(\alpha \to \alpha_0\)</span></li>
+<li>dispersion estimates for very low mean become unreliable <span
+class="math inline">\(\to\)</span> simulations</li>
 </ul>
 </div>
+<div id="simulations-optional" class="section level3">
+<h3>Simulations (optional)</h3>
+<p>Below we simulate expression data with <span
+class="math inline">\(n=5000\)</span> genes and <span
+class="math inline">\(m\)</span> samples.</p>
+<pre class="r"><code># simulate data from negative binomial with alpha = 0.1 + 4/mu
+dds_sim6 &lt;- DESeq2::makeExampleDESeqDataSet(n=5000, m=6) %&gt;% DESeq(quiet=TRUE)
+dds_sim50 &lt;- DESeq2::makeExampleDESeqDataSet(n=5000, m=50) %&gt;% DESeq(quiet=TRUE)
+
+# simulate from Poisson
+#dds_pois6 &lt;- DESeq2::makeExampleDESeqDataSet(n=5000, m=6, dispMeanRel = function(x) 0) %&gt;% DESeq
+#dds_pois50 &lt;- DESeq2::makeExampleDESeqDataSet(n=5000, m=50, dispMeanRel = function(x) 0) %&gt;% DESeq</code></pre>
+<pre class="r"><code>dd = dds_sim6 
+dd_val = dd %&gt;% mcols %&gt;% data.frame %&gt;% 
+  mutate(delta_disp=dispersion-trueDisp) %&gt;%
+  mutate(delta_simp=dispGeneEst-trueDisp)
+  
+dd %&gt;% var_mu_plot(title=&quot;simulated data&quot;)</code></pre>
+<pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
+<pre><code>## Warning in scale_y_log10(): log-10 transformation introduced infinite values.</code></pre>
+<pre><code>## Warning: Removed 44 rows containing non-finite outside the scale range
+## (`stat_density2d()`).</code></pre>
+<p><img src="day02_files/figure-html/dispersion_sim_plot-1.png" width="672" /></p>
+<pre class="r"><code>dd %&gt;% plotDispEsts()</code></pre>
+<p><img src="day02_files/figure-html/dispersion_sim_plot-2.png" width="672" /></p>
+<pre class="r"><code>dd_val %&gt;% ggplot(aes(x=baseMean, y=delta_disp)) + geom_point() + scale_x_log10()</code></pre>
+<pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
+<pre><code>## Warning: Removed 44 rows containing missing values or values outside the scale range
+## (`geom_point()`).</code></pre>
+<p><img src="day02_files/figure-html/dispersion_sim_plot-3.png" width="672" /></p>
+<pre class="r"><code>#hist(log10(dd_val$delta_disp), n=50);  hist(log10(dd_val$delta_simp), n=50, add=T, col=&quot;red&quot;)
+#dd_val %&gt;% ggplot(aes(x=delta_disp)) +  geom_histogram(bins=200) + scale_x_log10() #+ scale_y_log10()</code></pre>
+<p>For small baseMean the dispersion estimate become unreliable</p>
 </div>
 <div id="model-fit-and-testing" class="section level3">
 <h3>Model fit and testing</h3>
+<p>Once the dispersion parameters (for each gene) are obtained, the
+“best” parameters <span class="math inline">\(\beta\)</span> can be
+estimated by <em>Maximum Likelihood</em>. For Gaussian distributions
+<span class="math inline">\(y \sim N(\mu, \sigma^2)\)</span> this is
+easy and corresponds to the least squares formula for both <span
+class="math inline">\(\mu\)</span> and <span
+class="math inline">\(\sigma^2\)</span>, But recall that we assume that
+the expression counts follow a negative bionmial distribution</p>
+<p><span class="math display">\[
+y \sim NB(\mu, \alpha) \\
+\log \mu = X \beta \\
+\alpha = \alpha_0 + \alpha_1 / \mu
+\]</span></p>
 <p>Finally we get a fit for each gene, and a Wald test can be used to
 test for significance of coefficients of interest.</p>
-<p>Luckily DESeq2 wraps this in a convenient function as well:
-<em>results()</em>. By default we obtain DE genes for the last
-coefficient, though you can specify contrasts to get your comparison of
-interest (see tomorrow).</p>
+<div class="float">
+<img src="images/Wald_LRT.jpeg" alt="MLE and tests." />
+<div class="figcaption">MLE and tests.</div>
+</div>
+<p><strong>Notice</strong>: In our factorial analysis, <span
+class="math inline">\(\beta\)</span> summarizes multiple parameters that
+may correspond to the different cell means or the differences with
+respect to some reference level - depending on our encoding of the model
+matrix.</p>
+<p>By default DESeq tests the difference of the last coefficient and its
+deviation from zero, but in general we will be interested in specific
+differences among the <span class="math inline">\(\beta\)</span>
+(contrasts, linear combinations) and test their deviation from zero</p>
+<p><span class="math display">\[
+c^T \beta = 0
+\]</span></p>
+<p>To be continued - tomorrow.</p>
+<p>To obtain the test results for all genes, DESeq2 offers a convenient
+function: <em>results()</em>.</p>
 <blockquote>
-<p><strong>Task</strong> Please run results() on the dds_clean object
-and have a look at the result.</p>
+<p><strong>Task (2 min)</strong> Please run results() on the dds_clean
+object and have a look at the result.</p>
 </blockquote>
-<pre class="r"><code>dds_res &lt;- results(dds_clean)
-dds_res</code></pre>
+<pre class="r"><code>( dds_res &lt;- dds_clean %&gt;% results )</code></pre>
 <pre><code>## log2 fold change (MLE): condition TG vs DMSO 
 ## Wald test p-value: condition TG vs DMSO 
-## DataFrame with 27351 rows and 6 columns
-##                   baseMean log2FoldChange     lfcSE      stat      pvalue
-##                  &lt;numeric&gt;      &lt;numeric&gt; &lt;numeric&gt; &lt;numeric&gt;   &lt;numeric&gt;
-## ENSG00000000419 2285.01560       0.317449 0.1790600  1.772863 7.62514e-02
-## ENSG00000000457  775.42002       0.334962 0.0873551  3.834485 1.25827e-04
-## ENSG00000000460 1300.43696       0.963262 0.0939353 10.254526 1.12928e-24
-## ENSG00000000938    2.45443      -0.325046 0.7933991 -0.409688 6.82035e-01
-## ENSG00000000971 1626.92877       0.309393 0.1271822  2.432678 1.49876e-02
-## ...                    ...            ...       ...       ...         ...
-## ENSG00000273486  40.217168      0.0672792  0.204936  0.328295    0.742689
-## ENSG00000273487   0.162242      0.5041292  3.950877  0.127599    0.898466
-## ENSG00000273488  13.780769      0.4674108  0.375660  1.244237    0.213412
-## ENSG00000273489   1.064893     -1.1261042  1.341504 -0.839434    0.401226
-## ENSG00000273492   0.856644      0.9590323  1.652038  0.580515    0.561568
+## DataFrame with 57905 rows and 6 columns
+##                   baseMean log2FoldChange     lfcSE        stat      pvalue
+##                  &lt;numeric&gt;      &lt;numeric&gt; &lt;numeric&gt;   &lt;numeric&gt;   &lt;numeric&gt;
+## ENSG00000000003       0.00             NA        NA          NA          NA
+## ENSG00000000005       0.00             NA        NA          NA          NA
+## ENSG00000000419    2285.02       0.317449 0.1790600     1.77286 7.62514e-02
+## ENSG00000000457     775.42       0.334962 0.0873551     3.83449 1.25827e-04
+## ENSG00000000460    1300.44       0.963262 0.0939353    10.25453 1.12928e-24
+## ...                    ...            ...       ...         ...         ...
+## ENSG00000273487  0.1622417      0.5041292   3.95088  0.12759933    0.898466
+## ENSG00000273488 13.7807687      0.4674108   0.37566  1.24423728    0.213412
+## ENSG00000273489  1.0648930     -1.1261042   1.34150 -0.83943399    0.401226
+## ENSG00000273492  0.8566440      0.9590323   1.65204  0.58051475    0.561568
+## ENSG00000273493  0.0751426      0.0232461   3.95088  0.00588379    0.995305
 ##                        padj
 ##                   &lt;numeric&gt;
-## ENSG00000000419 1.59065e-01
-## ENSG00000000457 5.89362e-04
-## ENSG00000000460 2.57159e-23
-## ENSG00000000938 7.98272e-01
-## ENSG00000000971 4.10219e-02
+## ENSG00000000003          NA
+## ENSG00000000005          NA
+## ENSG00000000419 1.57973e-01
+## ENSG00000000457 5.85262e-04
+## ENSG00000000460 2.55370e-23
 ## ...                     ...
-## ENSG00000273486    0.840324
 ## ENSG00000273487          NA
-## ENSG00000273488    0.356482
-## ENSG00000273489    0.565374
-## ENSG00000273492    0.707109</code></pre>
+## ENSG00000273488    0.354448
+## ENSG00000273489    0.563023
+## ENSG00000273492    0.705101
+## ENSG00000273493          NA</code></pre>
 <ul>
 <li>baseMean: mean of normalized counts for all samples</li>
-<li><strong>log2FoldChange: log2 fold change</strong></li>
+<li><strong>log2FoldChange</strong>: log2 fold change (the effect of
+interest)</li>
 <li>lfcSE: standard error</li>
 <li>stat: Wald statistic</li>
 <li>pvalue: Wald test p-value</li>
-<li><strong>padj: BH adjusted p-values</strong></li>
+<li><strong>padj</strong>: BH adjusted p-values</li>
 </ul>
 <blockquote>
 <p><strong>Poll 2.4:</strong> What does a positive log2 foldChange and a
@@ -978,7 +1075,7 @@ significant padj value reflect ?</p>
 <li>how many genes do we get with padj &lt; 0.05?</li>
 </ul>
 <pre class="r"><code>dds_res %&gt;% subset(padj &lt; 0.05) %&gt;% nrow()</code></pre>
-<pre><code>## [1] 8532</code></pre>
+<pre><code>## [1] 8551</code></pre>
 <ul>
 <li>get the 20 significantly expressed genes with the highest
 log2FoldChange.</li>
@@ -989,41 +1086,59 @@ log2FoldChange.</li>
   arrange(abs(log2FoldChange), descending=TRUE) %&gt;% head(20)</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"3790.108","2":"-0.1169817","3":"0.04563335","4":"-2.563513","5":"0.010361893","6":"0.029868034","_rn_":"ENSG00000144579"},{"1":"1980.431","2":"-0.1225237","3":"0.03846077","4":"-3.185680","5":"0.001444143","6":"0.005304359","_rn_":"ENSG00000114125"},{"1":"3277.863","2":"-0.1242576","3":"0.05213396","4":"-2.383429","5":"0.017152178","6":"0.046008939","_rn_":"ENSG00000118900"},{"1":"14936.948","2":"-0.1276037","3":"0.05209341","4":"-2.449517","5":"0.014304811","6":"0.039363087","_rn_":"ENSG00000122565"},{"1":"3170.810","2":"-0.1279751","3":"0.04920218","4":"-2.601005","5":"0.009295104","6":"0.027220686","_rn_":"ENSG00000223380"},{"1":"4694.747","2":"-0.1301570","3":"0.05270412","4":"-2.469578","5":"0.013527234","6":"0.037497739","_rn_":"ENSG00000168175"},{"1":"3840.813","2":"0.1328259","3":"0.05611064","4":"2.367214","5":"0.017922571","6":"0.047743321","_rn_":"ENSG00000100568"},{"1":"3160.154","2":"0.1338326","3":"0.05504994","4":"2.431113","5":"0.015052508","6":"0.041164559","_rn_":"ENSG00000108443"},{"1":"1600.127","2":"0.1355010","3":"0.05397121","4":"2.510616","5":"0.012052082","6":"0.034005919","_rn_":"ENSG00000174227"},{"1":"2092.895","2":"0.1393615","3":"0.05729098","4":"2.432520","5":"0.014994144","6":"0.041029810","_rn_":"ENSG00000061936"},{"1":"2226.112","2":"-0.1424242","3":"0.05893415","4":"-2.416667","5":"0.015663356","6":"0.042582215","_rn_":"ENSG00000084112"},{"1":"7396.732","2":"-0.1433622","3":"0.05843881","4":"-2.453201","5":"0.014159107","6":"0.039032256","_rn_":"ENSG00000005844"},{"1":"1373.535","2":"0.1436665","3":"0.05855470","4":"2.453543","5":"0.014145655","6":"0.039001223","_rn_":"ENSG00000105875"},{"1":"3070.223","2":"0.1448491","3":"0.06021732","4":"2.405439","5":"0.016153041","6":"0.043755333","_rn_":"ENSG00000172943"},{"1":"2260.323","2":"-0.1465682","3":"0.05499220","4":"-2.665254","5":"0.007693022","6":"0.023147791","_rn_":"ENSG00000179933"},{"1":"3790.109","2":"-0.1473921","3":"0.05275600","4":"-2.793846","5":"0.005208529","6":"0.016494650","_rn_":"ENSG00000103018"},{"1":"2266.977","2":"-0.1494905","3":"0.06285824","4":"-2.378217","5":"0.017396596","6":"0.046542854","_rn_":"ENSG00000157014"},{"1":"12880.910","2":"-0.1536982","3":"0.06026682","4":"-2.550295","5":"0.010763189","6":"0.030859216","_rn_":"ENSG00000120948"},{"1":"6005.095","2":"-0.1547289","3":"0.06350332","4":"-2.436549","5":"0.014828163","6":"0.040624883","_rn_":"ENSG00000149187"},{"1":"2621.111","2":"-0.1553704","3":"0.05656124","4":"-2.746942","5":"0.006015380","6":"0.018690497","_rn_":"ENSG00000147789"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"3790.108","2":"-0.1169817","3":"0.04563335","4":"-2.563513","5":"0.010361893","6":"0.029660240","_rn_":"ENSG00000144579"},{"1":"1980.431","2":"-0.1225237","3":"0.03846077","4":"-3.185680","5":"0.001444143","6":"0.005267456","_rn_":"ENSG00000114125"},{"1":"3277.863","2":"-0.1242576","3":"0.05213396","4":"-2.383429","5":"0.017152178","6":"0.045688852","_rn_":"ENSG00000118900"},{"1":"14936.948","2":"-0.1276037","3":"0.05209341","4":"-2.449517","5":"0.014304811","6":"0.039089236","_rn_":"ENSG00000122565"},{"1":"3170.810","2":"-0.1279751","3":"0.04920218","4":"-2.601005","5":"0.009295104","6":"0.027031310","_rn_":"ENSG00000223380"},{"1":"4694.747","2":"-0.1301570","3":"0.05270412","4":"-2.469578","5":"0.013527234","6":"0.037236865","_rn_":"ENSG00000168175"},{"1":"3840.813","2":"0.1328259","3":"0.05611064","4":"2.367214","5":"0.017922571","6":"0.047411168","_rn_":"ENSG00000100568"},{"1":"3160.154","2":"0.1338326","3":"0.05504994","4":"2.431113","5":"0.015052508","6":"0.040878175","_rn_":"ENSG00000108443"},{"1":"1600.127","2":"0.1355010","3":"0.05397121","4":"2.510616","5":"0.012052082","6":"0.033769338","_rn_":"ENSG00000174227"},{"1":"2092.895","2":"0.1393615","3":"0.05729098","4":"2.432520","5":"0.014994144","6":"0.040744363","_rn_":"ENSG00000061936"},{"1":"4090.281","2":"-0.1406491","3":"0.05995196","4":"-2.346030","5":"0.018974577","6":"0.049802061","_rn_":"ENSG00000197006"},{"1":"2226.112","2":"-0.1424242","3":"0.05893415","4":"-2.416667","5":"0.015663356","6":"0.042285968","_rn_":"ENSG00000084112"},{"1":"7396.732","2":"-0.1433622","3":"0.05843881","4":"-2.453201","5":"0.014159107","6":"0.038760706","_rn_":"ENSG00000005844"},{"1":"1373.535","2":"0.1436665","3":"0.05855470","4":"2.453543","5":"0.014145655","6":"0.038729889","_rn_":"ENSG00000105875"},{"1":"3070.223","2":"0.1448491","3":"0.06021732","4":"2.405439","5":"0.016153041","6":"0.043450924","_rn_":"ENSG00000172943"},{"1":"2260.323","2":"-0.1465682","3":"0.05499220","4":"-2.665254","5":"0.007693022","6":"0.022986751","_rn_":"ENSG00000179933"},{"1":"3790.109","2":"-0.1473921","3":"0.05275600","4":"-2.793846","5":"0.005208529","6":"0.016379896","_rn_":"ENSG00000103018"},{"1":"2266.977","2":"-0.1494905","3":"0.06285824","4":"-2.378217","5":"0.017396596","6":"0.046219053","_rn_":"ENSG00000157014"},{"1":"12880.910","2":"-0.1536982","3":"0.06026682","4":"-2.550295","5":"0.010763189","6":"0.030644526","_rn_":"ENSG00000120948"},{"1":"6005.095","2":"-0.1547289","3":"0.06350332","4":"-2.436549","5":"0.014828163","6":"0.040342253","_rn_":"ENSG00000149187"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
-<div id="exporting-results-and-further-analyses" class="section level3">
-<h3>Exporting results and further analyses</h3>
-<div class="float">
-<img src="images/day2_analysis_tools.png" style="width:80.0%"
-alt="Export data" />
-<div class="figcaption">Export data</div>
+<div id="explore-results" class="section level3">
+<h3>Explore results</h3>
+<p><strong>Task (5 min):</strong> MA plots Plot the log2Foldchange from
+the results DESeq results object against the logarithm of the
+baseMean.</p>
+<p>Optional: highlight (with different colour) the differentially
+expressed genes based on some threshold on p-value, log2FoldChange etc.
+This is a very common plots, so DESeq also has a function for this:
+plotMA().</p>
+<pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
+<pre><code>## Warning: Removed 27674 rows containing missing values or values outside the scale range
+## (`geom_point()`).</code></pre>
+<p><img src="day02_files/figure-html/MA_plot-1.png" width="672" /></p>
+<p><strong>Task (5 min):</strong> Volcano plots Plot the adjusted
+p-value against estimate effect (log2FoldChange).</p>
+<pre class="r"><code>dds_res %&gt;% 
+  data.frame() %&gt;% 
+  mutate(differential = padj &lt; 0.05) %&gt;%
+  ggplot(aes(x=log2FoldChange, y=-log10(padj), colour=differential)) + 
+  geom_point(alpha=0.5) +
+  xlim(c(-2,2)) +
+  ylim(c(0, 10))</code></pre>
+<pre><code>## Warning: Removed 39151 rows containing missing values or values outside the scale range
+## (`geom_point()`).</code></pre>
+<p><img src="day02_files/figure-html/volcano-1.png" width="672" /></p>
+<pre class="r"><code>#  scale_color_manual(values=c(&quot;black&quot;, &quot;red&quot;)) +</code></pre>
 </div>
+<div id="export-results" class="section level3">
+<h3>Export results</h3>
+<p>The results table is quite standardized and serves as input to many
+other tools.</p>
 <blockquote>
-<p><strong>Task</strong>: Please export your results table to a csv /
-tsv file.</p>
+<p><strong>Task (3 min)</strong>: Please export your results table to a
+csv / tsv file.</p>
 </blockquote>
 <p>hint: write_tsv, write_csv(), write.table(), write_delim() ,…</p>
-<pre class="r"><code>write.table(dds_res %&gt;% data.frame, file=&quot;DMSO_vs_TG_BMcells.tsv&quot;, col.names=T, row.names = T, sep = &quot;\t&quot;, quote=F)</code></pre>
-<p>shiny apps on MPI-IE website (<a
+<pre class="r"><code>dds_res %&gt;% data.frame %&gt;%
+  # keep rownames as explicit column
+  rownames_to_column(&quot;gene_id&quot;) %&gt;%
+  write_csv(file = &quot;DMSO_vs_TG_BMcells.csv&quot;)</code></pre>
+<p>For example, you might want to upload the file to our (MPI-IE
+internal) shiny apps (<a
 href="https://rsconnect.ie-freiburg.mpg.de/shiny/"
 class="uri">https://rsconnect.ie-freiburg.mpg.de/shiny/</a>)</p>
 <div class="float">
-<img src="images/day2_shinyapps.png" style="width:80.0%"
-alt="Shiny apps" />
-<div class="figcaption">Shiny apps</div>
-</div>
-<p><em>Genes2Functions</em></p>
-<div class="float">
 <img src="images/day2_genes2functions_maplot.png" style="width:80.0%"
-alt="genes2functions_maplot" />
-<div class="figcaption">genes2functions_maplot</div>
-</div>
-<div class="float">
-<img src="images/day2_genes2functions_dotplot.png" style="width:80.0%"
-alt="genes2functions_GO" />
-<div class="figcaption">genes2functions_GO</div>
+alt="Genes2Functions A typical plot for further data exploration" />
+<div class="figcaption">Genes2Functions A typical plot for further data
+exploration</div>
 </div>
 </div>
 </div>

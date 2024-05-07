@@ -398,16 +398,16 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 01</h1>
 <h4 class="author">Thomas Manke @ MPI-IE</h4>
-<h4 class="date">Mon May 6 10:59:23 2024</h4>
+<h4 class="date">Tue May 7 00:36:07 2024</h4>
 
 </div>
 
 
 <hr />
-<div id="preparation-60-min" class="section level1">
-<h1>Preparation (60 min)</h1>
+<div id="preparation-30-min" class="section level1">
+<h1>Preparation (30 min)</h1>
 <div id="story" class="section level2">
-<h2>1. Story</h2>
+<h2>Story</h2>
 <p>The story we’ll work with is a ‘drug repurposing’ effort to use an
 old diuretic drug as a cancer treatment: <br> <a
 href="https://pubmed.ncbi.nlm.nih.gov/28790111/">Amiloride to treat
@@ -415,20 +415,27 @@ multiple myeloma</a></p>
 <p>Note that this is publically available data under GEO accession ID
 GSE95077, but the data shipped with this repository is altered for
 educational purposes.<br />
-In this study, RNA-seq data is available to compare amiloride to a
-state-of-the-art drug (TG003) in two cancer (multiple myeloma) cell
-lines with different mutations (BM: p53mut, JJ: del(17p)). <br></p>
+In this study, RNA-seq data is available to compare amiloride (AMIL) to
+a state-of-the-art drug (TG003) in two cancer (multiple myeloma) cell
+lines with different mutations (BM: p53mut, JJ: del(17p)).</p>
+<p>In total we have 18 samples:</p>
+<ul>
+<li>3 conditions (drugs): AMIL, TG and DMSO (control)</li>
+<li>2 cell types: BM and JJ</li>
+<li>3 replicates for each combination of conditions and cell-types</li>
+</ul>
+<p><br></p>
 <hr />
 </div>
 <div id="tools" class="section level2">
-<h2>2. Tools</h2>
+<h2>Tools</h2>
 <blockquote>
 <p><strong>Poll 1.1</strong>: How do you get information about the
 current R-version and loaded packages?</p>
 </blockquote>
 <p><br></p>
-<div id="a.-packages" class="section level3">
-<h3>a. Packages</h3>
+<div id="packages" class="section level3">
+<h3>Packages</h3>
 <p>Many useful functions are already available with R: <em>base
 packages</em>. Most analysis tools come with software packages that will
 need to be installed before use.</p>
@@ -453,8 +460,8 @@ that should also be installed</li>
 to be done only once.</li>
 </ol>
 </div>
-<div id="b.-load-packages" class="section level3">
-<h3>b. Load packages</h3>
+<div id="load-packages" class="section level3">
+<h3>Load packages</h3>
 <blockquote>
 <p><strong>Task</strong>: Load the following packages: DESeq2,
 tidyverse, pheatmap</p>
@@ -478,8 +485,8 @@ packages in your R session.</p>
 <hr />
 </div>
 </div>
-<div id="get-data" class="section level2">
-<h2>3. Get Data</h2>
+<div id="data-and-metadata" class="section level2">
+<h2>Data and Metadata</h2>
 <p>We assume that the sequencing data has already been processed (QC,
 mapping, counting) to obtain a so-called <em>count matrix</em>. Data
 received in-house (given that it’s a model organism) will have count
@@ -502,8 +509,8 @@ accession code available. For this course, we have already prepared the
 data that will be used in in a convenient format.</p>
 <p><strong>Recommendation</strong>: It is good style to put data into a
 separate directory (e.g. data/).</p>
-<div id="a.-import-data" class="section level3">
-<h3>a. Import Data</h3>
+<div id="import-data" class="section level3">
+<h3>Import Data</h3>
 <p>Data can come in various formats. Here we have prepared the data as
 tab-separated file with header information.</p>
 <blockquote>
@@ -532,8 +539,8 @@ data %&gt;% pull(&quot;BM_CTRL_3&quot;) %&gt;% median()</code></pre>
 <p>Where are the gene names, and which convention is chosen for
 them?</p>
 </div>
-<div id="b.-import-metadata" class="section level3">
-<h3>b. Import Metadata</h3>
+<div id="import-metadata" class="section level3">
+<h3>Import Metadata</h3>
 <p>Metadata (=data about data); typically contains important information
 on the samples and their origin. Often these are categorical data such
 as cell type, experimental condition or other batch assignments. But it
@@ -579,63 +586,59 @@ metadata$sample    &lt;- as.factor(metadata$sample)
 
 # alternatively
 #metadata &lt;- metadata %&gt;% mutate_if(is.character,as.factor)</code></pre>
-<hr />
 </div>
 </div>
 </div>
-<div id="break-10-min" class="section level1">
-<h1>Break (10 min)</h1>
-<hr />
-</div>
-<div id="design-20-min" class="section level1">
-<h1>Design (20 min)</h1>
+<div id="design-30-min" class="section level1">
+<h1>Design (30 min)</h1>
 <p>For each gene (=row), the data matrix contains a vector of counts
 (<span class="math inline">\(y\)</span>) which depends on the vector of
 samples (<span class="math inline">\(x\)</span>)</p>
 <blockquote>
-<p><strong>Tasks (optional)</strong>: Extract the 42nd gene in the data
-matrix and plot it against all samples</p>
+<p><strong>Tasks</strong>: Extract the 42nd gene in the data matrix and
+plot it against all samples</p>
 </blockquote>
-<pre class="r"><code>gene = data %&gt;%
-  slice(42) %&gt;%                                                      # pick gene
-  pivot_longer(-gene_id, names_to = &quot;sample&quot;, values_to = &quot;count&quot;)   # convert to long
-
-gene_mean = gene %&gt;% pull(count) %&gt;% mean()                          # calculate mean
-
-ggplot(gene, aes(x=sample, y=count)) +
-  geom_point() +
-  geom_hline(yintercept = gene_mean, color=2) +
-  theme(axis.text.x = element_text(angle = 90))</code></pre>
 <p><img src="day01_files/figure-html/gene_plot-1.png" width="672" /></p>
-<pre class="r"><code>#base-R
-#boxplot(data[42,], xlab=&quot;sample&quot;, ylab=&quot;count&quot;, names=FALSE) 
-#abline(h=rowMeans(data[42,]), col=&quot;red&quot;, lty=2)</code></pre>
 <div id="hope" class="section level2">
-<h2>1. Hope</h2>
-<p>Gene expression (counts <span class="math inline">\(y\)</span>) could
-be predicted (and controlled) given sufficient sample information <span
-class="math inline">\(x\)</span> (up to some noise <span
-class="math inline">\(\epsilon\)</span>):</p>
+<h2>Hope</h2>
+<p>Gene expression can be predicted (and controlled) given relevant
+sample information <span class="math inline">\(x\)</span> and a model
+<span class="math inline">\(f(x, \theta)\)</span></p>
 <p><span class="math display">\[
-y_i = f(x_i, \theta) + \epsilon_i ~~~~~~~~~ (i = 1\ldots n)\\
-\]</span></p>
-<blockquote>
-<p><strong>Poll 1.5</strong>: What is <span
+y_i = f(x_i, \theta) ~~~~~~(i = 1\ldots n)\\
+\]</span> &gt; <strong>Poll 1.5</strong>: What is <span
 class="math inline">\(n\)</span> in our example?</p>
-</blockquote>
+<p>Qualifications:</p>
+<ul>
+<li>probabilitstic model: predict <em>expectations</em> up to some noise
+term <span class="math inline">\(\to E[y_i] + \epsilon_i\)</span></li>
+<li>for count data: model the <em>logarithm</em> of the expectation
+<span class="math inline">\(\to \log E[y_i] = f(x_i,
+\theta)\)</span></li>
+</ul>
+<p>To keep notation simple we use <span class="math inline">\(y_i = \log
+E[y_i]\)</span> below.</p>
+<p>Today we will focus on the function <span
+class="math inline">\(f\)</span>. Day 2 will cover more about <span
+class="math inline">\(\epsilon \propto P(\mu=0, \sigma^2)\)</span></p>
 </div>
 <div id="what-should-x-be" class="section level2">
-<h2>2. What should <span class="math inline">\(x\)</span> be?</h2>
+<h2>What should <span class="math inline">\(x\)</span> be?</h2>
 <p><strong>Reminder</strong>: The researcher needs to decide <em>which
 factors</em> should be included in the model.</p>
 <ul>
 <li>none: all samples have their own values <span
+class="math inline">\(y\)</span></li>
+<li>simple average: samples are spread around some global mean <span
 class="math inline">\(\to y = \mu + \epsilon\)</span></li>
 <li>quantitative variable: e.g. sequence depth <span
-class="math inline">\(\to y = f(sequencing~depth)\)</span></li>
+class="math inline">\(\to y = f(sequencing~depth) +
+\epsilon\)</span></li>
 <li>categorical variable: e.g. condition <span class="math inline">\(\to
-y = f(condition)\)</span></li>
-<li>combination of variables: e.g. condition and celltype</li>
+y = f(condition) + \epsilon\)</span></li>
+<li>combination of variables: e.g. condition and celltype <span
+class="math inline">\(\to y = f(condition, celltype) +
+\epsilon\)</span></li>
 </ul>
 <pre class="r"><code>gene %&gt;%
   # join gene with metadata (by sample)
@@ -651,11 +654,11 @@ y = f(condition)\)</span></li>
 <ul>
 <li>ggplot understands factors for plotting</li>
 <li>R understands formulae with factors: <span class="math inline">\(Y
-\sim X\)</span></li>
+\sim F\)</span></li>
 </ul>
 </div>
 <div id="under-the-hood-the-model-matrix" class="section level2">
-<h2>3. Under the hood: the model matrix</h2>
+<h2>Under the hood: the model matrix</h2>
 <p>How are factorial variables (e.g. condition) encoded into something
 numerical ?</p>
 <p>Use dummy variables: binary encoding of categorical variable <span
@@ -689,23 +692,16 @@ y_n \\
 \vdots \\
 \mu_p \\
 \end{array}
-\right] +
-\left[
-\begin{array}{c}
-\epsilon_1 \\
-\epsilon_2 \\
-\vdots \\
-\epsilon_i \\
-\vdots \\
-\epsilon_n \\
-\end{array}
 \right]
 \]</span> and in compact notation: <span class="math display">\[
-y = X \mu + \epsilon
+y = X \mu
 \]</span> <span class="math inline">\(X\)</span>: <span
 class="math inline">\(n\times p\)</span> <em>incidence model matrix</em>
 <span class="math inline">\(\to\)</span> multivariate linear
-regression</p>
+regression.</p>
+<p><strong>Recall:</strong> <span class="math inline">\(y=log
+E[y]\)</span> so this amounts to a generalized linear regression
+(GLM).</p>
 <hr />
 <p>An equivalent alternative parameterization is: <span
 class="math display">\[
@@ -736,24 +732,14 @@ y_n \\
 \vdots \\
 \beta_{p-1} \\
 \end{array}
-\right] +
-\left[
-\begin{array}{c}
-\epsilon_1 \\
-\epsilon_2 \\
-\vdots \\
-\epsilon_i \\
-\vdots \\
-\epsilon_n \\
-\end{array}
 \right]
 \]</span> and in compact notation: <span class="math display">\[
-y = \beta_0 + X&#39; \beta + \epsilon
+y = \beta_0 + X&#39; \beta
 \]</span> <span class="math inline">\(X&#39;\)</span>: <span
 class="math inline">\(n \times (p-1)\)</span> model matrix with
-intersept.</p>
-<p>In this parameterization one factor level serves as reference level
-<span class="math inline">\(\beta_0 = \mu_1\)</span>.</p>
+intersept. With this parameterization one factor level serves as
+reference level <span class="math inline">\(\beta_0 =
+\mu_1\)</span>.</p>
 <p>Sometimes this choice is preferable since then all the other
 parameters <span class="math inline">\(\beta_i=\mu_{i+1} -
 \mu_1\)</span> can be interpreted as <code>effects</code> of level <span
@@ -762,20 +748,47 @@ level.</p>
 <p>We are free to chose from many different parameterizations <span
 class="math inline">\(\mu \leftrightarrow \beta\)</span> which will have
 different interpretations.</p>
+<div class="float">
+<img src="images/linear_model.png" style="width:80.0%"
+alt="Linear Model" />
+<div class="figcaption">Linear Model</div>
+</div>
+<p><br></p>
+<hr />
 </div>
 <div id="design-in-action" class="section level2">
-<h2>4. Design In Action</h2>
-<p><strong>Define Design</strong>: The design formula should only
-include variables from the columns of the metadata! In the example below
-we decide to model only the dependency on the factor “condition”</p>
-<pre class="r"><code>my_design &lt;- ~ 0 + condition   # without intersect
-# my_design &lt;- ~ 1 + condition # with intersect</code></pre>
-<p><strong>Define Model Matrix</strong>: from design formula and
-metadata A factorial design can be translated into a (binary) <em>model
-matrix</em></p>
-<pre class="r"><code>MM &lt;- model.matrix(my_design, data=metadata)
-rownames(MM) = metadata$sample
-pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)</code></pre>
+<h2>Design In Action</h2>
+<p>In R, the model matrix <span class="math inline">\(X\)</span> can be
+obtained easily from metadata + <em>design formula</em>. <span
+class="math display">\[
+\mbox{R syntax:} ~~~Y \sim V
+\]</span></p>
+<p>where the formula should only refer to variables <span
+class="math inline">\(V\)</span> that are defined as columns of the
+metadata.</p>
+<pre class="r"><code>metadata %&gt;% colnames</code></pre>
+<pre><code>## [1] &quot;sample&quot;    &quot;celltype&quot;  &quot;condition&quot;</code></pre>
+<p>Examples are given below.</p>
+<div id="simple-designs-1-factor-p-levels" class="section level3">
+<h3>Simple designs (1 factor, p-levels)</h3>
+<p>We may presuppose that gene expression (or rather the logarithm of
+the expected counts) is a function of “condition” only</p>
+<p><span class="math display">\[
+Y \sim condition
+\]</span></p>
+<p>Per default this notation refers to equation <span
+class="math inline">\(y = \beta_0 + X&#39; \beta\)</span> with an
+intercept term <span class="math inline">\(\beta_0\)</span>, but the
+latter can also be switched off.</p>
+<pre class="r"><code>my_design &lt;- ~ 1 + condition   # with intersect (identical to &quot; ~ condition&quot;)
+my_design &lt;- ~ 0 + condition   # without intersect</code></pre>
+<p>The design formula together with a metadata implicitly defines the
+model matrix <span class="math inline">\(X\)</span>.</p>
+<p>We need <span class="math inline">\(X\)</span> only occasionally, but
+it may be helpful to visualize it here:</p>
+<pre class="r"><code>X &lt;- model.matrix(my_design, data=metadata)
+rownames(X) = metadata$sample
+pheatmap(X, cluster_cols = FALSE, cluster_rows=FALSE)</code></pre>
 <p><img src="day01_files/figure-html/model_matrix-1.png" width="672" /></p>
 <p><strong>Notice</strong>: A factor with <span
 class="math inline">\(p\)</span> levels will have <span
@@ -786,6 +799,7 @@ means for <span class="math inline">\(p\)</span> different groups).</p>
 <p><strong>Task</strong> Try the alternative design formula and inspect
 the effect on the matrix.</p>
 </blockquote>
+</div>
 <div id="multifactorial-designs" class="section level3">
 <h3>Multifactorial designs</h3>
 <p>More complicated designs are possible and often necessary (<span
@@ -796,23 +810,26 @@ celltype) and observe the design matrix<br />
 <strong>Bonus</strong>: Include an interaction term (+
 condition*celltype) and discuss its interpretation</p>
 </blockquote>
-<pre class="r"><code>MM &lt;- model.matrix(~ 1 + condition * celltype, data=metadata)
-rownames(MM) = metadata$sample
-pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)</code></pre>
+<pre class="r"><code>X &lt;- model.matrix(~ 1 + condition * celltype, data=metadata)
+rownames(X) = metadata$sample
+pheatmap(X, cluster_cols = FALSE, cluster_rows=FALSE)</code></pre>
 <p><img src="day01_files/figure-html/model_matrix_interaction-1.png" width="672" /></p>
 <hr />
 </div>
 </div>
-<div id="experimental-design" class="section level2">
-<h2>5. Experimental design</h2>
+</div>
+<div id="experimental-design-10-min" class="section level1">
+<h1>Experimental Design (10 min)</h1>
 <p>A more elaborate (highly recommended) tutorial can be found <a
 href="https://github.com/hbctraining/DGE_workshop_salmon_online/blob/master/lessons/experimental_planning_considerations.md">here</a></p>
 <div class="float">
 <img src="images/day1_expdesign.jpg" alt="A typical experiment" />
-<div class="figcaption"><strong>A typical experiment</strong></div>
+<div class="figcaption">A typical experiment</div>
 </div>
-<div id="a.-the-problem-more-factors" class="section level3">
-<h3>a. The problem: more factors!</h3>
+<p><br></p>
+<hr />
+<div id="the-problem-more-factors" class="section level3">
+<h3>The problem: more factors!</h3>
 <p>Usually there are other factors in addition to a simple
 treatment:</p>
 <ul>
@@ -836,44 +853,74 @@ your samples to different treatments?</p>
 <div class="float">
 <img src="images/day1_expdesign_poll.jpg"
 alt="Experimental Design - Poll" />
-<div class="figcaption"><strong>Experimental Design -
-Poll</strong></div>
+<div class="figcaption">Experimental Design - Poll</div>
 </div>
+<hr />
+</div>
+<div id="design-checks" class="section level3">
+<h3>Design Checks</h3>
+<p>For sanity checks it is useful to prepare a table of the metadata</p>
+<pre class="r"><code>metadata %&gt;% select(-sample) %&gt;% table</code></pre>
+<pre><code>##         condition
+## celltype AMIL DMSO TG
+##       BM    3    3  3
+##       JJ    3    3  3</code></pre>
+<p>This should answer a few common design questions - even
+<strong>before</strong> any data <span class="math inline">\(Y\)</span>
+is collected !</p>
+<ul>
+<li>Are all cells occupied (full design)?</li>
+<li>Do all cells have the same number of observations (balanced
+design)</li>
+<li>Are there missing observations - empty cells?</li>
+<li>Is there confounding between factors?</li>
+</ul>
+<hr />
 </div>
 <div id="sources-of-variability" class="section level3">
 <h3>Sources of Variability</h3>
 <table>
+<colgroup>
+<col width="57%" />
+<col width="42%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th>Source</th>
-<th align="left">What can be done about it</th>
+<th align="left">Source</th>
+<th align="left">What can be done about it ?</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Treatment</td>
-<td align="left">Observe!?</td>
+<td align="left">Treatment</td>
+<td align="left"><strong>Control</strong> - or observe?</td>
 </tr>
 <tr class="even">
-<td>Biological</td>
+<td align="left">Biological</td>
 <td align="left">Estimate with <strong>replication</strong></td>
 </tr>
 <tr class="odd">
-<td>Sample Preparation</td>
+<td align="left">Technical</td>
+<td align="left">Control with sequencing depth (read
+<strong>sampling</strong>)</td>
+</tr>
+<tr class="even">
+<td align="left">Sample Preparation</td>
 <td align="left">Estimate with batch controls
 (<strong>blocking</strong>)</td>
 </tr>
-<tr class="even">
-<td>Unknown Confounders</td>
+<tr class="odd">
+<td align="left">Unknown Confounders</td>
 <td align="left">Reduce risk by <strong>randomization</strong></td>
 </tr>
-<tr class="odd">
-<td>Sequencing</td>
-<td align="left">Control with sequencing depth (read sampling)</td>
-</tr>
 <tr class="even">
-<td>Analysis</td>
-<td align="left">Control software version and parameters</td>
+<td align="left">Errors (e.g. sample swaps)</td>
+<td align="left"><strong>Detection</strong>, Documentation, SOPs</td>
+</tr>
+<tr class="odd">
+<td align="left">Analysis</td>
+<td align="left"><strong>Control</strong> software version and
+parameters</td>
 </tr>
 </tbody>
 </table>
@@ -883,7 +930,6 @@ metadata and in the model.</p>
 <p><span class="math display">\[
 \mbox{R syntax:} ~~~Y \sim X + Z
 \]</span></p>
-<pre class="r"><code>my_alt_design &lt;- ~ celltype + condition</code></pre>
 <p><strong>Reminder</strong>: The choice of factors rests with the
 researcher.</p>
 <div class="float">
@@ -893,18 +939,27 @@ researcher.</p>
 <hr />
 </div>
 </div>
+<div id="break-10-min" class="section level1">
+<h1>Break (10 min)</h1>
+<hr />
+</div>
+<div id="break-10-min-1" class="section level1">
+<h1>Break (10 min)</h1>
+<hr />
 </div>
 <div id="create-deseq2-object-5-min" class="section level1">
 <h1>Create DESeq2 object (5 min)</h1>
-<p>Each software has their own data representation. A DESeq2 data object
-combines data, metadata and the design formula in one single object</p>
+<p>Each software has their own data representation :-(</p>
+<p>A DESeq2 data object combines data, metadata and the design formula
+in one single object</p>
 <pre><code>dds = data + metadata + design</code></pre>
 <p>All subsequent calculations will use this object (and modify it).</p>
 <blockquote>
-<p><strong>Task</strong>: Create a DESeq data set.</p>
+<p><strong>Task</strong>: Create a DESeq data set using
+DESeq::DESeqDataSetFromMatrix()</p>
 </blockquote>
 <pre class="r"><code>dds &lt;- DESeqDataSetFromMatrix(
-  # countData= expects matrix, so remove &quot;gene_id&quot; column and keep as rowname
+  # countData= expects matrix, so remove &quot;gene_id&quot; column but keep as rowname
   countData=data %&gt;% column_to_rownames(&quot;gene_id&quot;),
   colData=metadata, 
   design= my_design)</code></pre>
@@ -925,7 +980,6 @@ combines data, metadata and the design formula in one single object</p>
 <li>Re-extract the metadata (Hint: ?colData), remove column “sample” and
 save as <code>meta</code></li>
 </ul>
-<pre class="r"><code>dds                     # dds object --&gt; inspect: class(dds), str(dds), dim(dds)</code></pre>
 <pre><code>## class: DESeqDataSet 
 ## dim: 57905 18 
 ## metadata(1): version
@@ -935,10 +989,6 @@ save as <code>meta</code></li>
 ## rowData names(0):
 ## colnames(18): JJ_CTRL_1 BM_CTRL_2 ... JJ_TG_2 JJ_TG_3
 ## colData names(3): sample celltype condition</code></pre>
-<pre class="r"><code>Y &lt;- counts(dds)        # get gene-sample data matrix from dds
-
-# get metadata from dds and remove column &#39;sample&#39;
-meta &lt;- data.frame(colData(dds)) %&gt;% select(-sample)</code></pre>
 <blockquote>
 <p><strong>Tasks</strong>:</p>
 </blockquote>
@@ -948,7 +998,7 @@ and safe this data subset as <code>Yr</code> (reduced size for further
 use)</li>
 <li>Optional: Extract 10 randomly sampled genes.</li>
 </ul>
-<pre class="r"><code>Yr &lt;- Y %&gt;% head(10)    # extract first 10 rows (for illustrations only)
+<pre class="r"><code>Yr &lt;- Y %&gt;% head(10)                        # extract first 10 rows (for illustrations only)
 #Yr &lt;- Y %&gt;% data.frame() %&gt;% sample_n(10)  # random rows</code></pre>
 </div>
 <div id="data-visualization" class="section level2">
@@ -1005,8 +1055,9 @@ my_colors &lt;- list( celltype= ct_col, condition = cn_col )
 pheatmap(Yr, cluster_rows=FALSE, cluster_cols=FALSE, 
          annotation=meta, annotation_colors = my_colors, 
          main=&quot;Data + Metadata&quot;)</code></pre>
-<p><img src="day01_files/figure-html/colour-1.png" width="672" /> The
-colour encoding of the heatmap can also be customized (code not run)</p>
+<p><img src="day01_files/figure-html/colour-1.png" width="672" /></p>
+<p>The colour encoding of the heatmap can also be customized (code not
+run)</p>
 <pre class="r"><code>blue_colors = RColorBrewer::brewer.pal(9,&quot;Blues&quot;)
 pheatmap(Yr, cluster_rows=FALSE, cluster_cols=FALSE,
          annotation = meta, annotation_colors = my_colors, 
@@ -1071,8 +1122,10 @@ pleasing<br />
 <li><strong>Normalization</strong>: make samples comparable</li>
 </ul>
 </div>
-<div id="sample-sample-correlations-genome-wide" class="section level2">
-<h2>4. Sample-Sample correlations (genome-wide)</h2>
+<div id="sample-sample-correlations" class="section level2">
+<h2>4. Sample-Sample correlations</h2>
+<p>Here the goal is to derive the overall similarity of samples based on
+the genome-wide expression data.</p>
 <p><strong>Question</strong>: How to calculate the sample-sample
 correlation matrix?</p>
 <pre class="r"><code>C &lt;- cor(Yt)       # get sample-sample correlations: other correlations?
@@ -1089,29 +1142,19 @@ smoothScatter(Yt[,&quot;JJ_TG_1&quot;], Yt[,&quot;JJ_AMIL_1&quot;])</code></pre>
 <p>PCA aims to project samples from a high-dimensional space (M=20k+
 genes) to a lower dimension (D=2). Similar to correlation analysis, the
 main purpose is to identify distinct and similar samples.</p>
-<pre class="r"><code>#Yt is the transformed count matrix: log, rlog, vst, ...
+<pre class="r"><code># vst() is one of many variance stabilization methods: log, vst, rlog, ...
+# DESeq::plotPCA() requires a &#39;DESeqTransform&#39; object as input
 
-# set number of most variable genes
-nt &lt;- 500     
-# calculate variance for each row (gene), sort and get top variable genes
-top &lt;-  Yt %&gt;% rowVars(useNames=TRUE) %&gt;% order(decreasing=TRUE) %&gt;% head(nt)   
-# subset, transpose and perform PCA
-pca &lt;- Yt[top,] %&gt;% t() %&gt;% prcomp(scale=TRUE)      
-
-# calculate fraction of explained variance by PC 
-vars = round(pca$sdev^2 / sum(pca$sdev^2),3)
-
-S = pca$x[,1:2] %&gt;%                    # pca$x: score matrix (nt=500 genes --&gt; 2 PC)
-  as_tibble(rownames=&quot;sample&quot;) %&gt;%     # convert to tibble
-  inner_join(metadata, by=&quot;sample&quot;)    # attach metadata for visualization
-
-ggplot(S, aes(x=PC1, y=PC2, color=condition, shape=celltype)) +
-  geom_point(size=3) +
-  xlab(paste0(&quot;PC1: &quot;,vars[1])) +
-  ylab(paste0(&quot;PC2: &quot;,vars[2])) +
-  scale_colour_manual(values=cn_col)</code></pre>
+PCA &lt;- dds %&gt;% vst %&gt;% plotPCA(intgroup=c(&quot;condition&quot;,&quot;celltype&quot;), returnData=TRUE)
+  
+# get percentage explained variation per PC
+percentVar &lt;- round(100 * attr(PCA, &quot;percentVar&quot;), 1)
+  
+ggplot(PCA, aes(x=PC1, y=PC2, color=condition, shape=celltype)) +
+  geom_point(size=3, alpha=0.5) +
+  xlab(paste0(&quot;PC1: &quot;,percentVar[1])) +
+  ylab(paste0(&quot;PC2: &quot;,percentVar[2]))</code></pre>
 <p><img src="day01_files/figure-html/PCA_manual-1.png" width="672" /></p>
-<pre class="r"><code>  # scale_colour_brewer(palette=&quot;Dark2&quot;)</code></pre>
 <blockquote>
 <p><strong>Homework</strong></p>
 </blockquote>
@@ -1121,8 +1164,7 @@ ggplot(S, aes(x=PC1, y=PC2, color=condition, shape=celltype)) +
 <li>Can we go ahead with analysis ?</li>
 <li>Optional: Repeat PCA analysis with more sophisticated normalization
 from the DESeq2 package “rlog()”. Notice that the output is not a matrix
-but a more complicated object. It can be used by the plotPCA()
-function.</li>
+but a more complicated DESeqTransform object.</li>
 </ol>
 <pre class="r"><code>rld &lt;- rlog(dds)  # more sophisticated log-transform to account for seq.depth=lib.size --&gt; str(rld)
 
