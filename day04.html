@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">deseq2 - applied</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Tue May 7 00:40:26 2024</h4>
+<h4 class="date">Tue May 7 10:06:17 2024</h4>
 
 </div>
 
@@ -514,28 +514,6 @@ plotPCA(rlog(dds, blind=TRUE),
 ##    0.9004813    1.0741130    0.9827498    1.1019995    1.0009257    1.0478315</code></pre>
 <pre class="r"><code>plotDispEsts(dds)</code></pre>
 <p><img src="day04_files/figure-html/Dispersion-1.png" width="672" /></p>
-<pre class="r"><code>set.seed(42)
-metadata_thrash &lt;- metadata 
-metadata_thrash$celltype &lt;- sample(metadata$celltype)
-metadata_thrash$condition &lt;- sample(metadata$condition)
-
-MM=model.matrix(design(dds), metadata)
-pheatmap(MM, cluster_cols = FALSE, cluster_rows=FALSE)</code></pre>
-<p><img src="day04_files/figure-html/bad_dispers-1.png" width="672" /></p>
-<pre class="r"><code>MM_thrash=model.matrix(design(dds), metadata_thrash)
-pheatmap(MM_thrash, cluster_cols = FALSE, cluster_rows=FALSE)</code></pre>
-<p><img src="day04_files/figure-html/bad_dispers-2.png" width="672" /></p>
-<pre class="r"><code>dds_thrash &lt;- DESeqDataSetFromMatrix(countData=data, colData=metadata_thrash, design=design(dds))</code></pre>
-<pre><code>## converting counts to integer mode</code></pre>
-<pre class="r"><code>dds_thrash &lt;- DESeq(dds_thrash)</code></pre>
-<pre><code>## estimating size factors</code></pre>
-<pre><code>## estimating dispersions</code></pre>
-<pre><code>## gene-wise dispersion estimates</code></pre>
-<pre><code>## mean-dispersion relationship</code></pre>
-<pre><code>## final dispersion estimates</code></pre>
-<pre><code>## fitting model and testing</code></pre>
-<pre class="r"><code>plotDispEsts(dds_thrash)</code></pre>
-<p><img src="day04_files/figure-html/bad_dispers-3.png" width="672" /></p>
 </div>
 <div id="f.-lrt-for-age." class="section level3">
 <h3>f. LRT for age.</h3>

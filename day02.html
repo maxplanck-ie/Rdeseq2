@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 02</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Tue May 7 00:36:19 2024</h4>
+<h4 class="date">Tue May 7 10:03:13 2024</h4>
 
 </div>
 
@@ -974,14 +974,14 @@ dd_val = dd %&gt;% mcols %&gt;% data.frame %&gt;%
 dd %&gt;% var_mu_plot(title=&quot;simulated data&quot;)</code></pre>
 <pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
 <pre><code>## Warning in scale_y_log10(): log-10 transformation introduced infinite values.</code></pre>
-<pre><code>## Warning: Removed 44 rows containing non-finite outside the scale range
+<pre><code>## Warning: Removed 42 rows containing non-finite outside the scale range
 ## (`stat_density2d()`).</code></pre>
 <p><img src="day02_files/figure-html/dispersion_sim_plot-1.png" width="672" /></p>
 <pre class="r"><code>dd %&gt;% plotDispEsts()</code></pre>
 <p><img src="day02_files/figure-html/dispersion_sim_plot-2.png" width="672" /></p>
 <pre class="r"><code>dd_val %&gt;% ggplot(aes(x=baseMean, y=delta_disp)) + geom_point() + scale_x_log10()</code></pre>
 <pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
-<pre><code>## Warning: Removed 44 rows containing missing values or values outside the scale range
+<pre><code>## Warning: Removed 42 rows containing missing values or values outside the scale range
 ## (`geom_point()`).</code></pre>
 <p><img src="day02_files/figure-html/dispersion_sim_plot-3.png" width="672" /></p>
 <pre class="r"><code>#hist(log10(dd_val$delta_disp), n=50);  hist(log10(dd_val$delta_simp), n=50, add=T, col=&quot;red&quot;)

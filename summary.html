@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: outline</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Tue May 7 00:40:58 2024</h4>
+<h4 class="date">Tue May 7 10:06:43 2024</h4>
 
 </div>
 
@@ -598,21 +598,22 @@ write_tsv(sorted_res %&gt;% rownames_to_column(&quot;Gene&quot;), file=fn)      
 ## [8] base     
 ## 
 ## other attached packages:
-##  [1] BiocManager_1.30.23         ashr_2.2-63                
-##  [3] UpSetR_1.4.0                EnsDb.Hsapiens.v75_2.99.0  
-##  [5] ensembldb_2.22.0            AnnotationFilter_1.22.0    
-##  [7] GenomicFeatures_1.50.2      AnnotationDbi_1.60.0       
-##  [9] ggrepel_0.9.5               pheatmap_1.0.12            
-## [11] lubridate_1.9.3             forcats_1.0.0              
-## [13] stringr_1.5.1               dplyr_1.1.4                
-## [15] purrr_1.0.2                 readr_2.1.5                
-## [17] tidyr_1.3.1                 tibble_3.2.1               
-## [19] ggplot2_3.5.1               tidyverse_2.0.0            
-## [21] DESeq2_1.38.0               SummarizedExperiment_1.28.0
-## [23] Biobase_2.58.0              MatrixGenerics_1.10.0      
-## [25] matrixStats_1.3.0           GenomicRanges_1.50.0       
-## [27] GenomeInfoDb_1.34.9         IRanges_2.32.0             
-## [29] S4Vectors_0.36.0            BiocGenerics_0.44.0        
+##  [1] BiocManager_1.30.23         gridExtra_2.3              
+##  [3] ashr_2.2-63                 UpSetR_1.4.0               
+##  [5] EnsDb.Hsapiens.v75_2.99.0   ensembldb_2.22.0           
+##  [7] AnnotationFilter_1.22.0     GenomicFeatures_1.50.2     
+##  [9] AnnotationDbi_1.60.0        ggrepel_0.9.5              
+## [11] pheatmap_1.0.12             lubridate_1.9.3            
+## [13] forcats_1.0.0               stringr_1.5.1              
+## [15] dplyr_1.1.4                 purrr_1.0.2                
+## [17] readr_2.1.5                 tidyr_1.3.1                
+## [19] tibble_3.2.1                ggplot2_3.5.1              
+## [21] tidyverse_2.0.0             DESeq2_1.38.0              
+## [23] SummarizedExperiment_1.28.0 Biobase_2.58.0             
+## [25] MatrixGenerics_1.10.0       matrixStats_1.3.0          
+## [27] GenomicRanges_1.50.0        GenomeInfoDb_1.34.9        
+## [29] IRanges_2.32.0              S4Vectors_0.36.0           
+## [31] BiocGenerics_0.44.0        
 ## 
 ## loaded via a namespace (and not attached):
 ##   [1] colorspace_2.1-0         rjson_0.2.21             XVector_0.38.0          
@@ -632,23 +633,23 @@ write_tsv(sorted_res %&gt;% rownames_to_column(&quot;Gene&quot;), file=fn)      
 ##  [43] MASS_7.3-60.0.1          scales_1.3.0             vroom_1.6.5             
 ##  [46] hms_1.1.3                ProtGenerics_1.30.0      parallel_4.2.3          
 ##  [49] RColorBrewer_1.1-3       yaml_2.3.8               curl_5.1.0              
-##  [52] gridExtra_2.3            memoise_2.0.1            sass_0.4.9              
-##  [55] biomaRt_2.54.0           SQUAREM_2021.1           stringi_1.8.4           
-##  [58] RSQLite_2.3.4            highr_0.10               genefilter_1.80.0       
-##  [61] BiocIO_1.8.0             filelock_1.0.3           BiocParallel_1.32.5     
-##  [64] truncnorm_1.0-9          rlang_1.1.3              pkgconfig_2.0.3         
-##  [67] bitops_1.0-7             invgamma_1.1             evaluate_0.23           
-##  [70] lattice_0.22-6           fontawesome_0.5.2        GenomicAlignments_1.34.0
-##  [73] labeling_0.4.3           bit_4.0.5                tidyselect_1.2.1        
-##  [76] plyr_1.8.9               magrittr_2.0.3           R6_2.5.1                
-##  [79] generics_0.1.3           DelayedArray_0.24.0      DBI_1.2.2               
-##  [82] pillar_1.9.0             withr_3.0.0              mixsqp_0.3-54           
-##  [85] survival_3.6-4           KEGGREST_1.38.0          RCurl_1.98-1.14         
-##  [88] crayon_1.5.2             KernSmooth_2.23-22       utf8_1.2.4              
-##  [91] BiocFileCache_2.6.0      tzdb_0.4.0               rmarkdown_2.25          
-##  [94] progress_1.2.3           locfit_1.5-9.9           grid_4.2.3              
-##  [97] blob_1.2.4               digest_0.6.35            xtable_1.8-4            
-## [100] munsell_0.5.1            bslib_0.7.0</code></pre>
+##  [52] memoise_2.0.1            sass_0.4.9               biomaRt_2.54.0          
+##  [55] SQUAREM_2021.1           stringi_1.8.4            RSQLite_2.3.4           
+##  [58] highr_0.10               genefilter_1.80.0        BiocIO_1.8.0            
+##  [61] filelock_1.0.3           BiocParallel_1.32.5      truncnorm_1.0-9         
+##  [64] rlang_1.1.3              pkgconfig_2.0.3          bitops_1.0-7            
+##  [67] invgamma_1.1             evaluate_0.23            lattice_0.22-6          
+##  [70] fontawesome_0.5.2        GenomicAlignments_1.34.0 labeling_0.4.3          
+##  [73] bit_4.0.5                tidyselect_1.2.1         plyr_1.8.9              
+##  [76] magrittr_2.0.3           R6_2.5.1                 generics_0.1.3          
+##  [79] DelayedArray_0.24.0      DBI_1.2.2                pillar_1.9.0            
+##  [82] withr_3.0.0              mixsqp_0.3-54            survival_3.6-4          
+##  [85] KEGGREST_1.38.0          RCurl_1.98-1.14          crayon_1.5.2            
+##  [88] KernSmooth_2.23-22       utf8_1.2.4               BiocFileCache_2.6.0     
+##  [91] tzdb_0.4.0               rmarkdown_2.25           progress_1.2.3          
+##  [94] locfit_1.5-9.9           grid_4.2.3               blob_1.2.4              
+##  [97] digest_0.6.35            xtable_1.8-4             munsell_0.5.1           
+## [100] bslib_0.7.0</code></pre>
 </div>
 
 
