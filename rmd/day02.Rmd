@@ -29,21 +29,22 @@ PCA_tm <- function(dds, groups=c("condition", "celltype"), trans_func=vst){
   # Usage: dds %>% PCA_tm(c("condition","celltype"), trans_func = rlog)
 
   # Define color and shape variables - set to NULL if not used
-  color_var <- if( length(groups) > 0) { groups[1] } else { NULL }
-  shape_var <- if( length(groups) > 1) { groups[2] } else { NULL }
+  color_var <- if( length(groups) > 0) { sym(groups[1]) } else { NULL }
+  shape_var <- if( length(groups) > 1) { sym(groups[2]) } else { NULL }
   
   # transformation | PCA 
   PCA <- dds %>% trans_func %>% plotPCA(intgroup=groups, returnData=TRUE)
   # get percentage explained variation per PC
   percentVar <- round(100 * attr(PCA, "percentVar"), 1)
   
-  ggplot(PCA, aes_string(x="PC1", y="PC2", color=color_var, shape=shape_var)) +
+  ggplot(PCA, aes(x=PC1, y=PC2, color={{color_var}}, shape={{shape_var}})) +
     geom_point(size=3, alpha=0.5) +
     xlab(paste0("PC1: ",percentVar[1])) +
     ylab(paste0("PC2: ",percentVar[2]))
 
 }
 ```
+
 
 Remember how important sessionInfo() is:
 
