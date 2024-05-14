@@ -285,16 +285,15 @@ A number of commonly used normalization techniques:
 |:-------|:-----|
 CPM | sequencing depth
 RPKM | sequencing depth and gene length
-DESeq2 median of ratios | sequencing depth and RNA composition
+DESeq2 size factor | sequencing depth and RNA composition
 
 ... and many others exist.
 
 
 DESeq2 Workflow for the 'median of ratios':
 
- * Take geometric mean per gene (of all samples!) -> 'pseudosample'
- * calculate the count / pseudosample ratio
- * 'sizefactor' == median(ratios) 
+![DESeq2 sizefactor determination.](images/DESeq2_sizefactor.jpeg)
+
 
 > **Task (5 min)**: Plot a heatmap of the first 10 genes (rows) of the counts matrix and add the metadata
 after DESeq was run as above.
@@ -561,7 +560,7 @@ dds_res %>% subset(padj < 0.05) %>% nrow()
 dds_res %>% 
   data.frame() %>% 
   subset(padj < 0.05) %>% 
-  arrange(abs(log2FoldChange), descending=TRUE) %>% head(20)
+  arrange(-abs(log2FoldChange)) %>% head(20)
 ```
 
 ### Explore results
