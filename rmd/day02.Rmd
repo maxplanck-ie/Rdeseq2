@@ -561,7 +561,7 @@ dds_res %>% subset(padj < 0.05) %>% nrow()
 dds_res %>% 
   data.frame() %>% 
   subset(padj < 0.05) %>% 
-  arrange(abs(log2FoldChange), descending=TRUE) %>% head(20)
+  arrange(-abs(log2FoldChange)) %>% head(20)
 ```
 
 ### Explore results
