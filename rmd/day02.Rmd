@@ -13,7 +13,7 @@ output:
     df_print: paged
 ---
 
-## Preparation/Repetition (10 min)
+## Preparation/Repetition (15 min)
 
 ### Load packages
 ``` {r load_libraries}
@@ -90,7 +90,6 @@ dim(dds)
 Previously you noticed that the PCA shows a problem with our data. 
 
 ```{r old_PCA, out.width = '80%', fig.align="center"}
-
 dds %>% PCA_tm
 
 # DESeq2::plotPCA does not show this very clearly
@@ -101,7 +100,7 @@ dds %>% PCA_tm
 > **Poll 2.1:** What should we do next ?
 
 
-## Pre-processing (30min)
+## Pre-processing (40min)
 
 Pre-processing is easier if done at the level of the dds object - and more consistent to keep data and metadata in sync.
 
@@ -110,7 +109,7 @@ It also tends to be iterative.
 ### Filter Samples
 
 
-**Task (3 min)**: Filter the problematic samples (columns 1 and 7) from dds object and produce a new PCA plot.
+> **Task (3 min)**: Filter the problematic samples (columns 1 and 7) from dds object and produce a new PCA plot.
 
 Hint: Although the `dds` object is a more complex data class it also has dimensions assigned -- check `dim(dds)` -- and samples can be un/selected like columns in a standard dataframes.
 
@@ -121,14 +120,14 @@ dds_clean %>% PCA_tm
 
 ### Filter Genes
 
-- remove genes (rows) that have very low counts 
+- remove genes (rows) that have very low counts across samples
 - arbitrary threshold: < 1, < 10
 - benefits:
-  - increase robustness of analysis
+  - increase robustness of analysis (parameter estimates)
+  - reduce multiple testing issue
   - reduces memory size of 'dds' object => increases the speed
-  
 
-**Task (5 min)** Filter out the genes from dds_clean that have a total amount of only zero or 1 counts.
+> **Task (5 min)** Filter out the genes from dds_clean that have a total amount of only zero or 1 counts.
 Based on this filtering define a new data set and inspect its dimensions
 
 Hint 1: Have a look at the output of `dds_clean %>% counts %>% rowSums() %>% head()`
@@ -160,19 +159,19 @@ It may be more convenient to sort them by some user defined order - this is call
 
 <br>
 
-Th values and default level order of factor "condition":
+The values and default level order of factor "condition":
 ```{r default_order}
 #initial factor arrangement:
 dds_clean$condition
 ```
 
-> **Task (2 min)** Reorder the condition with 'DMSO' as baseline.
+> **Task (5 min)** Reorder the condition with 'DMSO' as baseline.
 
-Hint: Use the `relevel` function
+Hint: Redefine `dds_clean$condition` using the `relevel` function
 
 This should be the order after releveling:
 ```{r rearrange_factors, echo=FALSE}
-dds_clean$condition <- relevel(dds_clean$condition, ref='DMSO')
+dds_clean$condition <- dds_clean$condition %>% relevel(ref='DMSO')
 #dds_clean$condition <- factor(dds_clean$condition, levels = c ('DMSO', 'TG', 'AMIL')) # alternatively
 
 dds_clean$condition
@@ -182,7 +181,7 @@ dds_clean$condition
 unless specified more explicitly using "contrasts" (see tomorrow).
   
 
-## Preprocessing Summary
+### Preprocessing Summary
 We have now covered the most important preprocessing steps:
 
 - load software packages and data
@@ -208,6 +207,9 @@ meta = dds_clean %>% colData %>% data.frame
 ( design_table <- meta %>% select(-sample) %>% table  )
 design_table %>% pheatmap(cluster_cols=F, cluster_rows=F, display_numbers=T, fontsize_number=10)
 ```
+
+**Notice:**  the original design may have changed as a result of sample filtering
+
 ### Goal and Factorial Plot 
 
 To highlight the goal of the subsequent analysis it will be useful to focus on a single gene and highlight the effects of the different factor level combinations (!) on the mean expression
@@ -233,6 +235,13 @@ gene %>% group_by(condition, celltype) %>% summarize(mean = mean(count)) %>%
   geom_point(size=3) + geom_line() 
 ```
 
+In the following we will assess observed differences in gene expressions for different factor levels and contrasts. 
+
+The key idea is that some variations can be modeled (e.g. by the mean expression values in each cell shown as lines) , while other variability remains unaccounted for. 
+
+The combination of explainable changes and remaining variability will determine whether we consider a gene as *differential* for given contrasts of interest.
+
+***
 
 ## Break - 10 min
 
@@ -271,20 +280,20 @@ A couple of reasons for normalization include:
 
 **sequencing depth**
 
-!['doubling of expression due to sequencing depth'. Image from github.com/hbctraining ](images/day2_normalization_seqdepth.png){width=50%}
+![Read counts depend sequencing depth. Image from github.com/hbctraining ](images/day2_normalization_seqdepth.png){width=50%}
 
  
 ***
 
 **gene length**
 
-!['gene x and y have similar levels of expression, though gene x has way more reads aligned due to its length.'. Image from github.com/hbctraining](images/day2_normalization_genelength.png){width=35%}
+![Longer genes accumulated more reads. Image from github.com/hbctraining](images/day2_normalization_genelength.png){width=35%}
 
 ***
 
 **compositional bias**
 
-!['compositional bias through contaminant (e.g. rRNA)'. Image from github.com/hbctraining ](images/day2_normalization_compbias.png){width=50%}
+![Individual and highly expressed genes (e.g. rRNA) may domininate all other genes - in a sample-specific manner'. Image from github.com/hbctraining ](images/day2_normalization_compbias.png){width=50%}
 
 ***
 
@@ -307,14 +316,15 @@ DESeq2 Workflow for the 'median of ratios':
 
 > **Task (5 min)**: Plot a heatmap of the first 10 genes (rows) of the counts matrix and add the metadata
 after DESeq was run as above.
+
 Hint: Remember that both the data and the metadata can be obtained from the dds object (counts(), colData()),
 but you might want to convert the output of colData() to a data frame, such that it can be passed as 'annotation' to pheatmap
 
 
 
 ```{r heatmap_raw}
+Y <- dds_clean %>% counts %>% head(10)
 meta <- dds_clean %>% colData %>% data.frame %>% select(-sample)
-Y <- dds_clean %>% counts %>% head(10) 
 pheatmap(Y, annotation=meta)
 ```
 
@@ -337,8 +347,9 @@ Remember that the size factor for each sample (meta$sizeFactor) is a sophisticat
 way to account for sequencing depth and underpins the normalization used above.
 It is good practice to inspect the size factors and try to detect outlier samples 
 
-> **Task**:
+> **Task (5 mnin)**:
 
+- look at the distribution of size factor over all samples (e.g. summary)
 - add the sequencing depth as additional column to metadata `meta`
 - plot the size factor vs sequencing depth
 
@@ -350,7 +361,6 @@ meta <- dds_clean %>% colData %>% data.frame
 meta$sizeFactor %>% summary
 
 # add sequencing depth (in millions) to meta
-
 meta$seq_depth <- dds_clean %>% counts %>% colSums()/1e6  
 
 ggplot(meta, aes(x=seq_depth, y=sizeFactor)) + geom_point()
@@ -358,7 +368,7 @@ ggplot(meta, aes(x=seq_depth, y=sizeFactor)) + geom_point()
 
 **Observation:**. No outliers. sizeFactors behaves as expected.
 
-> **Task**: 
+> **Task (5 min)**: 
 Study the effect of sizeFactor normalization for a single gene.
 The code below is for unnormalized count data - with a simple modification
 you can obtain the normalized data.
@@ -392,7 +402,7 @@ More specifically, it would be great if the variance could be estimated from the
 
 This hope drives much of the work in gene expression analysis, and the discussion below.
 
-Let's look at the variance-mean relationship for all genes. 
+Let's look at the empirical variance-mean relationship for all genes. 
 To keep things simple let's focus on 3 replicate samples from the *same* celltype (BM) and condition (AMIL):
 
 ```{r var_vs_mu_plot}
@@ -412,7 +422,7 @@ var_mu_plot <- function(dds,title="variance-vs-mean"){
     ggtitle(title)
 }
 
-# pick 3 replicates (3,4,5) from same cell
+# pick 3 replicates (3,4,5) from same celltype-condition combination (BM-AMIL)
 dds_clean[, 3:5] %>% var_mu_plot
 ```
 
@@ -425,34 +435,44 @@ dds_clean[, 3:5] %>% var_mu_plot
 
 These properties are commonly observed for all RNA-seq experiments and these observations have
 guided the choice of distributions to be used for modelling of sequence counts.
-In fact there are simple tools to generate your own synthetic data sets:
 
-**Upshot**: RNA-seq data are **over-dispersed**
+
+> **Upshot**: RNA-seq data (gene expression counts) are **over-dispersed**
 
 $$
 Var = \mu + \alpha \mu^2 \\
+$$
+
+and can be modeled with a *negative binomial distribution*
+
+$$
+Y \propto NB(\mu, \alpha) \\
+\log \mu = X \beta
+$$
+with gene-specific *dispersion parameter* $\alpha$. 
+
+Dispersion $\alpha$ should account for the residual/unmodelled variation - assumed to be the same for all samples.
+
+Empirically it has been found that $\alpha$ may also depend on $\mu$
+
+$$
 \alpha = \alpha_0 + \alpha_1 / \mu
 $$
-and hence we will have to determine $\alpha = \alpha(\mu)$ - the *dispersion* parameter.
 
-The estimation of $\alpha$ is part of the DESeq2 workflow and can be illustrated as follows
+The estimation of $\alpha(\mu)$ is part of the DESeq2 workflow and can be illustrated as follows
 
 
 ```{r plot dispersions}
 dds_clean %>% plotDispEsts
 ```
 
-The *black* dots denote gene-wise estimates for dispersion $\alpha$. 
+The *black dots* denote gene-wise estimates for dispersion $\alpha$. For small number of samples, these dispersion estimates fluctuate strongly, and sometimes the estimates fail ($NA \to 10^{-8}$)
 
-For small number of samples, these dispersion estimates fluctuate strongly, and sometimes the estimates fail ($NA \to 10^{-8}$)
-
-Empirically there seems to be a trend $\alpha=\alpha(\mu)$ that we seek to exploit (red line). 
-
+The *red line* denotes an empirically trend for all genes there $\alpha=\alpha(\mu)$ that we seek to exploit.
 In DESeq2 parlance, we **share information** across genes for a more robust (and opinionated) estimates of dispersion and variance.
-These are the blue dots that represent the adjusted estimates of $\alpha$ and hence the variance.
 
-Genes with very high dispersion will not be adjusted - as this might overly reduce their variance (and increase the false positive).
-
+The *blue dots* denote the adjusted estimates of $\alpha$. Often the dispersion is correctecd upwards towards the empirical trend line.
+But genes with very high dispersion will not be adjusted - as this might overly reduce their variance (and increase the false positive).
 
 *Observations:*
 
@@ -462,38 +482,88 @@ Genes with very high dispersion will not be adjusted - as this might overly redu
 
 
 ### Simulations (optional)
+DESeq2 provides a simple tools to generate synthetic RNA-seq data from a Negative Binomial distribution with known
+dispersion relation -- default: $\alpha(\mu) = 0.1 + 4 / \mu$.
 
-Below we simulate expression data with $n=5000$ genes and $m$ samples.
-```{r var_vs_mu_sim}
-# simulate data from negative binomial with alpha = 0.1 + 4/mu
-dds_sim6 <- DESeq2::makeExampleDESeqDataSet(n=5000, m=6) %>% DESeq(quiet=TRUE)
-dds_sim50 <- DESeq2::makeExampleDESeqDataSet(n=5000, m=50) %>% DESeq(quiet=TRUE)
+To illustrate the challenges in estimating dispersion parameter, we simulate expression data with $n=5000$ genes and $m=6$ samples in two condition (A,B) with known $\mu$ and $\alpha$.
 
-# simulate from Poisson
-#dds_pois6 <- DESeq2::makeExampleDESeqDataSet(n=5000, m=6, dispMeanRel = function(x) 0) %>% DESeq
-#dds_pois50 <- DESeq2::makeExampleDESeqDataSet(n=5000, m=50, dispMeanRel = function(x) 0) %>% DESeq
+```{r disp_sim}
+plotDispErr <- function(dds){
+  dds %>% mcols %>% data.frame %>% 
+    mutate(rel_error_disp=(dispersion-trueDisp)/trueDisp) %>%
+    ggplot(aes(x=baseMean, y=rel_error_disp)) + 
+    geom_point(color="dodgerblue", alpha=0.4, size=0.3) + 
+    geom_abline(intercept = 0, slope = 0, color="red") +
+    ylim(-2,10) +
+    scale_x_log10()  +
+    ylab("relative disp. error")
+}
+
+plotDisp <- function(dds){
+  dds %>% mcols %>% data.frame %>% 
+    mutate(shrink=factor(dispOutlier)) %>%
+    ggplot(aes(x=baseMean, y=dispGeneEst)) + 
+    geom_point(color="black", alpha=0.4, size=0.3) +
+    geom_point(aes(x=baseMean, y=dispersion, size=shrink), color="dodgerblue", alpha=0.4, show.legend = FALSE) +
+    geom_line(aes(x=baseMean, y=dispFit), linewidth=1, color="red") +
+    scale_x_log10()  +
+    scale_y_log10() +
+    scale_size_manual(values=c(0.8,1.5,0) , guide = "none") +
+    ylab("dispersion")
+}
+
+
+set.seed(42) # for reproducibility
+
+# simulate RNA-seq data from NB with two different conditions (A,B) | run DESEQ
+dds_sim <- makeExampleDESeqDataSet(n=5000, m=6, betaSD = 2) %>% DESeq(quiet=TRUE)
+dds_sim %>% PCA_tm(groups=c("condition")) + ggtitle("Synthetic Data")
 ```
 
-```{r dispersion_sim_plot}
-dd = dds_sim6 
-dd_val = dd %>% mcols %>% data.frame %>% 
-  mutate(delta_disp=dispersion-trueDisp) %>%
-  mutate(delta_simp=dispGeneEst-trueDisp)
-  
-dd %>% var_mu_plot(title="simulated data")
-dd %>% plotDispEsts()
-dd_val %>% ggplot(aes(x=baseMean, y=delta_disp)) + geom_point() + scale_x_log10()
+```{r disp_sim_plot, eval=FALSE, echo=TRUE}
+# dds_sim %>% plotDispEsts() # does not produce ggplot
+p1 <- dds_sim %>% plotDisp  + ggtitle("design: ~ 1 + condition") 
+p2 <- dds_sim %>% plotDispErr
 
-#hist(log10(dd_val$delta_disp), n=50);  hist(log10(dd_val$delta_simp), n=50, add=T, col="red")
-#dd_val %>% ggplot(aes(x=delta_disp)) +  geom_histogram(bins=200) + scale_x_log10() #+ scale_y_log10()
+# poor design: does not account for factor 'condition'
+design(dds_sim) <- ~ 1   
+# sample swaps
+# dds_sim$condition = dds_sim$condition %>% sample
+dds_sim <- dds_sim %>% DESeq(quiet=TRUE)  # rerun DESeq
+
+p3 <- dds_sim %>% plotDisp + ggtitle("design: ~ 1")
+p4 <- dds_sim %>% plotDispErr
+
+grid.arrange(p1, p3, p2, p4,  ncol=2)
 ```
 
-For small baseMean the dispersion estimate become unreliable
+![Dispersion Estimates for simulated data. $n=5000$ genes and $m=6$ samples.](images/dispEst.png)
 
+<br>
+
+*Notice (left):*
+
+- MLE estimates of dispersion parameters are difficult; both technically (iterations) and statistically (few samples, low counts).
+Therefore large uncertainty in those estimates is to be expected $\to$ need to moderate
+
+- For a given sample number and reasonable designs, dispersion estimates tend to be more reliable for large baseMean. They will become even more reliable for larger sample number
+
+- The main concern is an *underestimate* of dispersion and variance $\to$ overestimate of significance $\to$ increase in false positives differential calls. Therefore the final dispersion estimates (blue) have been biased towards higher values, given the trend over all genes.
+
+*Notice (right):*
+
+- Poor design choices (unaccounted factors/batch effects, sample swaps, ...) account poorly for the observed variance and inflate "residual variation". This can result in poor dispersion models and poor estimates.
+
+- DESeq assumes that the gene-specific dispersion $\alpha_i$ is constant for each gene $i$, after accounting for all sample-specific effects.
+
+> **Pay attention:** does the fit look reasonable?
+Poor fits may be related to *poor designs* or *poor filtering* of lowly expressed genes
 
 ### Model fit and testing
 Once the dispersion parameters (for each gene) are obtained, the "best" parameters $\beta$ can be estimated
-by *Maximum Likelihood*. For Gaussian distributions $y \sim N(\mu, \sigma^2)$ this is easy and corresponds to the least squares formula for both $\mu$ and $\sigma^2$, But recall that we assume that the expression counts follow a negative bionmial distribution
+by *Maximum Likelihood*. 
+
+For Normal distributions $y \sim N(\mu, \sigma^2)$ this is easy and corresponds to the least squares formula for both $\mu$ and $\sigma^2$, But recall that we assume that the expression counts follow a negative bionmial distribution
 
 $$
 y \sim NB(\mu, \alpha) \\
@@ -501,15 +571,16 @@ y \sim NB(\mu, \alpha) \\
 \alpha = \alpha_0 + \alpha_1 / \mu
 $$
 
-
-
+In general the $\beta$ will be obtained through an iterative maximization processes.
 Finally we get a fit for each gene, and a Wald test can be used to test for significance of coefficients of interest.
 
 ![MLE and tests.](images/Wald_LRT.jpeg)
 
+<br>
+
 **Notice**: In our factorial analysis, $\beta$ summarizes multiple parameters that may correspond to the different cell means or the differences with respect to some reference level - depending on our encoding of the model matrix.
 
-By default DESeq tests the difference of the last coefficient and its deviation from zero, but in general we will be interested in specific differences among the $\beta$ (contrasts, linear combinations) and test their deviation from zero
+By default DESeq tests the difference of the last coefficient and its deviation from zero, but in general we will be interested in specific differences (contrasts, linear combinations) among the $\beta$ and test their deviation from zero
 
 $$
 c^T \beta = 0
@@ -552,7 +623,7 @@ dds_res %>%
 ### Explore results
 
 
-**Task (5 min):** MA plots
+> **Task (5 min):** MA plots
 Plot the log2Foldchange from the results DESeq results object against the logarithm of the baseMean.
 
 Optional: highlight (with different colour) the differentially expressed genes based on some threshold on p-value, log2FoldChange etc.
@@ -572,7 +643,7 @@ dds_res %>%
 
 
 
-**Task (5 min):** Volcano plots
+> **Task (5 min):** Volcano plots
 Plot the adjusted p-value against estimate effect (log2FoldChange).
 
 ```{r volcano}
