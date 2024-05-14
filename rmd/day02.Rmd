@@ -23,26 +23,8 @@ library("DESeq2")
 library("pheatmap")
 })
 
-
-PCA_tm <- function(dds, groups=c("condition", "celltype"), trans_func=vst){
-  # a convenience function for PCA-plotting - rather specific to this course
-  # Usage: dds %>% PCA_tm(c("condition","celltype"), trans_func = rlog)
-
-  # Define color and shape variables - set to NULL if not used
-  color_var <- if( length(groups) > 0) { sym(groups[1]) } else { NULL }
-  shape_var <- if( length(groups) > 1) { sym(groups[2]) } else { NULL }
-  
-  # transformation | PCA 
-  PCA <- dds %>% trans_func %>% plotPCA(intgroup=groups, returnData=TRUE)
-  # get percentage explained variation per PC
-  percentVar <- round(100 * attr(PCA, "percentVar"), 1)
-  
-  ggplot(PCA, aes(x=PC1, y=PC2, color={{color_var}}, shape={{shape_var}})) +
-    geom_point(size=3, alpha=0.5) +
-    xlab(paste0("PC1: ",percentVar[1])) +
-    ylab(paste0("PC2: ",percentVar[2]))
-
-}
+# define some convenience function for plotting
+source('funcs.R')
 ```
 
 
@@ -406,21 +388,7 @@ Let's look at the empirical variance-mean relationship for all genes.
 To keep things simple let's focus on 3 replicate samples from the *same* celltype (BM) and condition (AMIL):
 
 ```{r var_vs_mu_plot}
-var_mu_plot <- function(dds,title="variance-vs-mean"){ 
-  means <- dds %>% counts %>% rowMeans()
-  vars <- dds %>% counts %>% rowVars(useNames = TRUE)
-  data.frame(mean=means,variance=vars) %>% 
-    ggplot(aes(x=mean, y=variance)) + 
-    # geom_point(alpha=0.25) + 
-    # replace points by tile/density plot 
-    stat_density2d(aes(fill = after_stat(count)), geom = "tile", n=50, contour=F) +
-    scale_fill_continuous(low = "white", high = "dodgerblue3") + 
-    # add Poisson line
-    geom_abline(intercept = 0, slope = 1, color="red") +
-    scale_x_log10() + 
-    scale_y_log10() +
-    ggtitle(title)
-}
+
 
 # pick 3 replicates (3,4,5) from same celltype-condition combination (BM-AMIL)
 dds_clean[, 3:5] %>% var_mu_plot
@@ -488,31 +456,6 @@ dispersion relation -- default: $\alpha(\mu) = 0.1 + 4 / \mu$.
 To illustrate the challenges in estimating dispersion parameter, we simulate expression data with $n=5000$ genes and $m=6$ samples in two condition (A,B) with known $\mu$ and $\alpha$.
 
 ```{r disp_sim}
-plotDispErr <- function(dds){
-  dds %>% mcols %>% data.frame %>% 
-    mutate(rel_error_disp=(dispersion-trueDisp)/trueDisp) %>%
-    ggplot(aes(x=baseMean, y=rel_error_disp)) + 
-    geom_point(color="dodgerblue", alpha=0.4, size=0.3) + 
-    geom_abline(intercept = 0, slope = 0, color="red") +
-    ylim(-2,10) +
-    scale_x_log10()  +
-    ylab("relative disp. error")
-}
-
-plotDisp <- function(dds){
-  dds %>% mcols %>% data.frame %>% 
-    mutate(shrink=factor(dispOutlier)) %>%
-    ggplot(aes(x=baseMean, y=dispGeneEst)) + 
-    geom_point(color="black", alpha=0.4, size=0.3) +
-    geom_point(aes(x=baseMean, y=dispersion, size=shrink), color="dodgerblue", alpha=0.4, show.legend = FALSE) +
-    geom_line(aes(x=baseMean, y=dispFit), linewidth=1, color="red") +
-    scale_x_log10()  +
-    scale_y_log10() +
-    scale_size_manual(values=c(0.8,1.5,0) , guide = "none") +
-    ylab("dispersion")
-}
-
-
 set.seed(42) # for reproducibility
 
 # simulate RNA-seq data from NB with two different conditions (A,B) | run DESEQ
@@ -534,6 +477,7 @@ dds_sim <- dds_sim %>% DESeq(quiet=TRUE)  # rerun DESeq
 p3 <- dds_sim %>% plotDisp + ggtitle("design: ~ 1")
 p4 <- dds_sim %>% plotDispErr
 
+# requires gridExtra package
 grid.arrange(p1, p3, p2, p4,  ncol=2)
 ```
 
