@@ -64,8 +64,10 @@
 
 2.3 What kind of distribution would be appropriate for this data ?
 
-   a) The poisson distribution
-   b) Not the poisson distribution
+   a) The Normal Distribution since the data was normalized
+   b) The Poisson distribution since we deal with count data
+   c) Any distribution that accounts accurately for residual variation
+   d) Don't assume any distribution, just provide sufficient number of replicates
 
 2.4 What does a positive log2 foldChange and a significant padj value reflect ?
 
