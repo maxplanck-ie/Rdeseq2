@@ -398,13 +398,13 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 02</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Tue May 7 10:03:13 2024</h4>
+<h4 class="date">Tue May 14 22:37:00 2024</h4>
 
 </div>
 
 
-<div id="preparationrepetition-10-min" class="section level2">
-<h2>Preparation/Repetition (10 min)</h2>
+<div id="preparationrepetition-15-min" class="section level2">
+<h2>Preparation/Repetition (15 min)</h2>
 <div id="load-packages" class="section level3">
 <h3>Load packages</h3>
 <pre class="r"><code>suppressPackageStartupMessages({
@@ -413,26 +413,8 @@ library(&quot;DESeq2&quot;)
 library(&quot;pheatmap&quot;)
 })
 
-
-PCA_tm &lt;- function(dds, groups=c(&quot;condition&quot;, &quot;celltype&quot;), trans_func=vst){
-  # a convenience function for PCA-plotting - rather specific to this course
-  # Usage: dds %&gt;% PCA_tm(c(&quot;condition&quot;,&quot;celltype&quot;), trans_func = rlog)
-
-  # Define color and shape variables - set to NULL if not used
-  color_var &lt;- if( length(groups) &gt; 0) { groups[1] } else { NULL }
-  shape_var &lt;- if( length(groups) &gt; 1) { groups[2] } else { NULL }
-  
-  # transformation | PCA 
-  PCA &lt;- dds %&gt;% trans_func %&gt;% plotPCA(intgroup=groups, returnData=TRUE)
-  # get percentage explained variation per PC
-  percentVar &lt;- round(100 * attr(PCA, &quot;percentVar&quot;), 1)
-  
-  ggplot(PCA, aes_string(x=&quot;PC1&quot;, y=&quot;PC2&quot;, color=color_var, shape=shape_var)) +
-    geom_point(size=3, alpha=0.5) +
-    xlab(paste0(&quot;PC1: &quot;,percentVar[1])) +
-    ylab(paste0(&quot;PC2: &quot;,percentVar[2]))
-
-}</code></pre>
+# define some convenience function for plotting
+source(&#39;funcs.R&#39;)</code></pre>
 <p>Remember how important sessionInfo() is:</p>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 4.2.3 (2023-03-15)
@@ -477,7 +459,7 @@ PCA_tm &lt;- function(dds, groups=c(&quot;condition&quot;, &quot;celltype&quot;)
 ## [25] XVector_0.38.0         pkgconfig_2.0.3        htmltools_0.5.8.1     
 ## [28] fastmap_1.1.1          highr_0.10             rlang_1.1.3           
 ## [31] RSQLite_2.3.4          jquerylib_0.1.4        generics_0.1.3        
-## [34] farver_2.1.1           jsonlite_1.8.8         BiocParallel_1.32.5   
+## [34] farver_2.1.2           jsonlite_1.8.8         BiocParallel_1.32.5   
 ## [37] vroom_1.6.5            RCurl_1.98-1.14        magrittr_2.0.3        
 ## [40] GenomeInfoDbData_1.2.9 Matrix_1.6-5           Rcpp_1.0.12           
 ## [43] munsell_0.5.1          fansi_1.0.6            lifecycle_1.0.4       
@@ -553,12 +535,6 @@ metadata %&gt;% head()</code></pre>
 <p>Previously you noticed that the PCA shows a problem with our
 data.</p>
 <pre class="r"><code>dds %&gt;% PCA_tm</code></pre>
-<pre><code>## Warning: `aes_string()` was deprecated in ggplot2 3.0.0.
-## ℹ Please use tidy evaluation idioms with `aes()`.
-## ℹ See also `vignette(&quot;ggplot2-in-packages&quot;)` for more information.
-## This warning is displayed once every 8 hours.
-## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-## generated.</code></pre>
 <p><img src="day02_files/figure-html/old_PCA-1.png" width="80%" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># DESeq2::plotPCA does not show this very clearly
 # dds %&gt;% rlog %&gt;% plotPCA(intgroup=c(&quot;celltype&quot;, &quot;condition&quot;)) # rlog slow
@@ -568,15 +544,17 @@ data.</p>
 </blockquote>
 </div>
 </div>
-<div id="pre-processing-30min" class="section level2">
-<h2>Pre-processing (30min)</h2>
+<div id="pre-processing-40min" class="section level2">
+<h2>Pre-processing (40min)</h2>
 <p>Pre-processing is easier if done at the level of the dds object - and
 more consistent to keep data and metadata in sync.</p>
 <p>It also tends to be iterative.</p>
 <div id="filter-samples" class="section level3">
 <h3>Filter Samples</h3>
+<blockquote>
 <p><strong>Task (3 min)</strong>: Filter the problematic samples
 (columns 1 and 7) from dds object and produce a new PCA plot.</p>
+</blockquote>
 <p>Hint: Although the <code>dds</code> object is a more complex data
 class it also has dimensions assigned – check <code>dim(dds)</code> –
 and samples can be un/selected like columns in a standard
@@ -588,17 +566,20 @@ dds_clean %&gt;% PCA_tm</code></pre>
 <div id="filter-genes" class="section level3">
 <h3>Filter Genes</h3>
 <ul>
-<li>remove genes (rows) that have very low counts</li>
+<li>remove genes (rows) that have very low counts across samples</li>
 <li>arbitrary threshold: &lt; 1, &lt; 10</li>
 <li>benefits:
 <ul>
-<li>increase robustness of analysis</li>
+<li>increase robustness of analysis (parameter estimates)</li>
+<li>reduce multiple testing issue</li>
 <li>reduces memory size of ‘dds’ object =&gt; increases the speed</li>
 </ul></li>
 </ul>
+<blockquote>
 <p><strong>Task (5 min)</strong> Filter out the genes from dds_clean
 that have a total amount of only zero or 1 counts. Based on this
 filtering define a new data set and inspect its dimensions</p>
+</blockquote>
 <p>Hint 1: Have a look at the output of
 <code>dds_clean %&gt;% counts %&gt;% rowSums() %&gt;% head()</code></p>
 <pre class="r"><code>rs &lt;- dds_clean %&gt;% counts %&gt;% rowSums()
@@ -625,17 +606,18 @@ alt="Factor order" />
 <div class="figcaption">Factor order</div>
 </div>
 <p><br></p>
-<p>Th values and default level order of factor “condition”:</p>
+<p>The values and default level order of factor “condition”:</p>
 <pre class="r"><code>#initial factor arrangement:
 dds_clean$condition</code></pre>
 <pre><code>##  [1] DMSO DMSO AMIL AMIL AMIL DMSO DMSO AMIL AMIL AMIL TG   TG   TG   TG   TG  
 ## [16] TG  
 ## Levels: AMIL DMSO TG</code></pre>
 <blockquote>
-<p><strong>Task (2 min)</strong> Reorder the condition with ‘DMSO’ as
+<p><strong>Task (5 min)</strong> Reorder the condition with ‘DMSO’ as
 baseline.</p>
 </blockquote>
-<p>Hint: Use the <code>relevel</code> function</p>
+<p>Hint: Redefine <code>dds_clean$condition</code> using the
+<code>relevel</code> function</p>
 <p>This should be the order after releveling:</p>
 <pre><code>##  [1] DMSO DMSO AMIL AMIL AMIL DMSO DMSO AMIL AMIL AMIL TG   TG   TG   TG   TG  
 ## [16] TG  
@@ -644,9 +626,8 @@ baseline.</p>
 with respect to the 1st level, unless specified more explicitly using
 “contrasts” (see tomorrow).</p>
 </div>
-</div>
-<div id="preprocessing-summary" class="section level2">
-<h2>Preprocessing Summary</h2>
+<div id="preprocessing-summary" class="section level3">
+<h3>Preprocessing Summary</h3>
 <p>We have now covered the most important preprocessing steps:</p>
 <ul>
 <li>load software packages and data</li>
@@ -672,6 +653,7 @@ workflows and software versions carefully - use scripts or notebooks
 !</p>
 </blockquote>
 </div>
+</div>
 <div id="some-more-checks" class="section level2">
 <h2>Some more Checks</h2>
 <div id="factorial-design" class="section level3">
@@ -684,8 +666,12 @@ workflows and software versions carefully - use scripts or notebooks
 ##       BM    2    3  3
 ##       JJ    2    3  3</code></pre>
 <pre class="r"><code>design_table %&gt;% pheatmap(cluster_cols=F, cluster_rows=F, display_numbers=T, fontsize_number=10)</code></pre>
-<p><img src="day02_files/figure-html/design_checks-1.png" width="672" />
-### Goal and Factorial Plot</p>
+<p><img src="day02_files/figure-html/design_checks-1.png" width="672" /></p>
+<p><strong>Notice:</strong> the original design may have changed as a
+result of sample filtering</p>
+</div>
+<div id="goal-and-factorial-plot" class="section level3">
+<h3>Goal and Factorial Plot</h3>
 <p>To highlight the goal of the subsequent analysis it will be useful to
 focus on a single gene and highlight the effects of the different factor
 level combinations (!) on the mean expression</p>
@@ -701,6 +687,15 @@ gene %&gt;%
   geom_point(size=1) +
   stat_summary(fun=mean, geom=&quot;line&quot;,linewidth=2)</code></pre>
 <p><img src="day02_files/figure-html/factorial%20plot-1.png" width="672" /></p>
+<p>In the following we will assess observed differences in gene
+expressions for different factor levels and contrasts.</p>
+<p>The key idea is that some variations can be modeled (e.g. by the mean
+expression values in each cell shown as lines) , while other variability
+remains unaccounted for.</p>
+<p>The combination of explainable changes and remaining variability will
+determine whether we consider a gene as <em>differential</em> for given
+contrasts of interest.</p>
+<hr />
 </div>
 </div>
 <div id="break---10-min" class="section level2">
@@ -745,26 +740,26 @@ also needed for exploratory analysis and visualisation.</p>
 <p><strong>sequencing depth</strong></p>
 <div class="float">
 <img src="images/day2_normalization_seqdepth.png" style="width:50.0%"
-alt="‘doubling of expression due to sequencing depth’. Image from github.com/hbctraining" />
-<div class="figcaption">‘doubling of expression due to sequencing
-depth’. Image from github.com/hbctraining</div>
+alt="Read counts depend sequencing depth. Image from github.com/hbctraining" />
+<div class="figcaption">Read counts depend sequencing depth. Image from
+github.com/hbctraining</div>
 </div>
 <hr />
 <p><strong>gene length</strong></p>
 <div class="float">
 <img src="images/day2_normalization_genelength.png" style="width:35.0%"
-alt="‘gene x and y have similar levels of expression, though gene x has way more reads aligned due to its length.’. Image from github.com/hbctraining" />
-<div class="figcaption">‘gene x and y have similar levels of expression,
-though gene x has way more reads aligned due to its length.’. Image from
+alt="Longer genes accumulated more reads. Image from github.com/hbctraining" />
+<div class="figcaption">Longer genes accumulated more reads. Image from
 github.com/hbctraining</div>
 </div>
 <hr />
 <p><strong>compositional bias</strong></p>
 <div class="float">
 <img src="images/day2_normalization_compbias.png" style="width:50.0%"
-alt="‘compositional bias through contaminant (e.g. rRNA)’. Image from github.com/hbctraining" />
-<div class="figcaption">‘compositional bias through contaminant
-(e.g. rRNA)’. Image from github.com/hbctraining</div>
+alt="Individual and highly expressed genes (e.g. rRNA) may domininate all other genes - in a sample-specific manner’. Image from github.com/hbctraining" />
+<div class="figcaption">Individual and highly expressed genes
+(e.g. rRNA) may domininate all other genes - in a sample-specific
+manner’. Image from github.com/hbctraining</div>
 </div>
 <hr />
 <p>A number of commonly used normalization techniques:</p>
@@ -801,13 +796,14 @@ alt="‘compositional bias through contaminant (e.g. rRNA)’. Image from githu
 <blockquote>
 <p><strong>Task (5 min)</strong>: Plot a heatmap of the first 10 genes
 (rows) of the counts matrix and add the metadata after DESeq was run as
-above. Hint: Remember that both the data and the metadata can be
-obtained from the dds object (counts(), colData()), but you might want
-to convert the output of colData() to a data frame, such that it can be
-passed as ‘annotation’ to pheatmap</p>
+above.</p>
 </blockquote>
-<pre class="r"><code>meta &lt;- dds_clean %&gt;% colData %&gt;% data.frame %&gt;% select(-sample)
-Y &lt;- dds_clean %&gt;% counts %&gt;% head(10) 
+<p>Hint: Remember that both the data and the metadata can be obtained
+from the dds object (counts(), colData()), but you might want to convert
+the output of colData() to a data frame, such that it can be passed as
+‘annotation’ to pheatmap</p>
+<pre class="r"><code>Y &lt;- dds_clean %&gt;% counts %&gt;% head(10)
+meta &lt;- dds_clean %&gt;% colData %&gt;% data.frame %&gt;% select(-sample)
 pheatmap(Y, annotation=meta)</code></pre>
 <p><img src="day02_files/figure-html/heatmap_raw-1.png" width="672" /></p>
 <p><strong>Notice</strong>:</p>
@@ -829,9 +825,11 @@ sophisticated way to account for sequencing depth and underpins the
 normalization used above. It is good practice to inspect the size
 factors and try to detect outlier samples</p>
 <blockquote>
-<p><strong>Task</strong>:</p>
+<p><strong>Task (5 mnin)</strong>:</p>
 </blockquote>
 <ul>
+<li>look at the distribution of size factor over all samples
+(e.g. summary)</li>
 <li>add the sequencing depth as additional column to metadata
 <code>meta</code></li>
 <li>plot the size factor vs sequencing depth</li>
@@ -842,9 +840,10 @@ factors and try to detect outlier samples</p>
 <p><strong>Observation:</strong>. No outliers. sizeFactors behaves as
 expected.</p>
 <blockquote>
-<p><strong>Task</strong>: Study the effect of sizeFactor normalization
-for a single gene. The code below is for unnormalized count data - with
-a simple modification you can obtain the normalized data.</p>
+<p><strong>Task (5 min)</strong>: Study the effect of sizeFactor
+normalization for a single gene. The code below is for unnormalized
+count data - with a simple modification you can obtain the normalized
+data.</p>
 </blockquote>
 <pre class="r"><code>gene &lt;- dds_clean %&gt;% counts() %&gt;%
   as_tibble(rownames=&#39;gene_id&#39;) %&gt;%       # tibble does not like rownames
@@ -878,26 +877,10 @@ estimated from the mean gene expression <span
 class="math inline">\(\mu\)</span> (c.f. Poisson)</p>
 <p>This hope drives much of the work in gene expression analysis, and
 the discussion below.</p>
-<p>Let’s look at the variance-mean relationship for all genes. To keep
-things simple let’s focus on 3 replicate samples from the <em>same</em>
-celltype (BM) and condition (AMIL):</p>
-<pre class="r"><code>var_mu_plot &lt;- function(dds,title=&quot;variance-vs-mean&quot;){ 
-  means &lt;- dds %&gt;% counts %&gt;% rowMeans()
-  vars &lt;- dds %&gt;% counts %&gt;% rowVars(useNames = TRUE)
-  data.frame(mean=means,variance=vars) %&gt;% 
-    ggplot(aes(x=mean, y=variance)) + 
-    # geom_point(alpha=0.25) + 
-    # replace points by tile/density plot 
-    stat_density2d(aes(fill = after_stat(count)), geom = &quot;tile&quot;, n=50, contour=F) +
-    scale_fill_continuous(low = &quot;white&quot;, high = &quot;dodgerblue3&quot;) + 
-    # add Poisson line
-    geom_abline(intercept = 0, slope = 1, color=&quot;red&quot;) +
-    scale_x_log10() + 
-    scale_y_log10() +
-    ggtitle(title)
-}
-
-# pick 3 replicates (3,4,5) from same cell
+<p>Let’s look at the empirical variance-mean relationship for all genes.
+To keep things simple let’s focus on 3 replicate samples from the
+<em>same</em> celltype (BM) and condition (AMIL):</p>
+<pre class="r"><code># pick 3 replicates (3,4,5) from same celltype-condition combination (BM-AMIL)
 dds_clean[, 3:5] %&gt;% var_mu_plot</code></pre>
 <pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
 <pre><code>## Warning in scale_y_log10(): log-10 transformation introduced infinite values.</code></pre>
@@ -915,35 +898,48 @@ curve: <span class="math inline">\(Var = \mu\)</span>)</li>
 </ul>
 <p>These properties are commonly observed for all RNA-seq experiments
 and these observations have guided the choice of distributions to be
-used for modelling of sequence counts. In fact there are simple tools to
-generate your own synthetic data sets:</p>
-<p><strong>Upshot</strong>: RNA-seq data are
+used for modelling of sequence counts.</p>
+<blockquote>
+<p><strong>Upshot</strong>: RNA-seq data (gene expression counts) are
 <strong>over-dispersed</strong></p>
+</blockquote>
 <p><span class="math display">\[
 Var = \mu + \alpha \mu^2 \\
+\]</span></p>
+<p>and can be modeled with a <em>negative binomial distribution</em></p>
+<p><span class="math display">\[
+Y \propto NB(\mu, \alpha) \\
+\log \mu = X \beta
+\]</span> with gene-specific <em>dispersion parameter</em> <span
+class="math inline">\(\alpha\)</span>.</p>
+<p>Dispersion <span class="math inline">\(\alpha\)</span> should account
+for the residual/unmodelled variation - assumed to be the same for all
+samples.</p>
+<p>Empirically it has been found that <span
+class="math inline">\(\alpha\)</span> may also depend on <span
+class="math inline">\(\mu\)</span></p>
+<p><span class="math display">\[
 \alpha = \alpha_0 + \alpha_1 / \mu
-\]</span> and hence we will have to determine <span
-class="math inline">\(\alpha = \alpha(\mu)\)</span> - the
-<em>dispersion</em> parameter.</p>
-<p>The estimation of <span class="math inline">\(\alpha\)</span> is part
-of the DESeq2 workflow and can be illustrated as follows</p>
+\]</span></p>
+<p>The estimation of <span class="math inline">\(\alpha(\mu)\)</span> is
+part of the DESeq2 workflow and can be illustrated as follows</p>
 <pre class="r"><code>dds_clean %&gt;% plotDispEsts</code></pre>
 <p><img src="day02_files/figure-html/plot%20dispersions-1.png" width="672" /></p>
-<p>The <em>black</em> dots denote gene-wise estimates for dispersion
-<span class="math inline">\(\alpha\)</span>.</p>
-<p>For small number of samples, these dispersion estimates fluctuate
-strongly, and sometimes the estimates fail (<span
-class="math inline">\(NA \to 10^{-8}\)</span>)</p>
-<p>Empirically there seems to be a trend <span
-class="math inline">\(\alpha=\alpha(\mu)\)</span> that we seek to
-exploit (red line).</p>
-<p>In DESeq2 parlance, we <strong>share information</strong> across
-genes for a more robust (and opinionated) estimates of dispersion and
-variance. These are the blue dots that represent the adjusted estimates
-of <span class="math inline">\(\alpha\)</span> and hence the
-variance.</p>
-<p>Genes with very high dispersion will not be adjusted - as this might
-overly reduce their variance (and increase the false positive).</p>
+<p>The <em>black dots</em> denote gene-wise estimates for dispersion
+<span class="math inline">\(\alpha\)</span>. For small number of
+samples, these dispersion estimates fluctuate strongly, and sometimes
+the estimates fail (<span class="math inline">\(NA \to
+10^{-8}\)</span>)</p>
+<p>The <em>red line</em> denotes an empirically trend for all genes
+there <span class="math inline">\(\alpha=\alpha(\mu)\)</span> that we
+seek to exploit. In DESeq2 parlance, we <strong>share
+information</strong> across genes for a more robust (and opinionated)
+estimates of dispersion and variance.</p>
+<p>The <em>blue dots</em> denote the adjusted estimates of <span
+class="math inline">\(\alpha\)</span>. Often the dispersion is
+correctecd upwards towards the empirical trend line. But genes with very
+high dispersion will not be adjusted - as this might overly reduce their
+variance (and increase the false positive).</p>
 <p><em>Observations:</em></p>
 <ul>
 <li>genes with smaller mean should have larger dispersion (<span
@@ -956,46 +952,86 @@ class="math inline">\(\to\)</span> simulations</li>
 </div>
 <div id="simulations-optional" class="section level3">
 <h3>Simulations (optional)</h3>
-<p>Below we simulate expression data with <span
+<p>DESeq2 provides a simple tools to generate synthetic RNA-seq data
+from a Negative Binomial distribution with known dispersion relation –
+default: <span class="math inline">\(\alpha(\mu) = 0.1 + 4 /
+\mu\)</span>.</p>
+<p>To illustrate the challenges in estimating dispersion parameter, we
+simulate expression data with <span
 class="math inline">\(n=5000\)</span> genes and <span
-class="math inline">\(m\)</span> samples.</p>
-<pre class="r"><code># simulate data from negative binomial with alpha = 0.1 + 4/mu
-dds_sim6 &lt;- DESeq2::makeExampleDESeqDataSet(n=5000, m=6) %&gt;% DESeq(quiet=TRUE)
-dds_sim50 &lt;- DESeq2::makeExampleDESeqDataSet(n=5000, m=50) %&gt;% DESeq(quiet=TRUE)
+class="math inline">\(m=6\)</span> samples in two condition (A,B) with
+known <span class="math inline">\(\mu\)</span> and <span
+class="math inline">\(\alpha\)</span>.</p>
+<pre class="r"><code>set.seed(42) # for reproducibility
 
-# simulate from Poisson
-#dds_pois6 &lt;- DESeq2::makeExampleDESeqDataSet(n=5000, m=6, dispMeanRel = function(x) 0) %&gt;% DESeq
-#dds_pois50 &lt;- DESeq2::makeExampleDESeqDataSet(n=5000, m=50, dispMeanRel = function(x) 0) %&gt;% DESeq</code></pre>
-<pre class="r"><code>dd = dds_sim6 
-dd_val = dd %&gt;% mcols %&gt;% data.frame %&gt;% 
-  mutate(delta_disp=dispersion-trueDisp) %&gt;%
-  mutate(delta_simp=dispGeneEst-trueDisp)
-  
-dd %&gt;% var_mu_plot(title=&quot;simulated data&quot;)</code></pre>
-<pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
-<pre><code>## Warning in scale_y_log10(): log-10 transformation introduced infinite values.</code></pre>
-<pre><code>## Warning: Removed 42 rows containing non-finite outside the scale range
-## (`stat_density2d()`).</code></pre>
-<p><img src="day02_files/figure-html/dispersion_sim_plot-1.png" width="672" /></p>
-<pre class="r"><code>dd %&gt;% plotDispEsts()</code></pre>
-<p><img src="day02_files/figure-html/dispersion_sim_plot-2.png" width="672" /></p>
-<pre class="r"><code>dd_val %&gt;% ggplot(aes(x=baseMean, y=delta_disp)) + geom_point() + scale_x_log10()</code></pre>
-<pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
-<pre><code>## Warning: Removed 42 rows containing missing values or values outside the scale range
-## (`geom_point()`).</code></pre>
-<p><img src="day02_files/figure-html/dispersion_sim_plot-3.png" width="672" /></p>
-<pre class="r"><code>#hist(log10(dd_val$delta_disp), n=50);  hist(log10(dd_val$delta_simp), n=50, add=T, col=&quot;red&quot;)
-#dd_val %&gt;% ggplot(aes(x=delta_disp)) +  geom_histogram(bins=200) + scale_x_log10() #+ scale_y_log10()</code></pre>
-<p>For small baseMean the dispersion estimate become unreliable</p>
+# simulate RNA-seq data from NB with two different conditions (A,B) | run DESEQ
+dds_sim &lt;- makeExampleDESeqDataSet(n=5000, m=6, betaSD = 2) %&gt;% DESeq(quiet=TRUE)
+dds_sim %&gt;% PCA_tm(groups=c(&quot;condition&quot;)) + ggtitle(&quot;Synthetic Data&quot;)</code></pre>
+<p><img src="day02_files/figure-html/disp_sim-1.png" width="672" /></p>
+<pre class="r"><code># dds_sim %&gt;% plotDispEsts() # does not produce ggplot
+p1 &lt;- dds_sim %&gt;% plotDisp  + ggtitle(&quot;design: ~ 1 + condition&quot;) 
+p2 &lt;- dds_sim %&gt;% plotDispErr
+
+# poor design: does not account for factor &#39;condition&#39;
+design(dds_sim) &lt;- ~ 1   
+# sample swaps
+# dds_sim$condition = dds_sim$condition %&gt;% sample
+dds_sim &lt;- dds_sim %&gt;% DESeq(quiet=TRUE)  # rerun DESeq
+
+p3 &lt;- dds_sim %&gt;% plotDisp + ggtitle(&quot;design: ~ 1&quot;)
+p4 &lt;- dds_sim %&gt;% plotDispErr
+
+# requires gridExtra package
+grid.arrange(p1, p3, p2, p4,  ncol=2)</code></pre>
+<div class="float">
+<img src="images/dispEst.png"
+alt="Dispersion Estimates for simulated data. n=5000 genes and m=6 samples." />
+<div class="figcaption">Dispersion Estimates for simulated data. <span
+class="math inline">\(n=5000\)</span> genes and <span
+class="math inline">\(m=6\)</span> samples.</div>
+</div>
+<p><br></p>
+<p><em>Notice (left):</em></p>
+<ul>
+<li><p>MLE estimates of dispersion parameters are difficult; both
+technically (iterations) and statistically (few samples, low counts).
+Therefore large uncertainty in those estimates is to be expected <span
+class="math inline">\(\to\)</span> need to moderate</p></li>
+<li><p>For a given sample number and reasonable designs, dispersion
+estimates tend to be more reliable for large baseMean. They will become
+even more reliable for larger sample number</p></li>
+<li><p>The main concern is an <em>underestimate</em> of dispersion and
+variance <span class="math inline">\(\to\)</span> overestimate of
+significance <span class="math inline">\(\to\)</span> increase in false
+positives differential calls. Therefore the final dispersion estimates
+(blue) have been biased towards higher values, given the trend over all
+genes.</p></li>
+</ul>
+<p><em>Notice (right):</em></p>
+<ul>
+<li><p>Poor design choices (unaccounted factors/batch effects, sample
+swaps, …) account poorly for the observed variance and inflate “residual
+variation”. This can result in poor dispersion models and poor
+estimates.</p></li>
+<li><p>DESeq assumes that the gene-specific dispersion <span
+class="math inline">\(\alpha_i\)</span> is constant for each gene <span
+class="math inline">\(i\)</span>, after accounting for all
+sample-specific effects.</p></li>
+</ul>
+<blockquote>
+<p><strong>Pay attention:</strong> does the fit look reasonable? Poor
+fits may be related to <em>poor designs</em> or <em>poor filtering</em>
+of lowly expressed genes</p>
+</blockquote>
 </div>
 <div id="model-fit-and-testing" class="section level3">
 <h3>Model fit and testing</h3>
 <p>Once the dispersion parameters (for each gene) are obtained, the
 “best” parameters <span class="math inline">\(\beta\)</span> can be
-estimated by <em>Maximum Likelihood</em>. For Gaussian distributions
-<span class="math inline">\(y \sim N(\mu, \sigma^2)\)</span> this is
-easy and corresponds to the least squares formula for both <span
-class="math inline">\(\mu\)</span> and <span
+estimated by <em>Maximum Likelihood</em>.</p>
+<p>For Normal distributions <span class="math inline">\(y \sim N(\mu,
+\sigma^2)\)</span> this is easy and corresponds to the least squares
+formula for both <span class="math inline">\(\mu\)</span> and <span
 class="math inline">\(\sigma^2\)</span>, But recall that we assume that
 the expression counts follow a negative bionmial distribution</p>
 <p><span class="math display">\[
@@ -1003,12 +1039,15 @@ y \sim NB(\mu, \alpha) \\
 \log \mu = X \beta \\
 \alpha = \alpha_0 + \alpha_1 / \mu
 \]</span></p>
-<p>Finally we get a fit for each gene, and a Wald test can be used to
-test for significance of coefficients of interest.</p>
+<p>In general the <span class="math inline">\(\beta\)</span> will be
+obtained through an iterative maximization processes. Finally we get a
+fit for each gene, and a Wald test can be used to test for significance
+of coefficients of interest.</p>
 <div class="float">
 <img src="images/Wald_LRT.jpeg" alt="MLE and tests." />
 <div class="figcaption">MLE and tests.</div>
 </div>
+<p><br></p>
 <p><strong>Notice</strong>: In our factorial analysis, <span
 class="math inline">\(\beta\)</span> summarizes multiple parameters that
 may correspond to the different cell means or the differences with
@@ -1016,8 +1055,9 @@ respect to some reference level - depending on our encoding of the model
 matrix.</p>
 <p>By default DESeq tests the difference of the last coefficient and its
 deviation from zero, but in general we will be interested in specific
-differences among the <span class="math inline">\(\beta\)</span>
-(contrasts, linear combinations) and test their deviation from zero</p>
+differences (contrasts, linear combinations) among the <span
+class="math inline">\(\beta\)</span> and test their deviation from
+zero</p>
 <p><span class="math display">\[
 c^T \beta = 0
 \]</span></p>
@@ -1092,9 +1132,11 @@ log2FoldChange.</li>
 </div>
 <div id="explore-results" class="section level3">
 <h3>Explore results</h3>
+<blockquote>
 <p><strong>Task (5 min):</strong> MA plots Plot the log2Foldchange from
 the results DESeq results object against the logarithm of the
 baseMean.</p>
+</blockquote>
 <p>Optional: highlight (with different colour) the differentially
 expressed genes based on some threshold on p-value, log2FoldChange etc.
 This is a very common plots, so DESeq also has a function for this:
@@ -1103,8 +1145,10 @@ plotMA().</p>
 <pre><code>## Warning: Removed 27674 rows containing missing values or values outside the scale range
 ## (`geom_point()`).</code></pre>
 <p><img src="day02_files/figure-html/MA_plot-1.png" width="672" /></p>
+<blockquote>
 <p><strong>Task (5 min):</strong> Volcano plots Plot the adjusted
 p-value against estimate effect (log2FoldChange).</p>
+</blockquote>
 <pre class="r"><code>dds_res %&gt;% 
   data.frame() %&gt;% 
   mutate(differential = padj &lt; 0.05) %&gt;%
