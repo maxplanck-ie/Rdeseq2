@@ -179,7 +179,7 @@ For each gene (=row), the data matrix contains a vector of counts ($y$) which de
 
 > **Tasks**: Extract the 42nd gene in the data matrix and plot it against all samples
 
-```{r gene_plot, echo=FALSE}
+```{r gene_plot, echo=TRUE}
 gene = data %>%
   slice(42) %>%                                                      # pick gene
   pivot_longer(-gene_id, names_to = "sample", values_to = "count")   # convert to long
@@ -192,8 +192,9 @@ ggplot(gene, aes(x=sample, y=count)) +
   theme(axis.text.x = element_text(angle = 90))
 
 #base-R
-#boxplot(data[42,], xlab="sample", ylab="count", names=FALSE) 
-#abline(h=rowMeans(data[42,]), col="red", lty=2)
+#gene_b = data[42,-1]
+#boxplot(gene_b, xlab="sample", ylab="count", names=FALSE) 
+#abline(h=rowMeans(gene_b), col="red", lty=2)
 ```
 
 
