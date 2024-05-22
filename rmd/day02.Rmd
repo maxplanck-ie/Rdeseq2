@@ -115,13 +115,13 @@ Based on this filtering define a new data set and inspect its dimensions
 Hint 1: Have a look at the output of `dds_clean %>% counts %>% rowSums() %>% head()`
 
 
-```{r filter_genes, eval=FALSE}
+```{r filter_genes, eval=TRUE, echo=FALSE}
 rs <- dds_clean %>% counts %>% rowSums()
 
 # class(dds_clean)="DESeqDataSet" with convenience operator []
 dds_clean <- dds_clean[rs>1,] 
 
-dim(dds_clean)
+#dim(dds_clean)
 ```
 
  
