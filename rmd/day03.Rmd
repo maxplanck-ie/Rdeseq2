@@ -970,6 +970,7 @@ TGvAMIL_JJ (for JJ cells).
 
 
 > **Task**: Clean our results classes (TGvAMIL & TGvAMIL_JJ) (15 min)
+
   * convert the results object into a dataframe
   * remove the na values from the dataframe
   * Sort the dataframe by adjusted p value
