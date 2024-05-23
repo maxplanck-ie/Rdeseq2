@@ -541,8 +541,8 @@ If there is only one factor with two levels, There is no need to  specify contra
 Contrasts can be specified in three different ways:
 
   * a character vector with three elements. c("celltype", "JJ", "BM") (last level == baseline!)
-  * A list of 2 character vectors. list(coef1, coef2)
-  * A numerical vector with an element for each coef c(0,0,0,1,0,0)
+  * A list of 2 characters, corresponding to the coefficients. list(coef1, coef2)
+  * A numerical vector with an element for each coefficient. c(0,0,0,1,0,0)
 
 Let's try!
 
@@ -679,13 +679,13 @@ print(contrast)
 res <- results(dds, contrast=contrast)
 res_shrink <- lfcShrink(dds, contrast=contrast, type="ashr")
 ```
-**Note**: Please run the lfcShrink, so you have the res_shrink object in memory for later !
 
 Note that there are three 'built-in' methods for shrinking:
  
- - ashr
- - apeglm -> works *only* with coefficients ! (might have to relevel)
  - normal -> works *only* with design that have no interaction
+ - apeglm -> works *only* with coefficients ! (might have to relevel)
+ - ashr
+ 
 
 The specifics about these methods is beyond the scope of this course.
 
@@ -705,6 +705,8 @@ p2 <- ggplot(data=res_shrink %>% data.frame(), aes(x=log10(baseMean + 1), y=log2
 
 grid.arrange(p1, p2, nrow=1)
 ```
+
+**Note**: Please run the lfcShrink, so you have the res_shrink object in memory for later !
 
 ***
 ## Break (10 min)
@@ -732,7 +734,8 @@ ggplot(d, aes(x = celltype, y = count, color = celltype)) +
 
 We saw how to create heatmap multiple times, let's make another !
     
-> **Task**: Plot a heatmap of the normalized counts for the 'top 20' genes from our previously generated res_shrink object. (15 minutes)  
+> **Task**: Plot a heatmap of the normalized counts for the 'top 20' genes from our previously generated res_shrink object. (15 minutes) 
+
   * convert the res_shrink object to a dataframe ( data.frame() ), sort by padj( arrange() ), take the top 20 ( head() )  
   * Extract the normalized (!) counts from the dds object and convert to dataframe ( counts(dds) )  
   * subset the dataframe with normalized counts for the gene ID's in the top20 ( filter() )  
@@ -757,6 +760,7 @@ pheatmap(top20_counts,
          height = 20)
 
 ```
+
 Before the break we also saw an example of an MAplot and a volcano plot.
 Both are commonly used plots to have a global view of the expression changes.
 
@@ -925,7 +929,7 @@ We'd like to see the difference between condition TG and AMIL in cellType JJ.
 ```{r message=FALSE, warning=FALSE}
 mod_mat <- model.matrix(design(dds), colData(dds))
 
-# we'd like to condition TG in cellType JJ
+# Remember we'd like to compare TG treatment with AMIL treatment in JJ cells.
 JJ_TG <- colMeans(mod_mat[dds$celltype == 'JJ' & dds$condition == "TG",])
 JJ_AMIL <- colMeans(mod_mat[dds$celltype == 'JJ' & dds$condition == "AMIL",])
 
@@ -970,6 +974,7 @@ TGvAMIL_JJ (for JJ cells).
 
 
 > **Task**: Clean our results classes (TGvAMIL & TGvAMIL_JJ) (15 min)
+
   * convert the results object into a dataframe
   * remove the na values from the dataframe
   * Sort the dataframe by adjusted p value
