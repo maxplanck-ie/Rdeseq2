@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Wed May 22 16:25:14 2024</h4>
+<h4 class="date">Fri May 24 07:03:01 2024</h4>
 
 </div>
 
@@ -937,8 +937,10 @@ alphabetical order of the levels.</p>
 <ul>
 <li>a character vector with three elements. c(“celltype”, “JJ”, “BM”)
 (last level == baseline!)</li>
-<li>A list of 2 character vectors. list(coef1, coef2)</li>
-<li>A numerical vector with an element for each coef c(0,0,0,1,0,0)</li>
+<li>A list of 2 characters, corresponding to the coefficients.
+list(coef1, coef2)</li>
+<li>A numerical vector with an element for each coefficient.
+c(0,0,0,1,0,0)</li>
 </ul>
 <p>Let’s try!</p>
 <p>Specify a <code>c("condition", "AMIL", "DMSO")</code> contrast in the
@@ -1061,15 +1063,13 @@ LFC.</p>
 <pre><code>## [1] &quot;condition&quot; &quot;DMSO&quot;      &quot;AMIL&quot;</code></pre>
 <pre class="r"><code>res &lt;- results(dds, contrast=contrast)
 res_shrink &lt;- lfcShrink(dds, contrast=contrast, type=&quot;ashr&quot;)</code></pre>
-<p><strong>Note</strong>: Please run the lfcShrink, so you have the
-res_shrink object in memory for later !</p>
 <p>Note that there are three ‘built-in’ methods for shrinking:</p>
 <ul>
-<li>ashr</li>
-<li>apeglm -&gt; works <em>only</em> with coefficients ! (might have to
-relevel)</li>
 <li>normal -&gt; works <em>only</em> with design that have no
 interaction</li>
+<li>apeglm -&gt; works <em>only</em> with coefficients ! (might have to
+relevel)</li>
+<li>ashr</li>
 </ul>
 <p>The specifics about these methods is beyond the scope of this
 course.</p>
@@ -1087,6 +1087,8 @@ p2 &lt;- ggplot(data=res_shrink %&gt;% data.frame(), aes(x=log10(baseMean + 1), 
 
 grid.arrange(p1, p2, nrow=1)</code></pre>
 <p><img src="day03_files/figure-html/MA%20plot-1.png" width="672" /></p>
+<p><strong>Note</strong>: Please run the lfcShrink, so you have the
+res_shrink object in memory for later !</p>
 <hr />
 </div>
 </div>
@@ -1120,16 +1122,21 @@ ggplot(d, aes(x = celltype, y = count, color = celltype)) +
 <blockquote>
 <p><strong>Task</strong>: Plot a heatmap of the normalized counts for
 the ‘top 20’ genes from our previously generated res_shrink object. (15
-minutes)<br />
-* convert the res_shrink object to a dataframe ( data.frame() ), sort by
-padj( arrange() ), take the top 20 ( head() )<br />
-* Extract the normalized (!) counts from the dds object and convert to
-dataframe ( counts(dds) )<br />
-* subset the dataframe with normalized counts for the gene ID’s in the
-top20 ( filter() )<br />
-* plot with pheatmap, note that you can scale the values per row
-(scale=‘row’)!</p>
+minutes)</p>
 </blockquote>
+<ul>
+<li>convert the res_shrink object to a dataframe ( data.frame() ), sort
+by padj( arrange() ), take the top 20 ( head() )<br />
+</li>
+<li>Extract the normalized (!) counts from the dds object and convert to
+dataframe ( counts(dds) )<br />
+</li>
+<li>subset the dataframe with normalized counts for the gene ID’s in the
+top20 ( filter() )<br />
+</li>
+<li>plot with pheatmap, note that you can scale the values per row
+(scale=‘row’)!</li>
+</ul>
 <p><strong>Reminder</strong>: Some function between ensembldb (part of
 EnsDb.Hsapiens.v79) and dplyr overlap. Explicitly state the library when
 calling them to avoid errors.</p>
@@ -1162,10 +1169,10 @@ top20_counts %&gt;% head()</code></pre>
          scale = &quot;row&quot;,
          fontsize_row = 10,
          height = 20)</code></pre>
-<p><img src="day03_files/figure-html/heatmap-1.png" width="672" />
-Before the break we also saw an example of an MAplot and a volcano plot.
-Both are commonly used plots to have a global view of the expression
-changes.</p>
+<p><img src="day03_files/figure-html/heatmap-1.png" width="672" /></p>
+<p>Before the break we also saw an example of an MAplot and a volcano
+plot. Both are commonly used plots to have a global view of the
+expression changes.</p>
 <ul>
 <li>volcano plot; in which the log transformed adjusted p-values plotted
 on the y-axis and log2 fold change values on the x-axis.<br />
@@ -1373,7 +1380,7 @@ cellType JJ. (Note that based on our factor levels, this is essentially
 coefficient TG_vs_AMIL + interactionJJ:TG)</p>
 <pre class="r"><code>mod_mat &lt;- model.matrix(design(dds), colData(dds))
 
-# we&#39;d like to condition TG in cellType JJ
+# Remember we&#39;d like to compare TG treatment with AMIL treatment in JJ cells.
 JJ_TG &lt;- colMeans(mod_mat[dds$celltype == &#39;JJ&#39; &amp; dds$condition == &quot;TG&quot;,])
 JJ_AMIL &lt;- colMeans(mod_mat[dds$celltype == &#39;JJ&#39; &amp; dds$condition == &quot;AMIL&quot;,])
 
@@ -1451,12 +1458,17 @@ calling them to avoid errors.</p>
 <p>TGvAMIL (for BM cells). TGvAMIL_JJ (for JJ cells).</p>
 <blockquote>
 <p><strong>Task</strong>: Clean our results classes (TGvAMIL &amp;
-TGvAMIL_JJ) (15 min) * convert the results object into a dataframe *
-remove the na values from the dataframe * Sort the dataframe by adjusted
-p value * Include the gene names (== ‘SYMBOL’) as a ‘gene_symbol’ column
-in the dataframe * if you are feeling brave, you can wrap these
-operations in a function!</p>
+TGvAMIL_JJ) (15 min)</p>
 </blockquote>
+<ul>
+<li>convert the results object into a dataframe</li>
+<li>remove the na values from the dataframe</li>
+<li>Sort the dataframe by adjusted p value</li>
+<li>Include the gene names (== ‘SYMBOL’) as a ‘gene_symbol’ column in
+the dataframe</li>
+<li>if you are feeling brave, you can wrap these operations in a
+function!</li>
+</ul>
 <blockquote>
 <p>Hint for the symbols, this is how ensembldb::select works (to return
 a SYMBOL - GENEID mapping) Hint2: The accessions (==GENEIDS) were stored
