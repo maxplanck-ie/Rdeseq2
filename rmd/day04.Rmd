@@ -86,7 +86,6 @@ Check our factors !
 ```{r factorLevels, message=FALSE, warning=FALSE, paged.print=FALSE}
 print(metadata$celltype)
 print(metadata$condition)
-
 metadata %>% table
 ```
 Relevel factors !
@@ -160,7 +159,7 @@ normcounts <- counts(dds, normalized=TRUE) %>% data.frame()
 top_25_genes <- res_lrt_clean %>% arrange(padj) %>% head(25) %>% rownames()
 pheatmap(
   normcounts %>% subset(rownames(.) %in% top_25_genes),
-  scale = 'none',
+  scale = 'row',
   main='Age effect - LRT top 25'
 )
 
@@ -269,11 +268,7 @@ cts %>% pheatmap(
   annotation_row = ann 
   )
 
-# cell cycle (all)
-#ageEffect_HSC_cycle <- ageEffect_HSC %>% 
-#  subset(rownames(.) %in% cellcycle) %>% 
-#  subset(padj < 0.05)
-
+# cell cycle genes (all)
 cts <- normcounts %>% 
   dplyr::select(contains('HSC')) %>% 
   subset(rownames(.) %in% cellcycle) %>%
@@ -287,9 +282,8 @@ cts %>%
   scale = 'row',
   main='cell cycle genes - HSC',
   show_rownames = FALSE,
-  annotation_row = ann 
-)
-
+  annotation_row = ann
+  )
 ```
 
 ```{r MPP1, message=FALSE, warning=FALSE, fig.height=8, fig.width=6}
