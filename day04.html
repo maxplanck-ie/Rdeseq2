@@ -398,7 +398,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">deseq2 - applied</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Fri May 24 07:05:40 2024</h4>
+<h4 class="date">Sat May 25 12:12:40 2024</h4>
 
 </div>
 
@@ -461,7 +461,9 @@ capitalized).</span></p>
 library(&quot;ashr&quot;)
 library(&quot;tidyverse&quot;)
 library(&quot;pheatmap&quot;)
-library(&quot;UpSetR&quot;)</code></pre>
+library(&quot;UpSetR&quot;)
+
+source(&#39;funcs.R&#39;)</code></pre>
 <p>Read in the data.</p>
 <pre class="r"><code>dfile &lt;- &quot;data/mpp/mpp_counts.tsv&quot;
 data &lt;- read_tsv(file=dfile)
@@ -479,6 +481,12 @@ metadata$celltype  &lt;- as.factor(metadata$celltype)</code></pre>
 <pre class="r"><code>print(metadata$condition)</code></pre>
 <pre><code>##  [1] Young Young Young Young Young Young Aged  Aged  Aged  Aged  Aged  Aged 
 ## Levels: Aged Young</code></pre>
+<pre class="r"><code>metadata %&gt;% table</code></pre>
+<pre><code>##         condition
+## celltype Aged Young
+##     HSC     2     2
+##     MPP1    2     2
+##     MPP2    2     2</code></pre>
 <p>Relevel factors !</p>
 <pre class="r"><code>levels(metadata$condition) &lt;- c(&quot;Young&quot;,&quot;Aged&quot;)
 print(metadata$condition)</code></pre>
@@ -494,19 +502,20 @@ print(metadata$condition)</code></pre>
 </div>
 <div id="c.-plotpca" class="section level3">
 <h3>c. plotPCA</h3>
-<pre class="r"><code>#plotPCA(vst(dds, blind=TRUE))
-
-plotPCA(rlog(dds, blind=TRUE),
-        intgroup=c(&quot;celltype&quot;, &quot;condition&quot;)
-        ) + theme_minimal()</code></pre>
+<pre class="r"><code>dds %&gt;% PCA_tm</code></pre>
 <p><img src="day04_files/figure-html/PCA-1.png" width="672" /></p>
 </div>
-<div id="d.-run-deseq2" class="section level3">
-<h3>d. run DESeq2</h3>
+<div id="d.-filter" class="section level3">
+<h3>d. filter</h3>
+<pre class="r"><code>rs &lt;- dds %&gt;% counts %&gt;% rowSums()
+dds &lt;- dds[rs&gt;1,]</code></pre>
+</div>
+<div id="e.-run-deseq2" class="section level3">
+<h3>e. run DESeq2</h3>
 <pre class="r"><code>dds &lt;- DESeq(dds)</code></pre>
 </div>
-<div id="e.-sizefactors-dispersion" class="section level3">
-<h3>e. sizeFactors &amp; dispersion</h3>
+<div id="f.-sizefactors-dispersion" class="section level3">
+<h3>f. sizeFactors &amp; dispersion</h3>
 <pre class="r"><code>sizeFactors(dds)</code></pre>
 <pre><code>##  Young_HSC_1  Young_HSC_2 Young_MPP1_1 Young_MPP1_2 Young_MPP2_1 Young_MPP2_2 
 ##    0.8741664    1.0907894    1.0501099    1.0596767    0.9307710    0.9863305 
@@ -515,14 +524,14 @@ plotPCA(rlog(dds, blind=TRUE),
 <pre class="r"><code>plotDispEsts(dds)</code></pre>
 <p><img src="day04_files/figure-html/Dispersion-1.png" width="672" /></p>
 </div>
-<div id="f.-lrt-for-age." class="section level3">
-<h3>f. LRT for age.</h3>
+<div id="g.-lrt-for-age." class="section level3">
+<h3>g. LRT for age.</h3>
 <pre class="r"><code># which model are we interested in as reduced?
 dds_lrt &lt;- DESeq(dds, test=&quot;LRT&quot;, reduced = ~celltype)
 res_lrt &lt;- results(dds_lrt)</code></pre>
 </div>
-<div id="g.-results." class="section level3">
-<h3>g. results.</h3>
+<div id="h.-results." class="section level3">
+<h3>h. results.</h3>
 <pre class="r"><code>cleanDF &lt;- function(RESobj){
   RESdf &lt;- data.frame(RESobj) %&gt;%
     drop_na() %&gt;%
@@ -534,17 +543,17 @@ res_lrt_clean &lt;- cleanDF(res_lrt)
 head(res_lrt_clean)</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"615.2634","2":"-1.2957460","3":"0.3189193","4":"1598.4909","5":"0.000000e+00","6":"0.000000e+00","_rn_":"Plscr2"},{"1":"1926.5734","2":"-0.6190288","3":"0.1357658","4":"1508.1144","5":"0.000000e+00","6":"0.000000e+00","_rn_":"Aldh1a1"},{"1":"2362.2599","2":"1.8713226","3":"0.1183958","4":"2758.2799","5":"0.000000e+00","6":"0.000000e+00","_rn_":"Selp"},{"1":"7909.5260","2":"-1.2467410","3":"0.1156898","4":"1020.8889","5":"5.292294e-221","6":"1.912238e-217","_rn_":"Klf2"},{"1":"1033.1603","2":"0.6987258","3":"0.1686037","4":"963.6251","5":"1.398990e-208","6":"4.043920e-205","_rn_":"Vldlr"},{"1":"574.9564","2":"0.8381942","3":"0.2411222","4":"870.4125","5":"2.315387e-188","6":"5.577382e-185","_rn_":"Hspa1b"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"615.2634","2":"-1.2957460","3":"0.3189193","4":"1598.4909","5":"0.000000e+00","6":"0.000000e+00","_rn_":"Plscr2"},{"1":"1926.5734","2":"-0.6190288","3":"0.1357658","4":"1508.1144","5":"0.000000e+00","6":"0.000000e+00","_rn_":"Aldh1a1"},{"1":"2362.2599","2":"1.8713226","3":"0.1183958","4":"2758.2799","5":"0.000000e+00","6":"0.000000e+00","_rn_":"Selp"},{"1":"7909.5260","2":"-1.2467410","3":"0.1156898","4":"1020.8889","5":"5.292294e-221","6":"1.884189e-217","_rn_":"Klf2"},{"1":"1033.1603","2":"0.6987258","3":"0.1686037","4":"963.6251","5":"1.398990e-208","6":"3.984603e-205","_rn_":"Vldlr"},{"1":"574.9564","2":"0.8381942","3":"0.2411222","4":"870.4125","5":"2.315387e-188","6":"5.495571e-185","_rn_":"Hspa1b"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
-<div id="h.-look-at-the-lrt-results" class="section level3">
-<h3>h. Look at the LRT results</h3>
+<div id="i.-look-at-the-lrt-results" class="section level3">
+<h3>i. Look at the LRT results</h3>
 <p>Top 25 for sanity check:</p>
 <pre class="r"><code>normcounts &lt;- counts(dds, normalized=TRUE) %&gt;% data.frame()
 top_25_genes &lt;- res_lrt_clean %&gt;% arrange(padj) %&gt;% head(25) %&gt;% rownames()
 pheatmap(
-  normcounts %&gt;% subset(rownames(normcounts) %in% top_25_genes),
+  normcounts %&gt;% subset(rownames(.) %in% top_25_genes),
   scale = &#39;row&#39;,
   main=&#39;Age effect - LRT top 25&#39;
 )</code></pre>
@@ -561,7 +570,8 @@ pheatmap(
   pheatmap(
     scale = &#39;row&#39;,
     main=&#39;Age effect - LRT&#39;,
-    show_rownames = FALSE
+    show_rownames = FALSE,
+    treeheight_row = 0
     )</code></pre>
 <p><img src="day04_files/figure-html/heatmap_lrt_full-1.png" width="672" /></p>
 </div>
@@ -628,41 +638,47 @@ ageEffect_MPP1 &lt;- cleanDF( lfcShrink(dds, contrast = MPP1_old-MPP1_young, typ
 
 # Lastly, let&#39;s get the age effect in MPP1 cells.
 ageEffect_MPP2 &lt;- cleanDF( lfcShrink(dds, contrast = MPP2_old-MPP2_young, type=&#39;ashr&#39;) )</code></pre>
-<pre class="r"><code>normcounts %&gt;% 
-  subset(rownames(normcounts) %in% rownames(head(ageEffect_HSC, 25))) %&gt;% 
-  dplyr::select(1,2,7,8) %&gt;%
+<pre class="r"><code># top
+nt &lt;- 30
+tops &lt;- ageEffect_HSC %&gt;% head(nt) %&gt;% rownames
+cts &lt;- normcounts %&gt;% dplyr::select(contains(&#39;HSC&#39;)) %&gt;% subset(rownames(.) %in% tops)
 
-  pheatmap(
+ann &lt;- ageEffect_MPP1[tops, c(&#39;log2FoldChange&#39;), drop=FALSE] 
+ann &lt;- ann %&gt;% mutate(cc = as.character(rownames(.) %in% cellcycle))
+
+cts %&gt;% pheatmap(
   scale = &#39;row&#39;,
   main=&#39;age effect - HSCs&#39;,
   show_rownames = TRUE,
-  annotation_row = ageEffect_MPP1[c(1:25), c(&#39;log2FoldChange&#39;), drop=FALSE]
+  annotation_row = ann 
   )</code></pre>
 <p><img src="day04_files/figure-html/LTHSC-1.png" width="576" /></p>
-<pre class="r"><code># cell cycle
-ageEffect_HSC_cycle &lt;- ageEffect_HSC %&gt;% 
-  subset(rownames(.) %in% cellcycle) %&gt;% 
-  subset(padj &lt; 0.05)
+<pre class="r"><code># cell cycle genes (all)
+cts &lt;- normcounts %&gt;% 
+  dplyr::select(contains(&#39;HSC&#39;)) %&gt;% 
+  subset(rownames(.) %in% cellcycle) %&gt;%
+  dplyr::filter(rowSums(.) &gt; 1)
 
-normcounts %&gt;% 
-  subset(rownames(normcounts) %in% rownames(ageEffect_HSC_cycle)) %&gt;% 
-  dplyr::select(1,2,7,8) %&gt;%
+ann &lt;- ageEffect_MPP1[rownames(cts), c(&#39;log2FoldChange&#39;,&#39;padj&#39;), drop=FALSE] 
+ann &lt;- ann %&gt;% mutate(significant = factor(ifelse(padj &lt; 0.05, &#39;TRUE&#39;, &#39;FALSE&#39;)))
+
+cts %&gt;% 
   pheatmap(
   scale = &#39;row&#39;,
   main=&#39;cell cycle genes - HSC&#39;,
-  show_rownames = TRUE
-)</code></pre>
+  show_rownames = FALSE,
+  annotation_row = ann
+  )</code></pre>
 <p><img src="day04_files/figure-html/LTHSC-2.png" width="576" /></p>
 <pre class="r"><code>pheatmap(
   normcounts %&gt;% subset(rownames(normcounts) %in% rownames(head(ageEffect_MPP1, 25))) %&gt;% dplyr::select(3,4,9,10),
   scale = &#39;row&#39;,
   main=&#39;age effect - MPP1s&#39;,
   show_rownames = TRUE,
-  annotation_row = ageEffect_MPP1[c(1:25), c(&#39;log2FoldChange&#39;), drop=FALSE]
+  annotation_row = ageEffect_MPP1[c(1:25), &#39;log2FoldChange&#39;, drop=FALSE]
   )</code></pre>
 <p><img src="day04_files/figure-html/MPP1-1.png" width="576" /></p>
 <pre class="r"><code># cell cycle
-# cell cycle
 ageEffect_HSC_cycle &lt;- ageEffect_HSC %&gt;% 
   subset(rownames(.) %in% cellcycle) %&gt;% 
   subset(padj &lt; 0.05)
@@ -700,6 +716,17 @@ pheatmap(
 )</code></pre>
 <p><img src="day04_files/figure-html/MPP2-2.png" width="576" /></p>
 </div>
+</div>
+<div id="common-differential-genes" class="section level1">
+<h1>Common differential genes</h1>
+<pre class="r"><code>upsetList &lt;- list(
+  &quot;HSC&quot; = ageEffect_HSC %&gt;% dplyr::filter(padj &lt; 0.05) %&gt;% drop_na %&gt;% rownames,
+  &quot;MPP1&quot; = ageEffect_MPP1 %&gt;% dplyr::filter(padj &lt; 0.05) %&gt;% drop_na %&gt;% rownames,
+  &quot;MPP2&quot; = ageEffect_MPP2 %&gt;% dplyr::filter(padj &lt; 0.05) %&gt;% drop_na %&gt;% rownames
+  )
+
+upset(fromList(upsetList), order.by = &quot;freq&quot;)</code></pre>
+<p><img src="day04_files/figure-html/UpsetPlot-1.png" width="672" /></p>
 </div>
 
 
