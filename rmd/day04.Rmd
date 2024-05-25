@@ -65,6 +65,8 @@ library("ashr")
 library("tidyverse")
 library("pheatmap")
 library("UpSetR")
+
+source('funcs.R')
 ```
 
 Read in the data.
@@ -84,6 +86,7 @@ Check our factors !
 ```{r factorLevels, message=FALSE, warning=FALSE, paged.print=FALSE}
 print(metadata$celltype)
 print(metadata$condition)
+metadata %>% table
 ```
 Relevel factors !
 ```{r relevel condition factor, message=FALSE, warning=FALSE, paged.print=FALSE}
@@ -102,20 +105,22 @@ dds <- DESeqDataSetFromMatrix(countData=data,
 
 ### c. plotPCA
 ```{r PCA, message=FALSE, warning=FALSE, paged.print=FALSE}
-#plotPCA(vst(dds, blind=TRUE))
-
-plotPCA(rlog(dds, blind=TRUE),
-        intgroup=c("celltype", "condition")
-        ) + theme_minimal()
+dds %>% PCA_tm
 ```
 
-### d. run DESeq2
+### d. filter 
+```{r filter}
+rs <- dds %>% counts %>% rowSums()
+dds <- dds[rs>1,]
+```
+
+### e. run DESeq2
 
 ```{r Run deseq, message=FALSE, warning=FALSE, paged.print=FALSE}
 dds <- DESeq(dds)
 ```
 
-### e. sizeFactors & dispersion
+### f. sizeFactors & dispersion
 
 ```{r sizeFactors, message=FALSE, warning=FALSE, paged.print=FALSE}
 sizeFactors(dds)
@@ -125,7 +130,7 @@ sizeFactors(dds)
 plotDispEsts(dds)
 ```
 
-### f. LRT for age.
+### g. LRT for age.
 
 ```{r lrt-condition, message=FALSE, warning=FALSE}
 # which model are we interested in as reduced?
@@ -133,7 +138,7 @@ dds_lrt <- DESeq(dds, test="LRT", reduced = ~celltype)
 res_lrt <- results(dds_lrt)
 ```
 
-### g. results.
+### h. results.
 ```{r parseResults, message=FALSE, warning=FALSE}
 cleanDF <- function(RESobj){
   RESdf <- data.frame(RESobj) %>%
@@ -146,14 +151,14 @@ res_lrt_clean <- cleanDF(res_lrt)
 head(res_lrt_clean)
 ```
 
-### h. Look at the LRT results
+### i. Look at the LRT results
 
 Top 25 for sanity check:
 ```{r heatmap_lrt, message=FALSE, warning=FALSE, fig.height=8, fig.weight=6}
 normcounts <- counts(dds, normalized=TRUE) %>% data.frame()
 top_25_genes <- res_lrt_clean %>% arrange(padj) %>% head(25) %>% rownames()
 pheatmap(
-  normcounts %>% subset(rownames(normcounts) %in% top_25_genes),
+  normcounts %>% subset(rownames(.) %in% top_25_genes),
   scale = 'row',
   main='Age effect - LRT top 25'
 )
@@ -173,7 +178,8 @@ normcounts %>%
   pheatmap(
     scale = 'row',
     main='Age effect - LRT',
-    show_rownames = FALSE
+    show_rownames = FALSE,
+    treeheight_row = 0
     )
 
 ```
@@ -246,31 +252,38 @@ ageEffect_MPP2 <- cleanDF( lfcShrink(dds, contrast = MPP2_old-MPP2_young, type='
 ```
 
 ```{r LTHSC, message=FALSE, warning=FALSE, fig.height=8, fig.width=6}
-normcounts %>% 
-  subset(rownames(normcounts) %in% rownames(head(ageEffect_HSC, 25))) %>% 
-  dplyr::select(1,2,7,8) %>%
 
-  pheatmap(
+# top
+nt <- 30
+tops <- ageEffect_HSC %>% head(nt) %>% rownames
+cts <- normcounts %>% dplyr::select(contains('HSC')) %>% subset(rownames(.) %in% tops)
+
+ann <- ageEffect_MPP1[tops, c('log2FoldChange'), drop=FALSE] 
+ann <- ann %>% mutate(cc = as.character(rownames(.) %in% cellcycle))
+
+cts %>% pheatmap(
   scale = 'row',
   main='age effect - HSCs',
   show_rownames = TRUE,
-  annotation_row = ageEffect_MPP1[c(1:25), c('log2FoldChange'), drop=FALSE]
+  annotation_row = ann 
   )
 
-# cell cycle
-ageEffect_HSC_cycle <- ageEffect_HSC %>% 
-  subset(rownames(.) %in% cellcycle) %>% 
-  subset(padj < 0.05)
+# cell cycle genes (all)
+cts <- normcounts %>% 
+  dplyr::select(contains('HSC')) %>% 
+  subset(rownames(.) %in% cellcycle) %>%
+  dplyr::filter(rowSums(.) > 1)
 
-normcounts %>% 
-  subset(rownames(normcounts) %in% rownames(ageEffect_HSC_cycle)) %>% 
-  dplyr::select(1,2,7,8) %>%
+ann <- ageEffect_MPP1[rownames(cts), c('log2FoldChange','padj'), drop=FALSE] 
+ann <- ann %>% mutate(significant = factor(ifelse(padj < 0.05, 'TRUE', 'FALSE')))
+
+cts %>% 
   pheatmap(
   scale = 'row',
   main='cell cycle genes - HSC',
-  show_rownames = TRUE
-)
-
+  show_rownames = FALSE,
+  annotation_row = ann
+  )
 ```
 
 ```{r MPP1, message=FALSE, warning=FALSE, fig.height=8, fig.width=6}
@@ -280,10 +293,9 @@ pheatmap(
   scale = 'row',
   main='age effect - MPP1s',
   show_rownames = TRUE,
-  annotation_row = ageEffect_MPP1[c(1:25), c('log2FoldChange'), drop=FALSE]
+  annotation_row = ageEffect_MPP1[c(1:25), 'log2FoldChange', drop=FALSE]
   )
 
-# cell cycle
 # cell cycle
 ageEffect_HSC_cycle <- ageEffect_HSC %>% 
   subset(rownames(.) %in% cellcycle) %>% 
@@ -323,4 +335,16 @@ pheatmap(
   main='cell cycle genes - MPP2s',
   show_rownames = TRUE
 )
+```
+
+
+# Common differential genes
+```{r UpsetPlot, message = FALSE, warning = FALSE}
+upsetList <- list(
+  "HSC" = ageEffect_HSC %>% dplyr::filter(padj < 0.05) %>% drop_na %>% rownames,
+  "MPP1" = ageEffect_MPP1 %>% dplyr::filter(padj < 0.05) %>% drop_na %>% rownames,
+  "MPP2" = ageEffect_MPP2 %>% dplyr::filter(padj < 0.05) %>% drop_na %>% rownames
+  )
+
+upset(fromList(upsetList), order.by = "freq")
 ```
