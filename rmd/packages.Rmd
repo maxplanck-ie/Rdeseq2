@@ -36,6 +36,7 @@ In your Rstudio session:
     - Project directory name: chose a folder name  
 * create the project as a subdirectory under your group volume 
     - e.g. /data/PI/group/MYFOLDER, or /scratch/local/MYFOLDER
+* checkout the 2025 branch of the repository (Git > 2025)
 
 
 
@@ -136,13 +137,14 @@ if (!require("ashr", quietly = TRUE))
 
 > **Task**:  Load the following packages: DESeq2, tidyverse, pheatmap
 
-> **Poll 1.2**: Did you manage to load DESeq2, tidyverse & pheatmap ?
-
 ```{r load, message=FALSE}
 library(DESeq2)
 library(tidyverse)
 library(pheatmap)
 ```
+
+
+> **Poll 1.2**: Did you manage to load DESeq2, tidyverse & pheatmap ?
 
 **Reminder**: Loading new packages enables new functionalities for a given R-session. 
 
