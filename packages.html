@@ -12,7 +12,7 @@
 <meta name="author" content="Bioinfo-Core @ MPI-IE" />
 
 
-<title>Getting Started: Packages</title>
+<title>Getting Started: Rstudio &amp; Packages</title>
 
 <script src="site_libs/header-attrs-2.27/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
@@ -338,7 +338,7 @@ div.tocify {
   <a href="outline.html">
     <span class="fa fa-check"></span>
      
-    outline
+    Outline
   </a>
 </li>
 <li>
@@ -380,7 +380,7 @@ div.tocify {
   <a href="summary.html">
     <span class="fa fa-truck-medical"></span>
      
-    summary
+    Summary
   </a>
 </li>
       </ul>
@@ -403,26 +403,128 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Getting Started: Packages</h1>
+<h1 class="title toc-ignore">Getting Started: Rstudio &amp;
+Packages</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Wed Apr 2 13:09:00 2025</h4>
+<h4 class="date">Wed Apr 2 16:03:46 2025</h4>
 
 </div>
 
 
 <hr />
-<div id="libraries" class="section level1">
-<h1>Libraries</h1>
+<div id="start-rstduio-workbench" class="section level2">
+<h2>Start Rstduio @ workbench</h2>
+<blockquote>
+<p>** Task**: Sign into workbench and start a new “Rstudio Pro” session
+(You may want to give it a suitable name, e.g. “DESeq2”)</p>
+</blockquote>
+<hr />
+</div>
+<div id="lecture-material" class="section level2">
+<h2>Lecture Material</h2>
+<blockquote>
+<p><strong>Task</strong>: Create a new project and clone the datafiles
+we will be using from github.</p>
+</blockquote>
+<p>In your Rstudio session:</p>
+<ul>
+<li>File -&gt; New Project -&gt; ‘Version Control’ -&gt; git</li>
+</ul>
+<blockquote>
+<p>Repository URL: <a href="https://github.com/maxplanck-ie/Rdeseq2"
+class="uri">https://github.com/maxplanck-ie/Rdeseq2</a></p>
+</blockquote>
+<blockquote>
+<p>Project directory name: chose a folder name</p>
+</blockquote>
+<ul>
+<li>create the project as a subdirectory under your group volume
+(e.g. /data/PI/group/MYFOLDER), or a processing volume
+(/data/processing/MYFOLDER), or the scratch space
+(/scratch/local/MYFOLDER)</li>
+</ul>
+<div id="verification" class="section level3">
+<h3>Verification</h3>
+<p>If it worked, you should have a new session, and in your console you
+will retrieve your project directory:</p>
+<blockquote>
+<p>getwd()</p>
+</blockquote>
+<p>and you should be able to see the data folder:</p>
+<blockquote>
+<p>list.files(‘data’)</p>
+</blockquote>
+<p>which should contain these folders:</p>
+<ul>
+<li>genesets</li>
+<li>mpp</li>
+<li>myeloma</li>
+</ul>
+<blockquote>
+<p><strong>Task</strong>: Find the file <code>rmd/packages.Rmd</code>
+and open it in Rstudio.</p>
+</blockquote>
+<p>This contains the content of the current lecture in R-markdown format
+(text and code cells)</p>
+</div>
+</div>
+<div id="packages" class="section level2">
+<h2>Packages</h2>
+<div id="generalities" class="section level3">
+<h3>Generalities</h3>
+<p>Many useful functions are already available with R: <em>base
+packages</em>. Most analysis tools come with software packages that will
+need to be installed before use.</p>
+<p>For R, two of the most common and reliable package repositories
+are:</p>
+<ul>
+<li><strong>CRAN</strong> <a href="https://cran.r-project.org/"
+class="uri">https://cran.r-project.org/</a></li>
+<li><strong>Bioconductor</strong> <a href="https://bioconductor.org/"
+class="uri">https://bioconductor.org/</a></li>
+</ul>
+<p><strong>Reminder</strong></p>
+<ol style="list-style-type: decimal">
+<li>All packages come for a <strong>specific R-version</strong>.</li>
+<li>All packages have specific <strong>package version</strong>, and can
+come from different sources (CRAN, Bioconductor, github, …).</li>
+<li>Most packages have <strong>dependencies</strong> on other packages
+that should also be installed</li>
+<li>Installation can be very <strong>time consuming</strong> but needs
+to be done only once.</li>
+</ol>
+<blockquote>
+<p><strong>Poll 1.1</strong>: How do you get information about the
+current R-version and loaded packages?</p>
+</blockquote>
+<blockquote>
+<p><strong>Poll 0.1</strong>: Which R-version are you running?</p>
+</blockquote>
+<p>In the following we will use R-version: 4.2.3</p>
+<blockquote>
+<p>Please make sure to select this version in the drop-down menu (upper
+right)</p>
+</blockquote>
+</div>
+<div id="deseq2-and-dependencies" class="section level3">
+<h3>DESeq2 and Dependencies</h3>
+<p>In this course, we will use several additional R packages and their
+dependencies.</p>
+<p>We have to make sure these are installed - in a suitable location
+defined by .libPaths().</p>
 <blockquote>
 <p><strong>Poll 0.1</strong>: What is the first element in your
 .libPaths() ?</p>
 </blockquote>
-<p>We will use a couple of libraries in this course. We have to make
-sure these are installed - in a suitable location defined by
-.libPaths().</p>
-<p>These installations can take a while. So it’s best to tackle this
-first. The following code chunk will checks if a required library is
-available and will attempt to install it if this is not the case.</p>
+</div>
+<div id="install-packages" class="section level3">
+<h3>Install packages</h3>
+<p>The following code-cell installs the packages we need in this course
+- for each user.</p>
+<p><strong>Task</strong>: Find the corresponding line in your markdown
+document and “Run the chunk” by pressing “Play button” or
+“Shift-Command-Enter”</p>
+<p>Be patient - these installations can take a while.</p>
 <pre class="r"><code># Bioconductor
 if (!require(&quot;BiocManager&quot;, quietly = TRUE))
     install.packages(&quot;BiocManager&quot;)
@@ -442,94 +544,30 @@ if (!require(&quot;UpSetR&quot;, quietly = TRUE))
     install.packages(&quot;UpSetR&quot;)
 if (!require(&quot;ashr&quot;, quietly = TRUE))
     install.packages(&quot;ashr&quot;)</code></pre>
-<p>After running the above chunk, make sure the libraries can be
-loaded:</p>
-<pre class="r"><code>library(&quot;DESeq2&quot;)
-library(&quot;tidyverse&quot;)
-library(&quot;pheatmap&quot;)
-library(&quot;ggrepel&quot;)
-library(&quot;EnsDb.Hsapiens.v75&quot;)
-library(&quot;UpSetR&quot;)
-library(&quot;ashr&quot;)</code></pre>
-</div>
-<div id="recap" class="section level1">
-<h1>Recap</h1>
-<p>The Rstudio GUI.</p>
-<div class="float">
-<img src="images/outline_script.png"
-alt="An Rscript in the Rstudio GUI" />
-<div class="figcaption">An Rscript in the Rstudio GUI</div>
-</div>
-<div class="float">
-<img src="images/outline_book.png"
-alt="An R notebook in the Rstudio GUI" />
-<div class="figcaption">An R notebook in the Rstudio GUI</div>
-</div>
-<blockquote>
-<p><strong>Poll 0.2</strong>: How will you keep track of the code,
-course material and notes during this course ?</p>
-</blockquote>
 <hr />
 </div>
-<div id="set-up-our-project" class="section level1">
-<h1>Set up our project</h1>
-<div id="workbench-users" class="section level2">
-<h2>Workbench users</h2>
+<div id="use-packages" class="section level3">
+<h3>Use packages</h3>
 <blockquote>
-<p><strong>Task</strong>: Create a new project and clone the datafiles
-we will be using from github.</p>
+<p><strong>Task</strong>: Load the following packages: DESeq2,
+tidyverse, pheatmap</p>
 </blockquote>
-<p>If you are working in workbench, start a new session.</p>
-<p>In your session (local or workbench):</p>
-<ul>
-<li>file -&gt; new project -&gt; ‘Version Control’ -&gt; git</li>
-</ul>
 <blockquote>
-<p>Repository URL: <a href="https://github.com/maxplanck-ie/Rdeseq2"
-class="uri">https://github.com/maxplanck-ie/Rdeseq2</a><br />
-Project directory name: chose a folder name</p>
+<p><strong>Poll 1.2</strong>: Did you manage to load DESeq2, tidyverse
+&amp; pheatmap ?</p>
 </blockquote>
-<ul>
-<li>create the project as a subdirectory under your group volume
-(e.g. /data/PI/group/MYFOLDER), or a processing volume
-(/data/processing/MYFOLDER), or the scratch space
-(/scratch/local/MYFOLDER)</li>
-<li>Remember to choose version 4.2.3</li>
-</ul>
-</div>
-<div id="local-users" class="section level2">
-<h2>Local users</h2>
-<p>Go to <a href="https://github.com/maxplanck-ie/Rdeseq2"
-class="uri">https://github.com/maxplanck-ie/Rdeseq2</a> , click on the
-green ‘&lt; &gt; Code’ dropdown button and select ‘Download ZIP’. Save
-the file to an appropriate location and extract its content.</p>
-<p>Now open your Rstudio instances, and set the working directory to the
-folder you have just extracted.</p>
-</div>
-<div id="verification" class="section level2">
-<h2>Verification</h2>
-<p>If it worked, you should have a new session, and in your console you
-will retrieve your project directory:</p>
+<pre class="r"><code>library(DESeq2)
+library(tidyverse)
+library(pheatmap)</code></pre>
+<p><strong>Reminder</strong>: Loading new packages enables new
+functionalities for a given R-session.</p>
+<p>This may result in multiple (sometimes redundant) functions with the
+same name: e.g. sd()</p>
+<p>In case of doubt, use package name explicitly: e.g. stats::sd()</p>
 <blockquote>
-<p>getwd()</p>
+<p><strong>Task</strong>: Use sessionInfo() to inspect which packages
+you have just added an their versions.</p>
 </blockquote>
-<p>and you should be able to see the data folder:</p>
-<blockquote>
-<p>list.files(‘data’)</p>
-</blockquote>
-<p>which should contain these folders:</p>
-<ul>
-<li>genesets</li>
-<li>mpp</li>
-<li>myeloma</li>
-</ul>
-<p>How it should look like:</p>
-<div class="float">
-<img src="images/outline_clonedrepo.png"
-alt="An new R notebook in our freshly cloned project" />
-<div class="figcaption">An new R notebook in our freshly cloned
-project</div>
-</div>
 </div>
 </div>
 

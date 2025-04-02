@@ -338,7 +338,7 @@ div.tocify {
   <a href="outline.html">
     <span class="fa fa-check"></span>
      
-    outline
+    Outline
   </a>
 </li>
 <li>
@@ -380,7 +380,7 @@ div.tocify {
   <a href="summary.html">
     <span class="fa fa-truck-medical"></span>
      
-    summary
+    Summary
   </a>
 </li>
       </ul>
@@ -405,14 +405,14 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 01</h1>
 <h4 class="author">Thomas Manke @ MPI-IE</h4>
-<h4 class="date">Wed Apr 2 13:05:25 2025</h4>
+<h4 class="date">Wed Apr 2 16:00:10 2025</h4>
 
 </div>
 
 
-<hr />
-<div id="preparation-30-min" class="section level1">
-<h1>Preparation (30 min)</h1>
+<pre class="r"><code>library(DESeq2)
+library(tidyverse)
+library(pheatmap)</code></pre>
 <div id="story" class="section level2">
 <h2>Story</h2>
 <p>The story we’ll work with is a ‘drug repurposing’ effort to use an
@@ -431,64 +431,7 @@ lines with different mutations (BM: p53mut, JJ: del(17p)).</p>
 <li>2 cell types: BM and JJ</li>
 <li>3 replicates for each combination of conditions and cell-types</li>
 </ul>
-<p><br></p>
 <hr />
-</div>
-<div id="tools" class="section level2">
-<h2>Tools</h2>
-<blockquote>
-<p><strong>Poll 1.1</strong>: How do you get information about the
-current R-version and loaded packages?</p>
-</blockquote>
-<p><br></p>
-<div id="packages" class="section level3">
-<h3>Packages</h3>
-<p>Many useful functions are already available with R: <em>base
-packages</em>. Most analysis tools come with software packages that will
-need to be installed before use.</p>
-<p>For R, two of the most common and reliable package repositories
-are:</p>
-<ul>
-<li><strong>CRAN</strong> <a href="https://cran.r-project.org/"
-class="uri">https://cran.r-project.org/</a></li>
-<li><strong>Bioconductor</strong> <a href="https://bioconductor.org/"
-class="uri">https://bioconductor.org/</a></li>
-</ul>
-<p><strong>Reminder</strong></p>
-<ol style="list-style-type: decimal">
-<li>All packages come for a <strong>specific R-version</strong>.</li>
-<li>All packages have specific <strong>package version</strong>, and can
-come from different sources (CRAN, Bioconductor, github, …).</li>
-<li>Most packages have <strong>dependencies</strong> on other packages
-that should also be installed</li>
-<li>Installation can be very <strong>time consuming</strong> but needs
-to be done only once.</li>
-</ol>
-</div>
-<div id="load-packages" class="section level3">
-<h3>Load packages</h3>
-<blockquote>
-<p><strong>Task</strong>: Load the following packages: DESeq2,
-tidyverse, pheatmap</p>
-</blockquote>
-<blockquote>
-<p><strong>Poll 1.2</strong>: Did you manage to load DESeq2, tidyverse
-&amp; pheatmap ?</p>
-</blockquote>
-<pre class="r"><code>library(DESeq2)
-library(tidyverse)
-library(pheatmap)</code></pre>
-<p><strong>Reminder</strong>: Loading new packages enables new
-functionalities for a given R-session.</p>
-<p>This may result in multiple (sometimes redundant) functions with the
-same name: e.g. sd()</p>
-<p>In case of doubt, use package name explicitly: e.g. stats::sd()</p>
-<blockquote>
-<p><strong>Task</strong>: Uses “sessionInfo()” to show all available
-packages in your R session.</p>
-</blockquote>
-<hr />
-</div>
 </div>
 <div id="data-and-metadata" class="section level2">
 <h2>Data and Metadata</h2>
@@ -591,7 +534,6 @@ metadata$sample    &lt;- as.factor(metadata$sample)
 
 # alternatively
 #metadata &lt;- metadata %&gt;% mutate_if(is.character,as.factor)</code></pre>
-</div>
 </div>
 </div>
 <div id="design-30-min" class="section level1">
