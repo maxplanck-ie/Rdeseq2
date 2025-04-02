@@ -11,6 +11,9 @@ navbar:
     - text: "outline"
       icon: fa-check
       href: outline.html
+    - text: "Getting started"
+      icon: fa-battery-empty
+      href: 'packages.html'
     - text: "Day 1"
       icon: fa-battery-quarter
       href: 'day01.html'

@@ -3,7 +3,7 @@ name: deploy
 on:
   push:
     branches:
-      - 2024
+      - 2025
 
 defaults:
   run:

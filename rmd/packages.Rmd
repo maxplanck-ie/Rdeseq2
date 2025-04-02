@@ -1,5 +1,5 @@
 ---
-title: "DESeq2 Analysis with R: outline"
+title: "Getting Started: Packages"
 author: "Bioinfo-Core @ MPI-IE"
 date: "`r date() `"
 output:
@@ -63,49 +63,6 @@ library("EnsDb.Hsapiens.v75")
 library("UpSetR")
 library("ashr")
 ```
-
-# Credits
-
-There is lots of useful material out there. This course is heavily influenced by those tutorials:
-
- * [Harvard Chan bioinformatics core's DGE workshop using Salmon counts](https://hbctraining.github.io/DGE_workshop_salmon_online/) 
- * [DESeq2 vignette](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html)
- * [Hugo Tavares' contrast tutorial](https://github.com/tavareshugo/tutorial_DESeq2_contrasts)
-
-We will also be using publicly available data, which has been altered for educational purposes (and should thus be treated as such).
-
-***
-
-# Overview
-
-## 1. Day I: Getting and understanding the data
-
-* Warmup & R-epetition
-* Data, Metadata & Design
-* Data Exploration
-* Quality Control
-
-
-## 2. Day II: Data Transformations and Model
-
-* Quality Controls & Filtering
-* Data Transformations and Normalization
-* Modeling Count Data
-* Running DESeq2
-
-## 3. Day III: Differentially Expressed Genes
-
-* Complex Experimental Designs and Contrasts
-* Hypothesis tests
-* Inspection & Visualization
-* Gene Annotations
-* Exporting results
-
-## 4. Day IV: On your own 
-
-* Run a multifactorial DESeq2 Analysis. We'll be around to help.
-
-***
 
 # Recap
 
