@@ -14,9 +14,14 @@ output:
 ---
 
 ```{r include=FALSE}
-#knitr::knit_child("parameters.Rmd")
+knitr::knit_child("parameters.Rmd")
 ```
 
+```{r load, message=FALSE}
+library(DESeq2)
+library(tidyverse)
+library(pheatmap)
+```
 
 ## Story
 
@@ -31,9 +36,7 @@ In total we have 18 samples:
 
 - 3 conditions (drugs): AMIL, TG and DMSO (control)
 - 2 cell types: BM and JJ
-- 3 replicates for each combination of conditions and cell-types
-
-<br> 
+- 3 replicates for each combination of conditions and cell-types 
 
 ***
 

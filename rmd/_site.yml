@@ -8,7 +8,7 @@ navbar:
     - text: ""
       icon: fa-home
       href: index.html
-    - text: "outline"
+    - text: "Outline"
       icon: fa-check
       href: outline.html
     - text: "Getting started"
@@ -26,7 +26,7 @@ navbar:
     - text: "Day 4"
       icon: fa-battery-full
       href: "day04.html"
-    - text: "summary"
+    - text: "Summary"
       href: "summary.html"
       icon: fa-truck-medical
 
