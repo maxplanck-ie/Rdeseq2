@@ -1,22 +1,15 @@
 # Poll Day 1
 
-0.1 What is the first element in your .libPaths() ? Replace USER with your user name.
+0.1. Which R version are you running ?
+   a) 3.6.5
+   b) 4.2.3
+   c) 4.4.2
+   d) other
+
+0.2 What is the first element in your .libPaths() ? Replace USER with your user name.
    a) /home/USER/R/workbench-library/4.2
    b) /rstudio/USER/rstudio/R/workbench-library/4.2
    c) other
-   
-0.2 How will you keep track of the code, course material and notes during this course ?
-   a) With a pen and paper.
-   b) I will use the console, and save my session often !
-   c) I will simply remember everything.
-   d) An R notebook to easily store code and comments together.
-   e) I will not keep track of the code, course material and notes during this course.
-
-1.1. How do you get information about the current R-version and loaded packages
-   a) summary()
-   b) sessionInfo()
-   c) getwd()
-   d) installed.packages()
 
 1.2. Did you manage to load DESeq2, tidyverse & pheatmap ?
    a) yes.

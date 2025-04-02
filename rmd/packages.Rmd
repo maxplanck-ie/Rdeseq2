@@ -80,15 +80,11 @@ For R, two of the most common and reliable package repositories are:
 4. Installation can be very **time consuming** but needs to be done only once. 
 
 
-> **Poll 1.1**: 
-> How do you get information about the current R-version and loaded packages?
-
 > **Poll 0.1**: 
 > Which R-version are you running?
 
 
-In the following we will use R-version: `r RVERS`
-
+> In the following we will use R-version: `r RVERS`
 > Please make sure to select this version in the drop-down menu (upper right)
 
 
@@ -99,7 +95,7 @@ In this course, we will use several additional R packages and their dependencies
 We have to make sure these are installed - in a suitable location defined by .libPaths().
 
 
-> **Poll 0.1**: 
+> **Poll 0.2**: 
 > What is the first element in your .libPaths() ?
 
 
