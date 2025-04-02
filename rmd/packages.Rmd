@@ -19,15 +19,11 @@ knitr::knit_child("parameters.Rmd")
 
 ***
 
-## Start Rstduio @ workbench
+## Start Rstudio @ workbench
 
-> ** Task**: Sign into workbench  and start a new "Rstudio Pro" session (You may want to give it a suitable name, e.g. "DESeq2")
-
-
+> **Task**: Sign into workbench  and start a new "Rstudio Pro" session (You may want to give it a suitable name, e.g. "DESeq2")
 
 *** 
-
-
 
 ## Lecture Material
 
@@ -35,18 +31,17 @@ knitr::knit_child("parameters.Rmd")
 
 In your Rstudio session:
 
-* File -> New Project -> 'Version Control' -> git
+* File -> New Project -> 'Version Control' -> git  
+    - Repository URL: https://github.com/maxplanck-ie/Rdeseq2\
+    - Project directory name: chose a folder name  
+* create the project as a subdirectory under your group volume 
+    - e.g. /data/PI/group/MYFOLDER, or /scratch/local/MYFOLDER
 
-> Repository URL: https://github.com/maxplanck-ie/Rdeseq2  
-
-> Project directory name: chose a folder name  
-
-* create the project as a subdirectory under your group volume (e.g. /data/PI/group/MYFOLDER), or a processing volume (/data/processing/MYFOLDER), or the scratch space (/scratch/local/MYFOLDER)
 
 
 ### Verification
 
-If it worked, you should have a new session, and in your console you will retrieve your project directory:
+If it worked, you should have a new session, and in your **console** you will retrieve your project directory:
 
  > getwd()
 
@@ -69,6 +64,7 @@ which should contain these folders:
 
 ### Generalities
 Many useful functions are already available with R: *base packages*.
+
 Most analysis tools come with software packages that will need to be installed before use.
 
 For R, two of the most common and reliable package repositories are:
