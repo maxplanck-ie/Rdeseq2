@@ -342,6 +342,13 @@ div.tocify {
   </a>
 </li>
 <li>
+  <a href="packages.html">
+    <span class="fa fa-battery-empty"></span>
+     
+    Getting started
+  </a>
+</li>
+<li>
   <a href="day01.html">
     <span class="fa fa-battery-quarter"></span>
      
@@ -398,7 +405,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Sat May 25 12:10:06 2024</h4>
+<h4 class="date">Wed Apr 2 13:06:04 2025</h4>
 
 </div>
 
@@ -481,25 +488,25 @@ class="section level4">
 <h4>A single factor with two levels - intercept</h4>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th align="left">samples</th>
 <th align="left">celltype<factor></th>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td align="left">sample1</td>
 <td align="left">JJ</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample2</td>
 <td align="left">JJ</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left">sample3</td>
 <td align="left">BM</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample4</td>
 <td align="left">BM</td>
 </tr>
@@ -529,29 +536,29 @@ reflect ?</p>
 <p>This can be shown by dummy variables:</p>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th align="left">samples</th>
 <th align="left">(Intercept)</th>
 <th align="left">celltypeJJ</th>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td align="left">sample1</td>
 <td align="left">1</td>
 <td align="left">0</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample2</td>
 <td align="left">1</td>
 <td align="left">0</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left">sample3</td>
 <td align="left">1</td>
 <td align="left">1</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample4</td>
 <td align="left">1</td>
 <td align="left">1</td>
@@ -578,33 +585,33 @@ class="section level4">
 <h4>A single factor with more than two levels - intercept</h4>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th align="left">samples</th>
 <th align="left">condition<factor></th>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td align="left">sample1</td>
 <td align="left">AMIL</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample2</td>
 <td align="left">AMIL</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left">sample3</td>
 <td align="left">DMSO</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample4</td>
 <td align="left">DMSO</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left">sample5</td>
 <td align="left">TG</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample6</td>
 <td align="left">TG</td>
 </tr>
@@ -632,7 +639,7 @@ dds &lt;- DESeq(dds)</code></pre>
 <p>Model matrix:</p>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th align="left">samples</th>
 <th align="left">(Intercept)</th>
 <th align="left">conditionDMSO</th>
@@ -640,37 +647,37 @@ dds &lt;- DESeq(dds)</code></pre>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td align="left">sample1</td>
 <td align="left">1</td>
 <td align="left">0</td>
 <td align="left">0</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample2</td>
 <td align="left">1</td>
 <td align="left">0</td>
 <td align="left">0</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left">sample3</td>
 <td align="left">1</td>
 <td align="left">1</td>
 <td align="left">0</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample4</td>
 <td align="left">1</td>
 <td align="left">1</td>
 <td align="left">0</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left">sample5</td>
 <td align="left">1</td>
 <td align="left">0</td>
 <td align="left">1</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample6</td>
 <td align="left">1</td>
 <td align="left">0</td>
@@ -709,69 +716,69 @@ class="section level4">
 </ul>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th align="left">samples</th>
 <th align="left">celltype<factor></th>
 <th align="left">condition<factor></th>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td align="left">sample1</td>
 <td align="left">JJ</td>
 <td align="left">AMIL</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample2</td>
 <td align="left">JJ</td>
 <td align="left">AMIL</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left">sample3</td>
 <td align="left">JJ</td>
 <td align="left">DMSO</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample4</td>
 <td align="left">JJ</td>
 <td align="left">DMSO</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left">sample5</td>
 <td align="left">JJ</td>
 <td align="left">TG</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample6</td>
 <td align="left">JJ</td>
 <td align="left">TG</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left">sample7</td>
 <td align="left">BM</td>
 <td align="left">AMIL</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample8</td>
 <td align="left">BM</td>
 <td align="left">AMIL</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left">sample9</td>
 <td align="left">BM</td>
 <td align="left">DMSO</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample10</td>
 <td align="left">BM</td>
 <td align="left">DMSO</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left">sample11</td>
 <td align="left">BM</td>
 <td align="left">TG</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">sample12</td>
 <td align="left">BM</td>
 <td align="left">TG</td>

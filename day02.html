@@ -342,6 +342,13 @@ div.tocify {
   </a>
 </li>
 <li>
+  <a href="packages.html">
+    <span class="fa fa-battery-empty"></span>
+     
+    Getting started
+  </a>
+</li>
+<li>
   <a href="day01.html">
     <span class="fa fa-battery-quarter"></span>
      
@@ -398,7 +405,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 02</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Sat May 25 12:09:42 2024</h4>
+<h4 class="date">Wed Apr 2 13:05:39 2025</h4>
 
 </div>
 
@@ -419,10 +426,10 @@ source(&#39;funcs.R&#39;)</code></pre>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 4.2.3 (2023-03-15)
 ## Platform: x86_64-conda-linux-gnu (64-bit)
-## Running under: Ubuntu 22.04.4 LTS
+## Running under: Ubuntu 24.04.2 LTS
 ## 
 ## Matrix products: default
-## BLAS/LAPACK: /home/runner/micromamba/envs/Rdeseq2/lib/libopenblasp-r0.3.27.so
+## BLAS/LAPACK: /home/runner/micromamba/envs/Rdeseq2/lib/libopenblasp-r0.3.29.so
 ## 
 ## locale:
 ##  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
@@ -451,13 +458,13 @@ source(&#39;funcs.R&#39;)</code></pre>
 ##  [1] bitops_1.0-7           fontawesome_0.5.2      bit64_4.0.5           
 ##  [4] RColorBrewer_1.1-3     httr_1.4.7             tools_4.2.3           
 ##  [7] bslib_0.7.0            utf8_1.2.4             R6_2.5.1              
-## [10] KernSmooth_2.23-24     DBI_1.2.2              colorspace_2.1-0      
+## [10] KernSmooth_2.23-24     DBI_1.2.3              colorspace_2.1-0      
 ## [13] withr_3.0.0            tidyselect_1.2.1       bit_4.0.5             
-## [16] compiler_4.2.3         cli_3.6.2              DelayedArray_0.24.0   
+## [16] compiler_4.2.3         cli_3.6.3              DelayedArray_0.24.0   
 ## [19] labeling_0.4.3         sass_0.4.9             scales_1.3.0          
-## [22] genefilter_1.80.0      digest_0.6.35          rmarkdown_2.27        
+## [22] genefilter_1.80.0      digest_0.6.36          rmarkdown_2.27        
 ## [25] XVector_0.38.0         pkgconfig_2.0.3        htmltools_0.5.8.1     
-## [28] fastmap_1.2.0          highr_0.10             rlang_1.1.3           
+## [28] fastmap_1.2.0          highr_0.11             rlang_1.1.4           
 ## [31] RSQLite_2.3.4          jquerylib_0.1.4        generics_0.1.3        
 ## [34] farver_2.1.2           jsonlite_1.8.8         BiocParallel_1.32.5   
 ## [37] vroom_1.6.5            RCurl_1.98-1.14        magrittr_2.0.3        
@@ -465,14 +472,14 @@ source(&#39;funcs.R&#39;)</code></pre>
 ## [43] munsell_0.5.1          fansi_1.0.6            lifecycle_1.0.4       
 ## [46] stringi_1.8.4          yaml_2.3.8             zlibbioc_1.44.0       
 ## [49] grid_4.2.3             blob_1.2.4             parallel_4.2.3        
-## [52] crayon_1.5.2           lattice_0.22-6         Biostrings_2.66.0     
+## [52] crayon_1.5.3           lattice_0.22-6         Biostrings_2.66.0     
 ## [55] splines_4.2.3          annotate_1.76.0        hms_1.1.3             
-## [58] KEGGREST_1.38.0        locfit_1.5-9.9         knitr_1.46            
+## [58] KEGGREST_1.38.0        locfit_1.5-9.9         knitr_1.47            
 ## [61] pillar_1.9.0           geneplotter_1.76.0     codetools_0.2-20      
-## [64] XML_3.99-0.16.1        glue_1.7.0             evaluate_0.23         
+## [64] XML_3.99-0.17          glue_1.7.0             evaluate_0.24.0       
 ## [67] png_0.1-8              vctrs_0.6.5            tzdb_0.4.0            
-## [70] gtable_0.3.5           cachem_1.1.0           xfun_0.44             
-## [73] xtable_1.8-4           survival_3.6-4         AnnotationDbi_1.60.0  
+## [70] gtable_0.3.5           cachem_1.1.0           xfun_0.45             
+## [73] xtable_1.8-4           survival_3.7-0         AnnotationDbi_1.60.0  
 ## [76] memoise_2.0.1          timechange_0.3.0</code></pre>
 </div>
 <div id="load-data" class="section level3">
@@ -759,21 +766,21 @@ manner’. Image from github.com/hbctraining</div>
 <p>A number of commonly used normalization techniques:</p>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th align="left">method</th>
 <th align="left">takes into account:</th>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td align="left">CPM</td>
 <td align="left">sequencing depth</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left">RPKM</td>
 <td align="left">sequencing depth and gene length</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left">DESeq2 size factor</td>
 <td align="left">sequencing depth and RNA composition</td>
 </tr>
