@@ -1,5 +1,5 @@
 ---
-title: "Getting Started: Packages"
+title: "Getting Started: Rstudio & Packages"
 author: "Bioinfo-Core @ MPI-IE"
 date: "`r date() `"
 output:
@@ -19,16 +19,102 @@ knitr::knit_child("parameters.Rmd")
 
 ***
 
-# Libraries
+## Start Rstduio @ workbench
+
+> ** Task**: Sign into workbench  and start a new "Rstudio Pro" session (You may want to give it a suitable name, e.g. "DESeq2")
+
+
+
+*** 
+
+
+
+## Lecture Material
+
+> **Task**: Create a new project and clone the datafiles we will be using from github.
+
+In your Rstudio session:
+
+* File -> New Project -> 'Version Control' -> git
+
+> Repository URL: https://github.com/maxplanck-ie/Rdeseq2  
+
+> Project directory name: chose a folder name  
+
+* create the project as a subdirectory under your group volume (e.g. /data/PI/group/MYFOLDER), or a processing volume (/data/processing/MYFOLDER), or the scratch space (/scratch/local/MYFOLDER)
+
+
+### Verification
+
+If it worked, you should have a new session, and in your console you will retrieve your project directory:
+
+ > getwd()
+
+and you should be able to see the data folder:
+
+ > list.files('data')
+
+which should contain these folders:
+
+ * genesets
+ * mpp
+ * myeloma
+
+ > **Task**: Find the file `rmd/packages.Rmd` and open it in Rstudio.
+
+ This contains the content of the current lecture in R-markdown format (text and code cells)
+
+
+## Packages
+
+### Generalities
+Many useful functions are already available with R: *base packages*.
+Most analysis tools come with software packages that will need to be installed before use.
+
+For R, two of the most common and reliable package repositories are:
+
+- **CRAN** https://cran.r-project.org/
+- **Bioconductor** https://bioconductor.org/
+
+**Reminder** 
+
+1. All packages come for a **specific R-version**. 
+2. All packages have specific **package version**, and can come from different sources (CRAN, Bioconductor, github, ...).
+3. Most packages have **dependencies** on other packages that should also be installed 
+4. Installation can be very **time consuming** but needs to be done only once. 
+
+
+> **Poll 1.1**: 
+> How do you get information about the current R-version and loaded packages?
+
+> **Poll 0.1**: 
+> Which R-version are you running?
+
+
+In the following we will use R-version: `r RVERS`
+
+> Please make sure to select this version in the drop-down menu (upper right)
+
+
+### DESeq2 and Dependencies
+
+In this course, we will use several additional R packages and their dependencies.
+
+We have to make sure these are installed - in a suitable location defined by .libPaths().
+
 
 > **Poll 0.1**: 
 > What is the first element in your .libPaths() ?
 
 
-We will use a couple of libraries in this course. We have to make sure these are installed - in a suitable location defined by .libPaths().
+### Install packages
 
-These installations can take a while. So it's best to tackle this first.
-The following code chunk will checks if a required library is available and will attempt to install it if this is not the case.
+The following code-cell installs the packages we need in this course - for each user.
+
+**Task**: Find the corresponding line in your markdown document and "Run the chunk"
+by pressing "Play button" or "Shift-Command-Enter"
+
+Be patient - these installations can take a while.
 
 ```{r install, message=FALSE}
 # Bioconductor
@@ -52,73 +138,24 @@ if (!require("ashr", quietly = TRUE))
     install.packages("ashr")
 ```
 
-After running the above chunk, make sure the libraries can be loaded:
-
-```{r load, message=FALSE}
-library("DESeq2")
-library("tidyverse")
-library("pheatmap")
-library("ggrepel")
-library("EnsDb.Hsapiens.v75")
-library("UpSetR")
-library("ashr")
-```
-
-# Recap
-
-The Rstudio GUI.
-
-![ An Rscript in the Rstudio GUI ](images/outline_script.png)
-
-
-![ An R notebook in the Rstudio GUI ](images/outline_book.png)
-
-> **Poll 0.2**: 
-> How will you keep track of the code, course material and notes during this course ?
-
 ***
 
-# Set up our project
+### Use packages
 
-## Workbench users
+> **Task**:  Load the following packages: DESeq2, tidyverse, pheatmap
 
-> **Task**: Create a new project and clone the datafiles we will be using from github.
+> **Poll 1.2**: Did you manage to load DESeq2, tidyverse & pheatmap ?
 
-If you are working in workbench, start a new session.
+```{r load, message=FALSE}
+library(DESeq2)
+library(tidyverse)
+library(pheatmap)
+```
 
-In your session (local or workbench):
+**Reminder**: Loading new packages enables new functionalities for a given R-session. 
 
-* file -> new project -> 'Version Control' -> git
+This may result in multiple (sometimes redundant) functions with the same name: e.g. sd()
 
-> Repository URL: https://github.com/maxplanck-ie/Rdeseq2  
-> Project directory name: chose a folder name  
+In case of doubt, use package name explicitly: e.g. stats::sd()
 
-* create the project as a subdirectory under your group volume (e.g. /data/PI/group/MYFOLDER), or a processing volume (/data/processing/MYFOLDER), or the scratch space (/scratch/local/MYFOLDER)
-* Remember to choose version `r RVERS`
-
-## Local users
-
-Go to https://github.com/maxplanck-ie/Rdeseq2 , click on the green '< > Code' dropdown button and select 'Download ZIP'.
-Save the file to an appropriate location and extract its content.
-
-Now open your Rstudio instances, and set the working directory to the folder you have just extracted.
-
-## Verification
-
-If it worked, you should have a new session, and in your console you will retrieve your project directory:
-
- > getwd()
-
-and you should be able to see the data folder:
-
- > list.files('data')
-
-which should contain these folders:
-
- * genesets
- * mpp
- * myeloma
-
-How it should look like:
-
-![ An new R notebook in our freshly cloned project ](images/outline_clonedrepo.png)
+> **Task**: Use sessionInfo() to inspect which packages you have just added an their versions.
