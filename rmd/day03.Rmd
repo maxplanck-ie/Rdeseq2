@@ -443,6 +443,8 @@ ggplot(data=tdf, aes(x=name, y=value)) +
 ```
 
 
+Note that the variables of interest in your design can also be 'nuisance' factors, for example batch effects. It's important to include those in the design (cfr. day 01). To subsequently get the comparisons of interest, one can refer to proper contrasts or coefficients of interest (see below).
+
 ### c. Recap
 
 ### Build object
@@ -784,7 +786,7 @@ grid.arrange(p1, p2, nrow=1)
 
 ### b. Likelihood ratio test
 
-DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative to Wald test when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one group compared to another, it identifies genes whose residual variance decreases significantly upon inclusion of a specified set of covariates. There is no need for contrasts since we are not making a pair-wise comparison.
+DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative to Wald test when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one group compared to another, it identifies genes whose residual variance decreases significantly upon inclusion of a specified set of covariates. There is no need for contrasts since we are not making a pair-wise comparison. The LRT always compares a 'full' model (with all of the covariates) to a 'reduced' model (with a number of covariates removed). Note thus that the reduced model is always *nested* with respect to the full model.
 
 The LRT is comparing the 'full' model to the 'reduced' model to identify significant genes. The p-values are determined solely by the difference in deviance between the ‘full’ and the ‘reduced’ model formula (not the log2 fold changes).
 
