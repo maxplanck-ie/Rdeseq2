@@ -32,7 +32,8 @@ knitr::knit_child("parameters.Rmd")
 In your Rstudio session:
 
 * File -> New Project -> 'Version Control' -> git  
-    - Repository URL: https://github.com/maxplanck-ie/Rdeseq2\
+    - Repository URL: https://github.com/maxplanck-ie/Rdeseq2
+    ![Link to github repo](images/qrcode_github.png)
     - Project directory name: chose a folder name  
 * create the project as a subdirectory under your group volume 
     - e.g. /data/PI/group/MYFOLDER, or /scratch/local/MYFOLDER
