@@ -462,15 +462,16 @@ dds_sim <- makeExampleDESeqDataSet(n=5000, m=6, betaSD = 2) %>% DESeq(quiet=TRUE
 dds_sim %>% PCA_tm(groups=c("condition")) + ggtitle("Synthetic Data")
 ```
 
-```{r disp_sim_plot, eval=FALSE, echo=TRUE}
+```{r disp_sim_plot, eval=TRUE, echo=TRUE, fig.cap="Dispersion Estimates for simulated data. n=5000 genes and m=6 samples."}
 # dds_sim %>% plotDispEsts() # does not produce ggplot
 p1 <- dds_sim %>% plotDisp  + ggtitle("design: ~ 1 + condition")
 p2 <- dds_sim %>% plotDispErr
-grid.arrange(p1, p2, ncol=1)
+p1 + p2 
+# grid.arrange(p1, p2, ncol=1) # requires gridExtra package
 ```
 
 ```{r disp_simplot2, eval=FALSE, echo=FALSE}
-# fake some problems
+# fake some potential problems
 # 1. poor design (does not account for factor 'condition')
 design(dds_sim) <- ~ 1
 # 2. sample swaps
@@ -480,8 +481,6 @@ dds_sim <- dds_sim %>% DESeq(quiet = TRUE)  # rerun DESeq
 
 p3 <- dds_sim %>% plotDisp + ggtitle("design: ~ 1")
 p4 <- dds_sim %>% plotDispErr
-
-# requires gridExtra package
 grid.arrange(p1, p3, p2, p4,  ncol=2)
 
 # Notice:
