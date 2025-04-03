@@ -405,7 +405,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 02</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Thu Apr 3 13:04:41 2025</h4>
+<h4 class="date">Thu Apr 3 14:58:44 2025</h4>
 
 </div>
 
@@ -415,9 +415,10 @@ div.tocify {
 <div id="load-packages" class="section level3">
 <h3>Load packages</h3>
 <pre class="r"><code>suppressPackageStartupMessages({
-library(&quot;tidyverse&quot;)
-library(&quot;DESeq2&quot;)
-library(&quot;pheatmap&quot;)
+  library(&quot;tidyverse&quot;)
+  library(&quot;DESeq2&quot;)
+  library(&quot;pheatmap&quot;)
+  library(&quot;patchwork&quot;)
 })
 
 # define some convenience function for plotting
@@ -442,17 +443,17 @@ source(&#39;funcs.R&#39;)</code></pre>
 ## [8] base     
 ## 
 ## other attached packages:
-##  [1] pheatmap_1.0.12             lubridate_1.9.3            
-##  [3] forcats_1.0.0               stringr_1.5.1              
-##  [5] dplyr_1.1.4                 purrr_1.0.2                
-##  [7] readr_2.1.5                 tidyr_1.3.1                
-##  [9] tibble_3.2.1                ggplot2_3.5.1              
-## [11] tidyverse_2.0.0             DESeq2_1.38.0              
-## [13] SummarizedExperiment_1.28.0 Biobase_2.58.0             
-## [15] MatrixGenerics_1.10.0       matrixStats_1.3.0          
-## [17] GenomicRanges_1.50.0        GenomeInfoDb_1.34.9        
-## [19] IRanges_2.32.0              S4Vectors_0.36.0           
-## [21] BiocGenerics_0.44.0        
+##  [1] patchwork_1.2.0             pheatmap_1.0.12            
+##  [3] lubridate_1.9.3             forcats_1.0.0              
+##  [5] stringr_1.5.1               dplyr_1.1.4                
+##  [7] purrr_1.0.2                 readr_2.1.5                
+##  [9] tidyr_1.3.1                 tibble_3.2.1               
+## [11] ggplot2_3.5.1               tidyverse_2.0.0            
+## [13] DESeq2_1.38.0               SummarizedExperiment_1.28.0
+## [15] Biobase_2.58.0              MatrixGenerics_1.10.0      
+## [17] matrixStats_1.3.0           GenomicRanges_1.50.0       
+## [19] GenomeInfoDb_1.34.9         IRanges_2.32.0             
+## [21] S4Vectors_0.36.0            BiocGenerics_0.44.0        
 ## 
 ## loaded via a namespace (and not attached):
 ##  [1] bitops_1.0-7           fontawesome_0.5.2      bit64_4.0.5           
@@ -971,7 +972,26 @@ dds_sim %&gt;% PCA_tm(groups=c(&quot;condition&quot;)) + ggtitle(&quot;Synthetic
 <pre class="r"><code># dds_sim %&gt;% plotDispEsts() # does not produce ggplot
 p1 &lt;- dds_sim %&gt;% plotDisp  + ggtitle(&quot;design: ~ 1 + condition&quot;)
 p2 &lt;- dds_sim %&gt;% plotDispErr
-grid.arrange(p1, p2, ncol=1)</code></pre>
+p1 + p2 </code></pre>
+<pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.
+## log-10 transformation introduced infinite values.
+## log-10 transformation introduced infinite values.</code></pre>
+<pre><code>## Warning: Removed 49 rows containing missing values or values outside the scale range
+## (`geom_point()`).
+## Removed 49 rows containing missing values or values outside the scale range
+## (`geom_point()`).</code></pre>
+<pre><code>## Warning: Removed 49 rows containing missing values or values outside the scale range
+## (`geom_line()`).</code></pre>
+<pre><code>## Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
+<pre><code>## Warning: Removed 52 rows containing missing values or values outside the scale range
+## (`geom_point()`).</code></pre>
+<div class="figure">
+<img src="day02_files/figure-html/disp_sim_plot-1.png" alt="Dispersion Estimates for simulated data. n=5000 genes and m=6 samples." width="672" />
+<p class="caption">
+Dispersion Estimates for simulated data. n=5000 genes and m=6 samples.
+</p>
+</div>
+<pre class="r"><code># grid.arrange(p1, p2, ncol=1) # requires gridExtra package</code></pre>
 <div class="float">
 <img src="images/dispEst.png"
 alt="Dispersion Estimates for simulated data. n=5000 genes and m=6 samples." />
@@ -1107,6 +1127,20 @@ log2FoldChange.</li>
 {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["baseMean"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["log2FoldChange"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["lfcSE"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["stat"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["pvalue"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["padj"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"3530.1639","2":"-14.10158","3":"0.8303446","4":"-16.98281","5":"1.100914e-64","6":"7.620958e-63","_rn_":"ENSG00000234518"},{"1":"3594.4328","2":"-14.01708","3":"0.8209862","4":"-17.07346","5":"2.339158e-65","6":"1.644479e-63","_rn_":"ENSG00000234664"},{"1":"1518.0308","2":"-13.99289","3":"0.8385910","4":"-16.68619","5":"1.651914e-62","6":"1.119482e-60","_rn_":"ENSG00000240395"},{"1":"1465.2018","2":"-13.69611","3":"0.8454266","4":"-16.20024","5":"5.023380e-59","6":"3.220529e-57","_rn_":"ENSG00000241511"},{"1":"3385.8022","2":"-13.65427","3":"0.8314285","4":"-16.42266","5":"1.316671e-60","6":"8.688105e-59","_rn_":"ENSG00000240376"},{"1":"1249.8952","2":"-13.62698","3":"0.8390069","4":"-16.24179","5":"2.553527e-59","6":"1.651159e-57","_rn_":"ENSG00000243680"},{"1":"1894.8664","2":"-13.56592","3":"0.8701560","4":"-15.59022","5":"8.484141e-55","6":"5.092064e-53","_rn_":"ENSG00000123009"},{"1":"1400.1885","2":"-13.53543","3":"0.8626756","4":"-15.69006","5":"1.768832e-55","6":"1.075936e-53","_rn_":"ENSG00000235587"},{"1":"2623.3159","2":"-13.50945","3":"0.8454753","4":"-15.97853","5":"1.803500e-57","6":"1.136860e-55","_rn_":"ENSG00000240509"},{"1":"2427.4982","2":"-13.45876","3":"0.8425622","4":"-15.97361","5":"1.951675e-57","6":"1.226837e-55","_rn_":"ENSG00000236801"},{"1":"5832.5382","2":"-13.43564","3":"0.5920025","4":"-22.69524","5":"4.992338e-114","6":"5.549857e-112","_rn_":"ENSG00000220472"},{"1":"10008.8051","2":"-13.43410","3":"0.4650086","4":"-28.89000","5":"1.594304e-183","6":"2.588393e-181","_rn_":"ENSG00000218175"},{"1":"1066.1961","2":"-13.40186","3":"0.8578121","4":"-15.62330","5":"5.051833e-55","6":"3.040126e-53","_rn_":"ENSG00000234782"},{"1":"1470.7898","2":"-13.30049","3":"0.8388092","4":"-15.85640","5":"1.269759e-56","6":"7.829137e-55","_rn_":"ENSG00000213862"},{"1":"5684.2491","2":"-13.28488","3":"0.6668398","4":"-19.92215","5":"2.615233e-88","6":"2.360718e-86","_rn_":"ENSG00000243547"},{"1":"2764.8889","2":"-13.27616","3":"0.8183699","4":"-16.22269","5":"3.486020e-59","6":"2.247686e-57","_rn_":"ENSG00000241081"},{"1":"1235.6125","2":"-13.22274","3":"0.8515979","4":"-15.52697","5":"2.278914e-54","6":"1.353375e-52","_rn_":"ENSG00000235605"},{"1":"1153.6592","2":"-13.20542","3":"0.8491504","4":"-15.55133","5":"1.558364e-54","6":"9.303598e-53","_rn_":"ENSG00000243829"},{"1":"4799.8157","2":"-13.19417","3":"0.5638695","4":"-23.39934","5":"4.340364e-121","6":"4.972031e-119","_rn_":"ENSG00000228205"},{"1":"690.1955","2":"-13.09799","3":"0.8442747","4":"-15.51389","5":"2.794167e-54","6":"1.650680e-52","_rn_":"ENSG00000228328"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
+<ul>
+<li>get overall summary</li>
+</ul>
+<pre class="r"><code>dds_res %&gt;% summary(alpha=0.05)</code></pre>
+<pre><code>## 
+## out of 27351 with nonzero total read count
+## adjusted p-value &lt; 0.05
+## LFC &gt; 0 (up)       : 3432, 13%
+## LFC &lt; 0 (down)     : 5100, 19%
+## outliers [1]       : 11, 0.04%
+## low counts [2]     : 4773, 17%
+## (mean count &lt; 1)
+## [1] see &#39;cooksCutoff&#39; argument of ?results
+## [2] see &#39;independentFiltering&#39; argument of ?results</code></pre>
 </div>
 <div id="explore-results" class="section level3">
 <h3>Explore results</h3>
