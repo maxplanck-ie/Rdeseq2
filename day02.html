@@ -405,7 +405,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 02</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Thu Apr 3 10:39:31 2025</h4>
+<h4 class="date">Thu Apr 3 13:04:41 2025</h4>
 
 </div>
 
@@ -969,20 +969,9 @@ dds_sim &lt;- makeExampleDESeqDataSet(n=5000, m=6, betaSD = 2) %&gt;% DESeq(quie
 dds_sim %&gt;% PCA_tm(groups=c(&quot;condition&quot;)) + ggtitle(&quot;Synthetic Data&quot;)</code></pre>
 <p><img src="day02_files/figure-html/disp_sim-1.png" width="672" /></p>
 <pre class="r"><code># dds_sim %&gt;% plotDispEsts() # does not produce ggplot
-p1 &lt;- dds_sim %&gt;% plotDisp  + ggtitle(&quot;design: ~ 1 + condition&quot;) 
+p1 &lt;- dds_sim %&gt;% plotDisp  + ggtitle(&quot;design: ~ 1 + condition&quot;)
 p2 &lt;- dds_sim %&gt;% plotDispErr
-
-# poor design: does not account for factor &#39;condition&#39;
-design(dds_sim) &lt;- ~ 1   
-# sample swaps
-# dds_sim$condition = dds_sim$condition %&gt;% sample
-dds_sim &lt;- dds_sim %&gt;% DESeq(quiet=TRUE)  # rerun DESeq
-
-p3 &lt;- dds_sim %&gt;% plotDisp + ggtitle(&quot;design: ~ 1&quot;)
-p4 &lt;- dds_sim %&gt;% plotDispErr
-
-# requires gridExtra package
-grid.arrange(p1, p3, p2, p4,  ncol=2)</code></pre>
+grid.arrange(p1, p2, ncol=1)</code></pre>
 <div class="float">
 <img src="images/dispEst.png"
 alt="Dispersion Estimates for simulated data. n=5000 genes and m=6 samples." />
@@ -991,7 +980,7 @@ class="math inline">\(n=5000\)</span> genes and <span
 class="math inline">\(m=6\)</span> samples.</div>
 </div>
 <p><br></p>
-<p><em>Notice (left):</em></p>
+<p><em>Notice:</em></p>
 <ul>
 <li><p>MLE estimates of dispersion parameters are difficult; both
 technically (iterations) and statistically (few samples, low counts).
@@ -1006,17 +995,6 @@ significance <span class="math inline">\(\to\)</span> increase in false
 positives differential calls. Therefore the final dispersion estimates
 (blue) have been biased towards higher values, given the trend over all
 genes.</p></li>
-</ul>
-<p><em>Notice (right):</em></p>
-<ul>
-<li><p>Poor design choices (unaccounted factors/batch effects, sample
-swaps, …) account poorly for the observed variance and inflate “residual
-variation”. This can result in poor dispersion models and poor
-estimates.</p></li>
-<li><p>DESeq assumes that the gene-specific dispersion <span
-class="math inline">\(\alpha_i\)</span> is constant for each gene <span
-class="math inline">\(i\)</span>, after accounting for all
-sample-specific effects.</p></li>
 </ul>
 <blockquote>
 <p><strong>Pay attention:</strong> does the fit look reasonable? Poor
