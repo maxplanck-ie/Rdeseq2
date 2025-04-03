@@ -18,9 +18,10 @@ output:
 ### Load packages
 ``` {r load_libraries}
 suppressPackageStartupMessages({
-library("tidyverse")
-library("DESeq2")
-library("pheatmap")
+  library("tidyverse")
+  library("DESeq2")
+  library("pheatmap")
+  library("patchwork")
 })
 
 # define some convenience function for plotting
@@ -567,6 +568,11 @@ dds_res %>%
   data.frame() %>% 
   subset(padj < 0.05) %>% 
   arrange(-abs(log2FoldChange)) %>% head(20)
+```
+
+- get overall summary
+```{r results_summary}
+dds_res %>% summary(alpha=0.05)
 ```
 
 ### Explore results
