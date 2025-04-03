@@ -8,6 +8,7 @@ dependencies:
   - bioconductor-deseq2
   - bioconductor-ensdb.hsapiens.v75
   - r-tidyverse
+  - r-patchwork
   - r-pheatmap
   - r-ashr
   - r-ggrepel
