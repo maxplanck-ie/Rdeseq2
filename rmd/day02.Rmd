@@ -464,27 +464,39 @@ dds_sim %>% PCA_tm(groups=c("condition")) + ggtitle("Synthetic Data")
 
 ```{r disp_sim_plot, eval=FALSE, echo=TRUE}
 # dds_sim %>% plotDispEsts() # does not produce ggplot
-p1 <- dds_sim %>% plotDisp  + ggtitle("design: ~ 1 + condition") 
+p1 <- dds_sim %>% plotDisp  + ggtitle("design: ~ 1 + condition")
 p2 <- dds_sim %>% plotDispErr
+grid.arrange(p1, p2, ncol=1)
+```
 
-# poor design: does not account for factor 'condition'
-design(dds_sim) <- ~ 1   
-# sample swaps
+```{r disp_simplot2, eval=FALSE, echo=FALSE}
+# fake some problems
+# 1. poor design (does not account for factor 'condition')
+design(dds_sim) <- ~ 1
+# 2. sample swaps
 # dds_sim$condition = dds_sim$condition %>% sample
-dds_sim <- dds_sim %>% DESeq(quiet=TRUE)  # rerun DESeq
+
+dds_sim <- dds_sim %>% DESeq(quiet = TRUE)  # rerun DESeq
 
 p3 <- dds_sim %>% plotDisp + ggtitle("design: ~ 1")
 p4 <- dds_sim %>% plotDispErr
 
 # requires gridExtra package
 grid.arrange(p1, p3, p2, p4,  ncol=2)
+
+# Notice:
+#- Poor design choices (unaccounted factors/batch effects, sample swaps, ...) account poorly for the observed variance and inflate "residual variation". 
+#  This can result in poor dispersion models and poor estimates.
+#- DESeq assumes that the gene-specific dispersion $\alpha_i$ is constant for each gene $i$, after accounting for all sample-specific effects.
+
 ```
+
 
 ![Dispersion Estimates for simulated data. $n=5000$ genes and $m=6$ samples.](images/dispEst.png)
 
 <br>
 
-*Notice (left):*
+*Notice:*
 
 - MLE estimates of dispersion parameters are difficult; both technically (iterations) and statistically (few samples, low counts).
 Therefore large uncertainty in those estimates is to be expected $\to$ need to moderate
@@ -493,11 +505,6 @@ Therefore large uncertainty in those estimates is to be expected $\to$ need to m
 
 - The main concern is an *underestimate* of dispersion and variance $\to$ overestimate of significance $\to$ increase in false positives differential calls. Therefore the final dispersion estimates (blue) have been biased towards higher values, given the trend over all genes.
 
-*Notice (right):*
-
-- Poor design choices (unaccounted factors/batch effects, sample swaps, ...) account poorly for the observed variance and inflate "residual variation". This can result in poor dispersion models and poor estimates.
-
-- DESeq assumes that the gene-specific dispersion $\alpha_i$ is constant for each gene $i$, after accounting for all sample-specific effects.
 
 > **Pay attention:** does the fit look reasonable?
 Poor fits may be related to *poor designs* or *poor filtering* of lowly expressed genes
