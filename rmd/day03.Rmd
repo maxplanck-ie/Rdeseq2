@@ -443,6 +443,30 @@ ggplot(data=tdf, aes(x=name, y=value)) +
 ```
 
 
+Note that the variables of interest in your design can also be 'nuisance' factors, for example batch effects. It's important to include those in the design (cfr. day 01). To subsequently get the comparisons of interest, one can refer to proper contrasts or coefficients of interest (see below). If one imagines that our celltype variable is a 'batch effect' (i.e. samples prepared on Monday, or on Saturday), it's clear that not including batch in the design would lead to an increased variance estimation.
+
+```{r counts with batch, echo=FALSE, warning=FALSE, fig.width=10, fig.height=5}
+gene <- data %>% slice(42)        
+gene <- gene %>%  pivot_longer(-gene_id, names_to = "sample", values_to = "count")
+gene <- gene %>% inner_join(metadata, by="sample")
+gene$batch <- factor(ifelse(gene$celltype == 'JJ', 'Monday', 'Saturday'))
+
+
+p1 <- ggplot(gene, aes(x=condition, y=count, col=condition)) +
+  geom_boxplot() +
+  geom_point(size=3)
+
+p2 <- ggplot(gene, aes(x=condition, y=count, col=condition, shape=batch)) +
+  geom_boxplot() +
+  geom_point(size=3) +
+  facet_wrap(~batch)
+
+grid.arrange(p1, p2, ncol = 2)
+
+```
+
+
+
 ### c. Recap
 
 ### Build object
@@ -504,7 +528,7 @@ There are three reasons to set adjusted p-values to NA (From the [DESeq2 vignett
 
    * within a row, all samples have zero counts (remember that we filtered these, so this doesn't apply here !)
    * a row contains a sample with an extreme count outlier
-   * A row is filtered by independent filtering  
+   * A row is filtered by independent filtering (in essence a count cut-off).
 
 ```{r, warning=FALSE}
 p1 <- ggplot() +
@@ -784,14 +808,22 @@ grid.arrange(p1, p2, nrow=1)
 
 ### b. Likelihood ratio test
 
-DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative to Wald test when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one group compared to another, it identifies genes whose residual variance decreases significantly upon inclusion of a specified set of covariates. There is no need for contrasts since we are not making a pair-wise comparison.
+DESeq2 also offers the Likelihood Ratio Test (LRT) as an alternative to Wald test when evaluating expression change across more than two levels. Rather than evaluating whether a gene’s expression is up- or down-regulated in one group compared to another, it identifies genes whose residual variance decreases significantly upon inclusion of a specified set of covariates. There is no need for contrasts since we are not making a pair-wise comparison. The LRT always compares a 'full' model (with all of the covariates) to a 'reduced' model (with a number of covariates removed). Note thus that the reduced model is always *nested* with respect to the full model.
+
+One can use an LRT to test for one factor too (which asymptotically would be equivalent to a wald test), but for the sake of illustration (and why the LRT is useful) we can identify genes that are sensitive to any treatment, or even both. Note that we have DMSO, TG & AMIL, and thus would need two contrasts to identify genes changing with respect to the base level. With the LRT we can drop both 'condition' coefficients in the reduced model.
 
 The LRT is comparing the 'full' model to the 'reduced' model to identify significant genes. The p-values are determined solely by the difference in deviance between the ‘full’ and the ‘reduced’ model formula (not the log2 fold changes).
 
 ```{r lrt, message=FALSE, warning=FALSE}
-print(design(dds))
-print(resultsNames(dds))
-dds_lrt <- DESeq(dds, test="LRT", reduced = ~celltype + condition)
+dds_lrt_example <- dds
+design(dds_lrt_example) <- ~celltype + condition
+dds_lrt_example <- DESeq(dds_lrt_example)
+print(design(dds_lrt_example))
+print(resultsNames(dds_lrt_example))
+```
+
+```{r lrt exec, message=FALSE, warning=FALSE}
+dds_lrt <- DESeq(dds_lrt_example, test="LRT", reduced = ~celltype)
 res_lrt <- results(dds_lrt)
 head(res_lrt)
 ```
