@@ -405,7 +405,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 03</h1>
 <h4 class="author">Bioinfo-Core @ MPI-IE</h4>
-<h4 class="date">Thu Apr 3 15:32:25 2025</h4>
+<h4 class="date">Wed Apr 9 09:37:04 2025</h4>
 
 </div>
 
@@ -838,6 +838,15 @@ dds &lt;- DESeq(dds)</code></pre>
 ## [3] &quot;celltypeBM.conditionDMSO&quot; &quot;celltypeJJ.conditionDMSO&quot;
 ## [5] &quot;celltypeBM.conditionTG&quot;   &quot;celltypeJJ.conditionTG&quot;</code></pre>
 <p><img src="day03_files/figure-html/coefplot%20fulldesign%20noint-1.png" width="960" /></p>
+<p>Note that the variables of interest in your design can also be
+‘nuisance’ factors, for example batch effects. It’s important to include
+those in the design (cfr. day 01). To subsequently get the comparisons
+of interest, one can refer to proper contrasts or coefficients of
+interest (see below). If one imagines that our celltype variable is a
+‘batch effect’ (i.e. samples prepared on Monday, or on Saturday), it’s
+clear that not including batch in the design would lead to an increased
+variance estimation.</p>
+<p><img src="day03_files/figure-html/counts%20with%20batch-1.png" width="960" /></p>
 </div>
 </div>
 <div id="c.-recap" class="section level3">
@@ -909,7 +918,8 @@ vignette</a>)</p>
 <li>within a row, all samples have zero counts (remember that we
 filtered these, so this doesn’t apply here !)</li>
 <li>a row contains a sample with an extreme count outlier</li>
-<li>A row is filtered by independent filtering</li>
+<li>A row is filtered by independent filtering (in essence a count
+cut-off).</li>
 </ul>
 <pre class="r"><code>p1 &lt;- ggplot() +
   geom_point(size=0.5, aes(x=log10(res_dds$baseMean), y=-log10(res_dds$padj))) +
@@ -1207,39 +1217,51 @@ levels. Rather than evaluating whether a gene’s expression is up- or
 down-regulated in one group compared to another, it identifies genes
 whose residual variance decreases significantly upon inclusion of a
 specified set of covariates. There is no need for contrasts since we are
-not making a pair-wise comparison.</p>
+not making a pair-wise comparison. The LRT always compares a ‘full’
+model (with all of the covariates) to a ‘reduced’ model (with a number
+of covariates removed). Note thus that the reduced model is always
+<em>nested</em> with respect to the full model.</p>
+<p>One can use an LRT to test for one factor too (which asymptotically
+would be equivalent to a wald test), but for the sake of illustration
+(and why the LRT is useful) we can identify genes that are sensitive to
+any treatment, or even both. Note that we have DMSO, TG &amp; AMIL, and
+thus would need two contrasts to identify genes changing with respect to
+the base level. With the LRT we can drop both ‘condition’ coefficients
+in the reduced model.</p>
 <p>The LRT is comparing the ‘full’ model to the ‘reduced’ model to
 identify significant genes. The p-values are determined solely by the
 difference in deviance between the ‘full’ and the ‘reduced’ model
 formula (not the log2 fold changes).</p>
-<pre class="r"><code>print(design(dds))</code></pre>
-<pre><code>## ~celltype + condition + celltype:condition</code></pre>
-<pre class="r"><code>print(resultsNames(dds))</code></pre>
-<pre><code>## [1] &quot;Intercept&quot;                &quot;celltype_JJ_vs_BM&quot;       
-## [3] &quot;condition_DMSO_vs_AMIL&quot;   &quot;condition_TG_vs_AMIL&quot;    
-## [5] &quot;celltypeJJ.conditionDMSO&quot; &quot;celltypeJJ.conditionTG&quot;</code></pre>
-<pre class="r"><code>dds_lrt &lt;- DESeq(dds, test=&quot;LRT&quot;, reduced = ~celltype + condition)
+<pre class="r"><code>dds_lrt_example &lt;- dds
+design(dds_lrt_example) &lt;- ~celltype + condition
+dds_lrt_example &lt;- DESeq(dds_lrt_example)
+print(design(dds_lrt_example))</code></pre>
+<pre><code>## ~celltype + condition</code></pre>
+<pre class="r"><code>print(resultsNames(dds_lrt_example))</code></pre>
+<pre><code>## [1] &quot;Intercept&quot;              &quot;celltype_JJ_vs_BM&quot;      &quot;condition_DMSO_vs_AMIL&quot;
+## [4] &quot;condition_TG_vs_AMIL&quot;</code></pre>
+<pre class="r"><code>dds_lrt &lt;- DESeq(dds_lrt_example, test=&quot;LRT&quot;, reduced = ~celltype)
 res_lrt &lt;- results(dds_lrt)
 head(res_lrt)</code></pre>
-<pre><code>## log2 fold change (MLE): celltypeJJ.conditionTG 
-## LRT p-value: &#39;~ celltype + condition + celltype:condition&#39; vs &#39;~ celltype + condition&#39; 
+<pre><code>## log2 fold change (MLE): condition TG vs AMIL 
+## LRT p-value: &#39;~ celltype + condition&#39; vs &#39;~ celltype&#39; 
 ## DataFrame with 6 rows and 6 columns
-##                   baseMean log2FoldChange     lfcSE       stat      pvalue
-##                  &lt;numeric&gt;      &lt;numeric&gt; &lt;numeric&gt;  &lt;numeric&gt;   &lt;numeric&gt;
-## ENSG00000000419 2285.01560       0.236119  0.276981   1.881005 3.90431e-01
-## ENSG00000000457  775.42002      -0.283143  0.133940   4.895316 8.64959e-02
-## ENSG00000000460 1300.43696      -0.163680  0.156610   1.092414 5.79142e-01
-## ENSG00000000938    2.45443      -4.605761  1.843614   7.884850 1.94011e-02
-## ENSG00000000971 1626.92877      -0.232611  1.109048   0.139126 9.32801e-01
-## ENSG00000001036  992.80507       1.628940  0.183938 105.788038 1.06763e-23
+##                   baseMean log2FoldChange     lfcSE      stat      pvalue
+##                  &lt;numeric&gt;      &lt;numeric&gt; &lt;numeric&gt; &lt;numeric&gt;   &lt;numeric&gt;
+## ENSG00000000419 2285.01560      -0.280813 0.1599274  11.01680 4.05258e-03
+## ENSG00000000457  775.42002       0.449928 0.0783874  35.43819 2.01695e-08
+## ENSG00000000460 1300.43696       0.791716 0.0835904 139.66593 4.69817e-31
+## ENSG00000000938    2.45443       0.739592 0.7879720   1.64233 4.39919e-01
+## ENSG00000000971 1626.92877       0.189846 0.1134560   6.35776 4.16323e-02
+## ENSG00000001036  992.80507      -1.118897 0.2469728  19.37905 6.19289e-05
 ##                        padj
 ##                   &lt;numeric&gt;
-## ENSG00000000419 5.41295e-01
-## ENSG00000000457 1.57034e-01
-## ENSG00000000460 7.29685e-01
-## ENSG00000000938 4.23037e-02
-## ENSG00000000971 9.79045e-01
-## ENSG00000001036 3.63236e-22</code></pre>
+## ENSG00000000419 7.52527e-03
+## ENSG00000000457 8.12254e-08
+## ENSG00000000460 7.06354e-30
+## ENSG00000000938 5.11609e-01
+## ENSG00000000971 6.33396e-02
+## ENSG00000001036 1.56764e-04</code></pre>
 <p>Columns relevant to the LRT test:</p>
 <ul>
 <li>baseMean: mean of normalized counts for all samples</li>
@@ -1253,7 +1275,7 @@ generate a pvalue</li>
 last coefficient ! (and thus doesn’t tell us anything in this case).</p>
 <pre class="r"><code>sig_res_lrt &lt;- res_lrt %&gt;% data.frame()  %&gt;% drop_na() %&gt;% dplyr::filter(padj &lt; 0.05) %&gt;% arrange(padj)
 nrow(sig_res_lrt)</code></pre>
-<pre><code>## [1] 9058</code></pre>
+<pre><code>## [1] 14441</code></pre>
 <pre class="r"><code>pheatmap(counts(dds, normalized=TRUE)[sig_res_lrt %&gt;% rownames(),],
          cluster_rows = T,
          show_rownames = F,
