@@ -130,6 +130,8 @@ if (!require("UpSetR", quietly = TRUE))
     install.packages("UpSetR")
 if (!require("ashr", quietly = TRUE))
     install.packages("ashr")
+if (!require("patchwork", quietly = TRUE))
+    install.packages("patchwork")
 ```
 
 ***
