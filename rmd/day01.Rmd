@@ -184,7 +184,8 @@ gene %>%
   inner_join(metadata, by="sample") %>%
   #plot against condition
   ggplot(aes(x=condition, y=count, col=condition)) + 
-  geom_point(size=3)  
+  #geom_point(size=3)  +
+  geom_jitter(size = 3, width = 0.1)
 ```
 
 > **Task**: Plot gene counts against celltype.
