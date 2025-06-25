@@ -405,7 +405,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">DESeq2 Analysis with R: Part 01</h1>
 <h4 class="author">Thomas Manke @ MPI-IE</h4>
-<h4 class="date">Wed Apr 9 09:36:26 2025</h4>
+<h4 class="date">Wed Jun 25 06:52:39 2025</h4>
 
 </div>
 
@@ -606,7 +606,8 @@ class="math inline">\(\to y = f(condition, celltype) +
   inner_join(metadata, by=&quot;sample&quot;) %&gt;%
   #plot against condition
   ggplot(aes(x=condition, y=count, col=condition)) + 
-  geom_point(size=3)  </code></pre>
+  #geom_point(size=3)  +
+  geom_jitter(size = 3, width = 0.1)</code></pre>
 <p><img src="day01_files/figure-html/gene_plot_factors-1.png" width="672" /></p>
 <blockquote>
 <p><strong>Task</strong>: Plot gene counts against celltype.</p>
